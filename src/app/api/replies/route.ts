@@ -11,18 +11,21 @@ export async function POST(request: Request) {
   }
 
   try {
-    const { keyword, reply } = await request.json()
+    const { keyword, reply, postId, replyType, matchType } = await request.json()
 
-    const newKeyword = await prisma.keyword.create({
+    const newReply = await prisma.reply.create({
       data: {
         keyword,
         reply,
         userId: session.user.id,
+        postId,
+        replyType,
+        matchType,
       },
     })
-    return NextResponse.json(newKeyword)
+    return NextResponse.json(newReply)
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to create keyword'}, { status: 500 })
+    return NextResponse.json({ error: 'Failed to create reply'}, { status: 500 })
   }
 }
 
@@ -34,12 +37,13 @@ export async function GET() {
   }
 
   try {
-    const keywords = await prisma.keyword.findMany({
+    const replies = await prisma.reply.findMany({
       where: { userId: session.user.id },
       orderBy: { createdAt: 'desc' },
+      include: { buttons: true },
     })
-    return NextResponse.json(keywords)
+    return NextResponse.json(replies)
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to fetch keywords'}, { status: 500 })
+    return NextResponse.json({ error: 'Failed to fetch replies'}, { status: 500 })
   }
 }

@@ -1,14 +1,23 @@
 import { getServerSession } from "next-auth/next"
-import { redirect } from 'next/navigation'
 import { authOptions } from "../api/auth/[...nextauth]/options"
-import DashboardClient from './DashboardClient'
 
 export default async function DashboardPage() {
   const session = await getServerSession(authOptions)
 
-  if (!session) {
-    redirect('/login')
+  if (!session || !session.user) {
+    return <div>ログインしてください</div>
   }
 
-  return <DashboardClient />
+  return (
+    <div>
+      <h1>ダッシュボード</h1>
+      <p>ようこそ、{session.user.name}さん</p>
+      {session.user.facebookAccessToken ? (
+        <p>Facebookと連携済みです</p>
+      ) : (
+        <p>Facebookとの連携が必要です</p>
+      )}
+      {/* 他のダッシュボードコンテンツ */}
+    </div>
+  )
 }

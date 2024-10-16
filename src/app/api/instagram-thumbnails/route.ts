@@ -12,13 +12,13 @@ interface InstagramMediaItem {
 
 export async function GET() {
   const session = await getServerSession(authOptions)
-  if (!session || !session.user || !session.accessToken) {
+  if (!session || !session.user || !session.user.facebookAccessToken) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
   try {
     // FacebookのアクセストークンからInstagram Business Account IDを取得
-    const accountResponse = await axios.get(`https://graph.facebook.com/v20.0/me/accounts?access_token=${session.accessToken}`)
+    const accountResponse = await axios.get(`https://graph.facebook.com/v20.0/me/accounts?access_token=${session.user.facebookAccessToken}`)
     const pageId = accountResponse.data.data[0].id
     const pageAccessToken = accountResponse.data.data[0].access_token
 

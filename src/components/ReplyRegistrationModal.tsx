@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup } from "@/components/ui/RadioGroup";
 import Modal from './Modal';
 import InstagramPostList from './InstagramPostList';
+import { Reply, ReplyInput, ReplyFormData } from '@/types/reply';
 
 // Zodスキーマの定義
 const schema = z.object({
@@ -26,21 +27,23 @@ type FormData = z.infer<typeof schema>;
 interface KeywordRegistrationModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (data: FormData & { postImage: string, buttons: Array<{title: string, url: string}> }) => void;
+  onSubmit: (data: Omit<Reply, 'id'>) => void;
+  initialData?: Omit<Reply, 'id'>;
+  isEditing?: boolean;
 }
 
-const KeywordRegistrationModal: React.FC<KeywordRegistrationModalProps> = ({ isOpen, onClose, onSubmit }) => {
-  const [step, setStep] = useState(1);
+const KeywordRegistrationModal: React.FC<KeywordRegistrationModalProps> = ({ isOpen, onClose, onSubmit, initialData, isEditing = false }) => {
+  const [step, setStep] = useState(isEditing ? 3 : 1);
   const [selectedPost, setSelectedPost] = useState<any>(null);
   const [isAddingButton, setIsAddingButton] = useState(false);
   const [buttonTitle, setButtonTitle] = useState('');
   const [buttonUrl, setButtonUrl] = useState('');
-  const [buttons, setButtons] = useState<Array<{title: string, url: string}>>([]);
+  const [buttons, setButtons] = useState<Array<{title: string, url: string}>>(initialData?.buttons || []);
 
   const { control, handleSubmit, setValue, watch, reset, formState: { errors, isValid } } = useForm<FormData>({
     resolver: zodResolver(schema),
     mode: 'onChange',
-    defaultValues: {
+    defaultValues: initialData || {
       matchType: 'partial',
       buttons: []
     }
@@ -51,12 +54,19 @@ const KeywordRegistrationModal: React.FC<KeywordRegistrationModalProps> = ({ isO
 
   useEffect(() => {
     if (isOpen) {
-      reset();
-      setStep(1);
-      setSelectedPost(null);
-      setButtons([]);
+      if (initialData) {
+        reset(initialData);
+        setSelectedPost({ id: initialData.instagramPostId, thumbnail_url: initialData.postImage });
+        setButtons(initialData.buttons);
+        setStep(3); // 編集モードの場合、最後のステップから始める
+      } else {
+        reset();
+        setStep(1);
+        setSelectedPost(null);
+        setButtons([]);
+      }
     }
-  }, [isOpen, reset]);
+  }, [isOpen, reset, initialData]);
 
   const handleSelectPost = (post: any) => {
     setSelectedPost(post);
@@ -99,14 +109,16 @@ const KeywordRegistrationModal: React.FC<KeywordRegistrationModalProps> = ({ isO
   return (
     <Modal isOpen={isOpen} onClose={onClose}>
       <div className="p-4">
-        <div className="mb-4 bg-gray-200 h-2 rounded-full">
-          <div 
-            className="bg-blue-500 h-full rounded-full transition-all duration-300 ease-in-out"
-            style={{ width: `${(step / 3) * 100}%` }}
-          ></div>
-        </div>
+        {!isEditing && (
+          <div className="mb-4 bg-gray-200 h-2 rounded-full">
+            <div 
+              className="bg-blue-500 h-full rounded-full transition-all duration-300 ease-in-out"
+              style={{ width: `${(step / 3) * 100}%` }}
+            />
+          </div>
+        )}
         <form onSubmit={handleSubmit(handleFormSubmit)}>
-          {step === 1 && (
+          {!isEditing && step === 1 && (
             <div>
               <h2 className="text-xl font-bold mb-4">投稿を選択</h2>
               <InstagramPostList onSelectPost={handleSelectPost} />
@@ -115,7 +127,7 @@ const KeywordRegistrationModal: React.FC<KeywordRegistrationModalProps> = ({ isO
               </div>
             </div>
           )}
-          {step === 2 && (
+          {!isEditing && step === 2 && (
             <div>
               <h2 className="text-xl font-bold mb-4">キーワードを登録</h2>
               <Controller
@@ -148,74 +160,74 @@ const KeywordRegistrationModal: React.FC<KeywordRegistrationModalProps> = ({ isO
               </div>
             </div>
           )}
-        {step === 3 && (
-          <div>
-            <div className="text-xl font-bold mb-4">返信文を入力</div>
-            <div className="flex space-x-4">
-              <div className="w-1/2 flex flex-col">
-                <div className="font-semibold mb-2">返信内容</div>
-                <Controller
-                  name="reply"
-                  control={control}
-                  render={({ field }) => (
-                    <div className="flex-grow relative border rounded-md overflow-hidden">
-                      <Textarea 
-                        {...field} 
-                        placeholder="返信内容を入力してください" 
-                        className="h-full min-h-[10rem] pb-10 border-none resize-none" 
-                      />
-                      <div 
-                        className="absolute bottom-0 left-0 right-0 p-2 border-t border-dashed border-gray-200 bg-gray-50"
-                      >
-                        <Button 
-                          type="button" 
-                          onClick={() => setIsAddingButton(true)}
-                          className="w-full text-gray-400 hover:text-gray-600 bg-transparent hover:bg-gray-100"
+        {(isEditing || step === 3) && (
+            <div>
+              <div className="text-xl font-bold mb-4">返信文を入力</div>
+              <div className="flex space-x-4">
+                <div className="w-1/2 flex flex-col">
+                  <div className="font-semibold mb-2">返信内容</div>
+                  <Controller
+                    name="reply"
+                    control={control}
+                    render={({ field }) => (
+                      <div className="flex-grow relative border rounded-md overflow-hidden">
+                        <Textarea 
+                          {...field} 
+                          placeholder="返信内容を入力してください" 
+                          className="h-full min-h-[10rem] pb-10 border-none resize-none" 
+                        />
+                        <div 
+                          className="absolute bottom-0 left-0 right-0 p-2 border-t border-dashed border-gray-200 bg-gray-50"
                         >
-                          + Add Button
+                          <Button 
+                            type="button" 
+                            onClick={() => setIsAddingButton(true)}
+                            className="w-full text-gray-400 hover:text-gray-600 bg-transparent hover:bg-gray-100"
+                          >
+                            + Add Button
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  />
+                  {errors.reply && <p className="text-red-500 text-sm mt-1">{errors.reply.message}</p>}
+                  {isAddingButton && (
+                    <div className="mt-2 space-y-2">
+                      <Input
+                        placeholder="ボタンのタイトル"
+                        value={buttonTitle}
+                        onChange={(e) => setButtonTitle(e.target.value)}
+                      />
+                      <Input
+                        placeholder="ボタンのURL"
+                        value={buttonUrl}
+                        onChange={(e) => setButtonUrl(e.target.value)}
+                      />
+                      <div className="flex space-x-2">
+                        <Button type="button" onClick={handleAddButton} disabled={!buttonTitle || !buttonUrl}>
+                          追加
+                        </Button>
+                        <Button type="button" onClick={() => setIsAddingButton(false)} variant="outline">
+                          キャンセル
                         </Button>
                       </div>
                     </div>
                   )}
-                />
-                {errors.reply && <p className="text-red-500 text-sm mt-1">{errors.reply.message}</p>}
-                {isAddingButton && (
-                  <div className="mt-2 space-y-2">
-                    <Input
-                      placeholder="ボタンのタイトル"
-                      value={buttonTitle}
-                      onChange={(e) => setButtonTitle(e.target.value)}
-                    />
-                    <Input
-                      placeholder="ボタンのURL"
-                      value={buttonUrl}
-                      onChange={(e) => setButtonUrl(e.target.value)}
-                    />
-                    <div className="flex space-x-2">
-                      <Button type="button" onClick={handleAddButton} disabled={!buttonTitle || !buttonUrl}>
-                        追加
-                      </Button>
-                      <Button type="button" onClick={() => setIsAddingButton(false)} variant="outline">
-                        キャンセル
-                      </Button>
-                    </div>
+                </div>
+                <div className="w-1/2 flex flex-col">
+                  <div className="font-semibold mb-2">プレビュー</div>
+                  <div className="flex-grow bg-gray-100 p-4 rounded-lg overflow-auto">
+                    <div dangerouslySetInnerHTML={{ __html: renderPreview(replyContent || '') }} />
                   </div>
-                )}
-              </div>
-              <div className="w-1/2 flex flex-col">
-                <div className="font-semibold mb-2">プレビュー</div>
-                <div className="flex-grow bg-gray-100 p-4 rounded-lg overflow-auto">
-                  <div dangerouslySetInnerHTML={{ __html: renderPreview(replyContent || '') }} />
                 </div>
               </div>
+              <div className="mt-4 flex justify-between">
+                {!isEditing && <Button type="button" onClick={handleBack}>戻る</Button>}
+                <Button type="submit" disabled={!isValid}>{isEditing ? '更新' : '登録'}</Button>
+              </div>
             </div>
-            <div className="mt-4 flex justify-between">
-              <Button type="button" onClick={handleBack}>戻る</Button>
-              <Button type="submit" disabled={!isValid}>登録</Button>
-            </div>
-          </div>
-        )}
-      </form>
+          )}
+        </form>
       </div>
     </Modal>
   );

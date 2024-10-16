@@ -1,41 +1,73 @@
 'use client'
 
-import { useState } from 'react'
-import KeywordForm from '@/components/KeywordForm'
-import KeywordList from '@/components/KeywordList'
-
-interface Keyword {
-  id: string;
-  keyword: string;
-  reply: string;
-  postImage: string;
-}
+import { useState, useEffect } from 'react'
+import ReplyForm from '@/components/ReplyForm'
+import ReplyList from '@/components/ReplyList'
+import { Reply } from '@/types/reply'
+import { Button } from "@/components/ui/button"
+import { useRouter } from 'next/navigation'
 
 export default function DashboardClient() {
-  const [keywords, setKeywords] = useState<Keyword[]>([]);
+  const [replies, setReplies] = useState<Reply[]>([]);
+  const router = useRouter();
 
-  const handleKeywordAdded = (data: Omit<Keyword, 'id'>) => {
-    const newKeyword = {
-      ...data,
-      id: Date.now().toString(), // 仮のID生成
-    };
-    setKeywords(prev => [newKeyword, ...prev]);
+  useEffect(() => {
+    fetchReplies();
+  }, []);
+
+  const fetchReplies = async () => {
+    const response = await fetch('/api/replies');
+    if (response.ok) {
+      const data = await response.json();
+      setReplies(data);
+    }
   };
 
-  const handleKeywordDeleted = (id: string) => {
-    setKeywords(prev => prev.filter(keyword => keyword.id !== id));
+  const handleReplyAdded = (data: Omit<Reply, 'id'>) => {
+    fetch('/api/replies', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    }).then(() => fetchReplies());
+  };
+
+  const handleReplyDeleted = async (id: number) => {
+    const response = await fetch(`/api/replies/${id}`, { method: 'DELETE' });
+    if (response.ok) {
+      setReplies(prev => prev.filter(reply => reply.id !== id));
+    }
+  };
+
+  const handleReplyUpdated = async (id: number, data: Omit<Reply, 'id'>) => {
+    const response = await fetch(`/api/replies/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    if (response.ok) {
+      fetchReplies();
+    }
+  };
+
+  const handleFacebookConnect = () => {
+    router.push('/facebook-connect');
   };
 
   return (
     <div className="container mx-auto p-4 max-w-4xl">
-      <h1 className="text-3xl font-bold mb-8 text-center">キーワード管理ダッシュボード</h1>
+      <h1 className="text-3xl font-bold mb-8 text-center">自動返信管理ダッシュボード</h1>
       <div className="space-y-8">
         <div className="bg-white p-6 rounded-lg shadow-md">
-          <KeywordForm onKeywordAdded={handleKeywordAdded} />
+          <Button onClick={handleFacebookConnect} className="mb-4">Facebook/Instagram連携</Button>
+          {/* <ReplyForm onReplyAdded={handleReplyAdded} /> */}
         </div>
         <div className="bg-white p-6 rounded-lg shadow-md">
           <h2 className="text-xl font-semibold mb-4">自動返信一覧</h2>
-          <KeywordList keywords={keywords} onKeywordDeleted={handleKeywordDeleted} />
+          {/* <ReplyList 
+            replies={replies} 
+            onReplyDeleted={handleReplyDeleted}
+            onReplyUpdated={handleReplyUpdated}
+          /> */}
         </div>
       </div>
     </div>

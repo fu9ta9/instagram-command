@@ -13,27 +13,12 @@ services:
       - NEXTAUTH_URL=${NEXTAUTH_URL}
       - FACEBOOK_CLIENT_ID=${FACEBOOK_CLIENT_ID}
       - FACEBOOK_CLIENT_SECRET=${FACEBOOK_CLIENT_SECRET}
-    depends_on:
-      db:
-        condition: service_healthy
-    command: sh -c "npx prisma migrate deploy && npm start"
-
-  db:
-    image: postgres:13
-    restart: always
-    environment:
-      POSTGRES_DB: your_database_name
-      POSTGRES_USER: your_username
-      POSTGRES_PASSWORD: your_password
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U your_username -d your_database_name"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
+      - NODE_ENV=development
+      - NEXTAUTH_DEBUG=true
+      - STRIPE_API_KEY=${STRIPE_API_KEY}
+      - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
+      - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+    command: sh -c "echo $$DATABASE_URL && npx prisma generate && npx prisma db push && npm start"
 
 volumes:
   postgres_data:

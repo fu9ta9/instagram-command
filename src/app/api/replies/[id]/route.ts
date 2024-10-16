@@ -15,22 +15,22 @@ export async function DELETE(
   const id = parseInt(params.id)
 
   try {
-    const keyword = await prisma.keyword.findUnique({
+    const reply = await prisma.reply.findUnique({
       where: { id },
     })
 
-    if (!keyword || keyword.userId !== session.user.id) {
+    if (!reply || reply.userId !== session.user.id) {
       return NextResponse.json({ error: 'Not found' }, { status: 404 })
     }
 
-    await prisma.keyword.delete({
+    await prisma.reply.delete({
       where: { id },
     })
 
-    return NextResponse.json({ message: 'Keyword deleted successfully' })
+    return NextResponse.json({ message: 'Reply deleted successfully' })
   } catch (error) {
-    console.error('Failed to delete keyword:', error)
-    return NextResponse.json({ error: 'Failed to delete keyword' }, { status: 500 })
+    console.error('Failed to delete reply:', error)
+    return NextResponse.json({ error: 'Failed to delete reply' }, { status: 500 })
   }
 }
 
@@ -44,25 +44,36 @@ export async function PUT(
   }
 
   const id = parseInt(params.id)
-  const { keyword, reply } = await request.json()
+  const { keyword, reply, postId, replyType, matchType, buttons } = await request.json()
 
   try {
-    const existingKeyword = await prisma.keyword.findUnique({
+    const existingReply = await prisma.reply.findUnique({
       where: { id },
     })
 
-    if (!existingKeyword || existingKeyword.userId !== session.user.id) {
+    if (!existingReply || existingReply.userId !== session.user.id) {
       return NextResponse.json({ error: 'Not found' }, { status: 404 })
     }
 
-    const updatedKeyword = await prisma.keyword.update({
+    const updatedReply = await prisma.reply.update({
       where: { id },
-      data: { keyword, reply },
+      data: { 
+        keyword, 
+        reply, 
+        postId, 
+        replyType, 
+        matchType,
+        buttons: {
+          deleteMany: {},
+          create: buttons
+        }
+      },
+      include: { buttons: true },
     })
 
-    return NextResponse.json(updatedKeyword)
+    return NextResponse.json(updatedReply)
   } catch (error) {
-    console.error('Failed to update keyword:', error)
-    return NextResponse.json({ error: 'Failed to update keyword' }, { status: 500 })
+    console.error('Failed to update reply:', error)
+    return NextResponse.json({ error: 'Failed to update reply' }, { status: 500 })
   }
 }

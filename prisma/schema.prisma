@@ -40,9 +40,12 @@ model User {
   email         String?   @unique
   emailVerified DateTime?
   image         String?
+  facebookAccessToken  String?
   accounts      Account[]
   sessions      Session[]
-  keywords      Keyword[]
+  replies       Reply[]   // ここを変更
+  membershipType MembershipType @default(FREE)
+  trialStartDate DateTime?
 }
 
 model VerificationToken {
@@ -53,23 +56,41 @@ model VerificationToken {
   @@unique([identifier, token])
 }
 
-model Keyword {
-  id        Int      @id @default(autoincrement())
-  keyword   String
-  reply     String
-  userId    String
-  buttons   Button[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
+model Reply {
+  id            Int      @id @default(autoincrement())
+  keyword       String
+  reply         String
+  userId        String
+  postId        String?
+  replyType     Int      // 1: SPECIFIC_POST, 2: ALL_POSTS, 3: STORY
+  matchType     Int      // 1: EXACT, 2: PARTIAL
+  buttons       Button[]
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([keyword, replyType, matchType])
+}
 
 model Button {
   id        Int     @id @default(autoincrement())
-  keyword   Keyword @relation(fields: [keywordId], references: [id])
-  keywordId Int
+  reply     Reply   @relation(fields: [replyId], references: [id])
+  replyId   Int
   title     String
   url       String
   order     Int
+}
+
+model ExecutionLog {
+  id            Int      @id @default(autoincrement())
+  timestamp     DateTime @default(now())
+  errorMessage  String?
+
+  @@map("execution_logs")
+}
+
+enum MembershipType {
+  FREE
+  TRIAL
+  PAID
 }
