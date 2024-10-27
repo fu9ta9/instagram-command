@@ -2,11 +2,12 @@
 
 import { useState } from 'react'
 import { Button } from "@/components/ui/button"
-import { signIn } from 'next-auth/react'
+import { signIn, useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 
 export default function DashboardClient() {
   const router = useRouter();
+  const { data: session } = useSession(); // セッション情報を取得
   const [isLoading, setIsLoading] = useState(false);
 
   const handleFacebookConnect = async () => {
@@ -33,13 +34,33 @@ export default function DashboardClient() {
       <h1 className="text-3xl font-bold mb-8 text-center">自動返信管理ダッシュボード</h1>
       <div className="space-y-8">
         <div className="bg-white p-6 rounded-lg shadow-md">
-          <Button 
-            onClick={handleFacebookConnect} 
-            className="mb-4"
-            disabled={isLoading}
-          >
-            {isLoading ? 'ログイン中...' : 'Facebook/Instagram連携'}
-          </Button>
+          {session?.user?.facebookAccessToken ? ( // Facebook連携済みか確認
+            <Button 
+              className="mb-4"
+              disabled
+            >
+              Facebook連携済み
+            </Button>
+          ) : (
+            <Button 
+              onClick={handleFacebookConnect} 
+              className="mb-4"
+              disabled={isLoading}
+            >
+              {isLoading ? 'ログイン中...' : 'Facebook/Instagram連携'}
+            </Button>
+          )}
+          {!session?.user?.facebookAccessToken && ( // 再連携リンクを表示
+            <p className="text-sm text-gray-500">
+              <a 
+                href="#" 
+                onClick={handleFacebookConnect} 
+                className="underline hover:text-blue-600"
+              >
+                再連携する
+              </a>
+            </p>
+          )}
         </div>
         {/* 他のダッシュボードコンテンツはここに追加 */}
       </div>
