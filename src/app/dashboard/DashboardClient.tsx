@@ -11,7 +11,7 @@ import { useRouter } from 'next/navigation'
 export default function DashboardClient() {
   const [replies, setReplies] = useState<Reply[]>([]);
   const router = useRouter();
-  const { data: session, status } = useSession(); // セッション情報を取得
+  const { data: session = null, status = 'loading' } = useSession() || {};
   const [isLoading, setIsLoading] = useState(false);
 
   const handleFacebookConnect = async () => {
