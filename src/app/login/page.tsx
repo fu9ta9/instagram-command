@@ -8,23 +8,20 @@ export default function LoginPage() {
   const router = useRouter()
 
   const handleGoogleSignIn = async () => {
-    // Google認証をスキップしてダッシュボードにリダイレクト
-    router.push('/dashboard')
-    
-    // 本来のGoogle認証コード（現在はコメントアウト）
-    // try {
-    //   const result = await signIn('google', { 
-    //     callbackUrl: '/dashboard',
-    //     redirect: false
-    //   })
-    //   if (result?.error) {
-    //     console.error('SignIn error:', result.error)
-    //   } else if (result?.url) {
-    //     window.location.href = result.url
-    //   }
-    // } catch (error) {
-    //   console.error('SignIn error:', error)
-    // }
+
+    try {
+      const result = await signIn('google', { 
+        callbackUrl: '/dashboard',
+        redirect: false
+      })
+      if (result?.error) {
+        console.error('SignIn error:', result.error)
+      } else if (result?.url) {
+        window.location.href = result.url
+      }
+    } catch (error) {
+      console.error('SignIn error:', error)
+    }
   }
 
   return (

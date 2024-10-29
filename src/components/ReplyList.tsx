@@ -1,18 +1,13 @@
 import React from 'react';
-
-interface Reply {
-  id: string;
-  keyword: string;
-  reply: string;
-  postImage: string;
-}
+import { Reply } from '@/types/reply';
 
 interface ReplyListProps {
   replies: Reply[];
   onReplyDeleted: (id: string) => void;
+  onReplyUpdated: (id: string, data: Omit<Reply, 'id'>) => void;
 }
 
-const ReplyList: React.FC<ReplyListProps> = ({ replies, onReplyDeleted }) => {
+const ReplyList: React.FC<ReplyListProps> = ({ replies, onReplyDeleted, onReplyUpdated }) => {
   return (
     <div className="space-y-4">
       {replies.map((reply) => (

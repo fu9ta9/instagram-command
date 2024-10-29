@@ -57,7 +57,7 @@ const KeywordRegistrationModal: React.FC<KeywordRegistrationModalProps> = ({ isO
       if (initialData) {
         reset(initialData);
         setSelectedPost({ id: initialData.instagramPostId, thumbnail_url: initialData.postImage });
-        setButtons(initialData.buttons);
+        setButtons(initialData.buttons || []);
         setStep(3); // 編集モードの場合、最後のステップから始める
       } else {
         reset();
