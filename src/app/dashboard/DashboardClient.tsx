@@ -7,12 +7,14 @@ import ReplyList from '@/components/ReplyList'
 import { Reply } from '@/types/reply'
 import { signIn, useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
+import { MembershipType } from "@prisma/client"
 
 export default function DashboardClient() {
   const [replies, setReplies] = useState<Reply[]>([]);
   const router = useRouter();
   const { data: session = null} = useSession() || {};
   const [isLoading, setIsLoading] = useState(false);
+  const [membershipType, setMembershipType] = useState<MembershipType>('FREE');
 
   const handleFacebookConnect = async () => {
     setIsLoading(true);
@@ -35,7 +37,9 @@ export default function DashboardClient() {
 
   useEffect(() => {
     fetchReplies();
+    fetchMembershipType();
   }, []);
+
   const fetchReplies = async () => {
     const response = await fetch('/api/replies');
     if (response.ok) {
@@ -43,6 +47,17 @@ export default function DashboardClient() {
       setReplies(data);
     }
   };
+
+  const fetchMembershipType = async () => {
+    if (session?.user?.id) {
+      const response = await fetch(`/api/membership/${session.user.id}`);
+      if (response.ok) {
+        const data = await response.json();
+        setMembershipType(data.membershipType || 'FREE');
+      }
+    }
+  };
+
   const handleReplyAdded = (data: Omit<Reply, 'id'>) => {
     fetch('/api/replies', {
       method: 'POST',
@@ -50,12 +65,14 @@ export default function DashboardClient() {
       body: JSON.stringify(data),
     }).then(() => fetchReplies());
   };
+
   const handleReplyDeleted = async (id: string) => {
     const response = await fetch(`/api/replies/${id}`, { method: 'DELETE' });
     if (response.ok) {
       setReplies(prev => prev.filter(reply => reply.id !== id));
     }
   };
+
   const handleReplyUpdated = async (id: string, data: Omit<Reply, 'id'>) => {
     const response = await fetch(`/api/replies/${id}`, {
       method: 'PUT',
@@ -106,7 +123,7 @@ export default function DashboardClient() {
             <h2 className="text-xl font-semibold">自動返信一覧</h2>
             <ReplyForm 
               onReplyAdded={handleReplyAdded}
-              membershipType={session?.user?.membershipType || 'FREE'}
+              membershipType={membershipType}
             />
           </div>
           <ReplyList 
