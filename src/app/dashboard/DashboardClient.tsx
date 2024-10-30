@@ -11,7 +11,7 @@ import { useRouter } from 'next/navigation'
 export default function DashboardClient() {
   const [replies, setReplies] = useState<Reply[]>([]);
   const router = useRouter();
-  const { data: session = null, status = 'loading' } = useSession() || {};
+  const { data: session = null} = useSession() || {};
   const [isLoading, setIsLoading] = useState(false);
 
   const handleFacebookConnect = async () => {
@@ -67,10 +67,6 @@ export default function DashboardClient() {
     }
   };
 
-  // セッションがまだ取得できていない場合の処理
-  if (status === "loading") {
-    return <div>Loading...</div>; // ローディング中の表示
-  }
 
   return (
     <div className="container mx-auto p-4 max-w-4xl">
