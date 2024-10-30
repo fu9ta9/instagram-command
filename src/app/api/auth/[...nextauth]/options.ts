@@ -18,7 +18,7 @@ export const authOptions: NextAuthOptions = {
       clientSecret: process.env.FACEBOOK_CLIENT_SECRET ?? '',
       authorization: {
         params: {
-          scope: 'public_profile'
+          scope: "instagram_basic,pages_show_list,instagram_manage_comments,instagram_manage_messages,pages_read_engagement public_profile"
         },
       },
       profile(profile) {
