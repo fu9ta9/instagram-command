@@ -73,7 +73,7 @@ export default function DashboardClient() {
       <h1 className="text-3xl font-bold mb-8 text-center">自動返信管理ダッシュボード</h1>
       <div className="space-y-8">
         <div className="bg-white p-6 rounded-lg shadow-md">
-          {session?.user?.facebookAccessToken ? ( // Facebook連携済みか確認
+          {session?.user?.facebookAccessToken ? (
             <Button 
               className="mb-4"
               disabled
@@ -89,7 +89,7 @@ export default function DashboardClient() {
               {isLoading ? 'ログイン中...' : 'Facebook/Instagram連携'}
             </Button>
           )}
-          {!session?.user?.facebookAccessToken && ( // 再連携リンクを表示
+          {!session?.user?.facebookAccessToken && (
             <p className="text-sm text-gray-500">
               <a 
                 href="#" 
@@ -102,7 +102,13 @@ export default function DashboardClient() {
           )}
         </div>
         <div className="bg-white p-6 rounded-lg shadow-md">
-          <h2 className="text-xl font-semibold mb-4">自動返信一覧</h2>
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-semibold">自動返信一覧</h2>
+            <ReplyForm 
+              onReplyAdded={handleReplyAdded}
+              membershipType={session?.user?.membershipType || 'FREE'}
+            />
+          </div>
           <ReplyList 
             replies={replies} 
             onReplyDeleted={handleReplyDeleted}
