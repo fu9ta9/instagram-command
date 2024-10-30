@@ -11,7 +11,6 @@ interface ReplyFormProps {
 
 const ReplyForm: React.FC<ReplyFormProps> = ({ onReplyAdded, membershipType }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
@@ -20,9 +19,6 @@ const ReplyForm: React.FC<ReplyFormProps> = ({ onReplyAdded, membershipType }) =
       setError("この機能を利用するには、会員プランのアップグレードが必要です。");
       return;
     }
-
-    setIsLoading(true);
-    setError(null);
 
     try {
       const response = await fetch('/api/member-ship', {
@@ -46,7 +42,7 @@ const ReplyForm: React.FC<ReplyFormProps> = ({ onReplyAdded, membershipType }) =
     } catch (error) {
       setError('エラーが発生しました。しばらくしてから再度お試しください。');
     } finally {
-      setIsLoading(false);
+
     }
   };
 
@@ -57,8 +53,8 @@ const ReplyForm: React.FC<ReplyFormProps> = ({ onReplyAdded, membershipType }) =
 
   return (
     <div>
-      <Button onClick={handleOpenModal} disabled={isLoading || membershipType === MembershipType.FREE}>
-        {isLoading ? '読み込み中...' : '自動返信登録'}
+      <Button onClick={handleOpenModal} disabled={membershipType === MembershipType.FREE}>
+        自動返信登録
       </Button>
       {error && (
         <div className="mt-2 text-red-600">
