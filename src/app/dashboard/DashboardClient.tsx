@@ -49,12 +49,11 @@ export default function DashboardClient() {
   };
 
   const fetchMembershipType = async () => {
-    console.log(session);
     if (session?.user?.id) {
       const response = await fetch(`/api/membership/${session.user.id}`);
       if (response.ok) {
         const data = await response.json();
-        console.log(data);
+
         setMembershipType(data.membershipType || 'FREE');
       }
     }
