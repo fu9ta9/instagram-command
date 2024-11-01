@@ -29,6 +29,7 @@ const InstagramPostList: React.FC<InstagramPostListProps> = ({ onSelectPost }) =
   const fetchInstagramPosts = async () => {
     try {
       setIsLoading(true);
+      console.log('投稿を取得しています...');
       const response = await fetch('/api/posts');
       if (!response.ok) {
         throw new Error('投稿の取得に失敗しました');
