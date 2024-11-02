@@ -4,7 +4,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
 export async function GET() {
-  console.log('GET開始');
+  console.log('Instagram posts API: GET開始');
   const session = await getServerSession(authOptions);
   
   if (!session?.user?.id) { 
@@ -26,7 +26,10 @@ export async function GET() {
 
     if (!account?.access_token) {
       console.log('アカウントエラー: Facebookアカウントが接続されていないか、アクセストークンが見つかりません');
-      return NextResponse.json({ error: 'Facebook account not connected' }, { status: 401 });
+      return NextResponse.json(
+        { error: 'Facebook account not connected', message: 'Facebookアカウントが接続されていません。設定画面からFacebookアカウントを接続してください。' }, 
+        { status: 401 }
+      );
     }
 
     // Instagram Business AccountのIDを取得
@@ -37,7 +40,14 @@ export async function GET() {
     if (!accountResponse.ok) {
       const errorData = await accountResponse.json();
       console.error('Facebook APIエラー:', errorData);
-      return NextResponse.json({ error: 'Failed to fetch Instagram account', details: errorData }, { status: accountResponse.status });
+      return NextResponse.json(
+        { 
+          error: 'Failed to fetch Instagram account', 
+          message: 'Instagramアカウントの取得に失敗しました。Facebookの権限設定を確認してください。',
+          details: errorData 
+        }, 
+        { status: accountResponse.status }
+      );
     }
 
     const accountData = await accountResponse.json();
@@ -47,7 +57,13 @@ export async function GET() {
 
     if (!instagramAccountId) {
       console.log('アカウントエラー: Instagramビジネスアカウントが見つかりません');
-      return NextResponse.json({ error: 'Instagram business account not found' }, { status: 404 });
+      return NextResponse.json(
+        { 
+          error: 'Instagram business account not found', 
+          message: 'Instagramビジネスアカウントが見つかりません。Facebookページに接続されたInstagramビジネスアカウントがあることを確認してください。'
+        }, 
+        { status: 404 }
+      );
     }
 
     // 投稿を取得
@@ -58,7 +74,14 @@ export async function GET() {
     if (!postsResponse.ok) {
       const errorData = await postsResponse.json();
       console.error('Instagram APIエラー:', errorData);
-      return NextResponse.json({ error: 'Failed to fetch Instagram posts', details: errorData }, { status: postsResponse.status });
+      return NextResponse.json(
+        { 
+          error: 'Failed to fetch Instagram posts', 
+          message: 'Instagram投稿の取得に失敗しました。',
+          details: errorData 
+        }, 
+        { status: postsResponse.status }
+      );
     }
 
     const postsData = await postsResponse.json();
@@ -67,6 +90,13 @@ export async function GET() {
     return NextResponse.json(postsData.data);
   } catch (error) {
     console.error('予期せぬエラー:', error);
-    return NextResponse.json({ error: 'Failed to fetch Instagram posts', details: error }, { status: 500 });
+    return NextResponse.json(
+      { 
+        error: 'Failed to fetch Instagram posts', 
+        message: '予期せぬエラーが発生しました。',
+        details: error 
+      }, 
+      { status: 500 }
+    );
   }
 }
