@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Button } from "@/components/ui/button"
 import ReplyForm from '@/components/ReplyForm'
 import ReplyList from '@/components/ReplyList'
@@ -35,11 +35,6 @@ export default function DashboardClient() {
     }
   };
 
-  useEffect(() => {
-    fetchReplies();
-    fetchMembershipType();
-  }, []);
-
   const fetchReplies = async () => {
     const response = await fetch('/api/replies');
     if (response.ok) {
@@ -53,11 +48,20 @@ export default function DashboardClient() {
       const response = await fetch(`/api/membership/${session.user.id}`);
       if (response.ok) {
         const data = await response.json();
-
         setMembershipType(data.membershipType || 'FREE');
       }
     }
   };
+
+  useEffect(() => {
+    fetchReplies();
+  }, []);
+
+  useEffect(() => {
+    if (session?.user?.id) {
+      fetchMembershipType();
+    }
+  }, [session?.user?.id]);
 
   const handleReplyAdded = (data: Omit<Reply, 'id'>) => {
     fetch('/api/replies', {

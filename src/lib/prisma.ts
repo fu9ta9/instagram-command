@@ -3,7 +3,11 @@ import { PrismaClient } from '@prisma/client'
 const prismaClientSingleton = () => {
   return new PrismaClient({
     log: ['query', 'error', 'warn'],
-    connectionTimeout: 20000, // タイムアウトを20秒に設定
+    datasources: {
+      db: {
+        url: process.env.DATABASE_URL
+      }
+    }
   })
 }
 
