@@ -30,16 +30,21 @@ const InstagramPostList: React.FC<InstagramPostListProps> = ({ onSelectPost }) =
     try {
       setIsLoading(true);
       const response = await fetch('/api/instagram-posts');
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error('API Error:', errorData);
-        throw new Error(errorData.error || '投稿の取得に失敗しました');
-      }
       const data = await response.json();
+
+      if (!response.ok) {
+        if (response.status === 404 && data.error === 'Instagram business account not found') {
+          setError(data.message);
+        } else {
+          setError(data.message || '投稿の取得に失敗しました');
+        }
+        return;
+      }
+
       setPosts(data);
     } catch (error) {
       console.error('Fetch error:', error);
-      setError(error instanceof Error ? error.message : '投稿の取得中にエラーが発生しました');
+      setError('投稿の取得中にエラーが発生しました。ネットワーク接続を確認してください。');
     } finally {
       setIsLoading(false);
     }

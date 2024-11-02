@@ -14,24 +14,25 @@ export const authOptions: NextAuthOptions = {
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
     }),
     FacebookProvider({
-      clientId: process.env.FACEBOOK_CLIENT_ID ?? '',
-      clientSecret: process.env.FACEBOOK_CLIENT_SECRET ?? '',
+      clientId: process.env.FACEBOOK_CLIENT_ID!,
+      clientSecret: process.env.FACEBOOK_CLIENT_SECRET!,
       authorization: {
         params: {
-          scope: "instagram_basic,pages_show_list,instagram_manage_comments,instagram_manage_messages,pages_read_engagement public_profile"
-        },
-      },
-      profile(profile) {
-        return {
-          id: profile.id,
-          name: profile.name,
-          email: profile.email,
-          image: profile.picture.data.url,
-          facebookAccessToken: profile.accessToken,
+          scope: [
+            'instagram_basic',
+            'instagram_manage_insights',
+            'pages_show_list',
+            'pages_read_engagement',
+            'public_profile',
+          ].join(',')
         }
-      },
+      }
     }),
   ],
+  session: {
+    strategy: "jwt",
+    maxAge: 30 * 24 * 60 * 60, // 30日
+  },
   callbacks: {
     async session({ session, token, user }) {
       if (session.user) {
@@ -74,12 +75,42 @@ export const authOptions: NextAuthOptions = {
     },
     async jwt({ token, account, user }) {
       if (account && user) {
-        token.id = user.id;
+        token.userId = user.id;
         if (account.provider === 'facebook') {
           token.facebookAccessToken = account.access_token;
         }
       }
       return token;
+    },
+    async signIn({ user, account, profile }) {
+      if (account && account.provider === 'facebook') {
+        try {
+          // upsertを使用して、レコードが存在しない場合は作成、存在する場合は更新
+          await prisma.account.upsert({
+            where: {
+              provider_providerAccountId: {
+                provider: 'facebook',
+                providerAccountId: account.providerAccountId,
+              },
+            },
+            update: {
+              scope: account.scope,
+              access_token: account.access_token,
+            },
+            create: {
+              userId: user.id,
+              type: account.type,
+              provider: account.provider,
+              providerAccountId: account.providerAccountId,
+              access_token: account.access_token,
+              scope: account.scope,
+            },
+          });
+        } catch (error) {
+          console.error('Error updating account:', error);
+        }
+      }
+      return true;
     },
   },
   pages: {
