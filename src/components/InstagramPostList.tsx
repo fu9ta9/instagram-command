@@ -29,14 +29,16 @@ const InstagramPostList: React.FC<InstagramPostListProps> = ({ onSelectPost }) =
   const fetchInstagramPosts = async () => {
     try {
       setIsLoading(true);
-      console.log('投稿を取得しています...');
-      const response = await fetch('/api/posts');
+      const response = await fetch('/api/instagram-posts');
       if (!response.ok) {
-        throw new Error('投稿の取得に失敗しました');
+        const errorData = await response.json();
+        console.error('API Error:', errorData);
+        throw new Error(errorData.error || '投稿の取得に失敗しました');
       }
       const data = await response.json();
       setPosts(data);
     } catch (error) {
+      console.error('Fetch error:', error);
       setError(error instanceof Error ? error.message : '投稿の取得中にエラーが発生しました');
     } finally {
       setIsLoading(false);
