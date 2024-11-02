@@ -4,9 +4,10 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
 export async function GET() {
+  console.log('GET開始');
   const session = await getServerSession(authOptions);
   
-  if (!session?.user?.id) {
+  if (!session?.user?.id) { 
     console.log('認証エラー: セッションまたはユーザーIDが存在しません');
     return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
   }
