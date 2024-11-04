@@ -74,7 +74,7 @@ export default function DashboardClient() {
       console.log('Session changed, fetching membership type');
       fetchMembershipType();
     }
-  }, [session?.user?.id]);
+  }, []);
 
   useEffect(() => {
     if (session?.user?.id) {
