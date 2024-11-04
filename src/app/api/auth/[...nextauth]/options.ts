@@ -33,8 +33,8 @@ export const authOptions: NextAuthOptions = {
     async session({ session, token, user }) {
       if (session.user) {
         session.user.id = user.id;
-        
-        // ユーザーの会員種別を取得
+
+        // Google会員の情報を取得
         const dbUser = await prisma.user.findUnique({
           where: { id: user.id },
           select: { membershipType: true, trialStartDate: true }
@@ -59,7 +59,7 @@ export const authOptions: NextAuthOptions = {
           session.user.membershipType = effectiveMembershipType;
         }
 
-        // Facebook連携情報を追加
+        // Facebook連携情報を追加（必要に応じて）
         const facebookAccount = await prisma.account.findFirst({
           where: { userId: user.id, provider: 'facebook' },
         });

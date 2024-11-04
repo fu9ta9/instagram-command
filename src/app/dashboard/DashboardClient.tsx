@@ -12,7 +12,7 @@ import { MembershipType } from "@prisma/client"
 export default function DashboardClient() {
   const [replies, setReplies] = useState<Reply[]>([]);
   const router = useRouter();
-  const { data: session = null} = useSession() || {};
+  const { data: session } = useSession() || {};
   const [isLoading, setIsLoading] = useState(false);
   const [membershipType, setMembershipType] = useState<MembershipType>('FREE');
 
