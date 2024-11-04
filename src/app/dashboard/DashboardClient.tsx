@@ -36,10 +36,20 @@ export default function DashboardClient() {
   };
 
   const fetchReplies = async () => {
-    const response = await fetch('/api/replies');
-    if (response.ok) {
-      const data = await response.json();
-      setReplies(data);
+    try {
+      const response = await fetch('/api/replies');
+      if (response.status === 401) {
+        console.log('認証が必要です');
+        return;
+      }
+      if (response.ok) {
+        const data = await response.json();
+        setReplies(data);
+      } else {
+        console.error('返信の取得に失敗:', await response.json());
+      }
+    } catch (error) {
+      console.error('返信の取得エラー:', error);
     }
   };
 
@@ -54,8 +64,10 @@ export default function DashboardClient() {
   };
 
   useEffect(() => {
-    fetchReplies();
-  }, []);
+    if (session?.user?.id) {
+      fetchReplies();
+    }
+  }, [session?.user?.id]);
 
   useEffect(() => {
     if (session?.user?.id) {

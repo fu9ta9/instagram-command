@@ -32,18 +32,24 @@ export async function POST(request: Request) {
 export async function GET() {
   const session = await getServerSession(authOptions)
 
-  if (!session || !session.user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!session?.user?.id) {
+    console.log('認証エラー: セッションまたはユーザーIDが存在しません');
+    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
   }
 
   try {
     const replies = await prisma.reply.findMany({
-      where: { userId: session.user.id },
-      orderBy: { createdAt: 'desc' },
-      include: { buttons: true },
-    })
-    return NextResponse.json(replies)
+      where: {
+        userId: session.user.id
+      },
+      orderBy: {
+        createdAt: 'desc'
+      }
+    });
+    
+    return NextResponse.json(replies);
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to fetch replies'}, { status: 500 })
+    console.error('Error fetching replies:', error);
+    return NextResponse.json({ error: 'Failed to fetch replies' }, { status: 500 });
   }
 }
