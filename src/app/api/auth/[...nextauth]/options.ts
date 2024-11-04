@@ -19,10 +19,6 @@ export const authOptions: NextAuthOptions = {
       authorization: {
         params: {
           scope: [
-            'instagram_basic',
-            'instagram_manage_insights',
-            'pages_show_list',
-            'pages_read_engagement',
             'public_profile',
           ].join(',')
         }
