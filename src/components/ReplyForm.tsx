@@ -51,6 +51,11 @@ const ReplyForm: React.FC<ReplyFormProps> = ({ onReplyAdded, membershipType }) =
     setIsModalOpen(false);
   };
 
+  console.log('ReplyForm Debug:', {
+    membershipType,
+    isOpen: isModalOpen,
+  });
+
   return (
     <div>
       <Button onClick={handleOpenModal} disabled={membershipType === MembershipType.FREE}>

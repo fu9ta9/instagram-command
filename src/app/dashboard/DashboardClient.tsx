@@ -55,9 +55,15 @@ export default function DashboardClient() {
 
   const fetchMembershipType = async () => {
     if (session?.user?.id) {
+      console.log('Fetching membership type for user:', session.user.id);
       const response = await fetch(`/api/membership/${session.user.id}`);
+      console.log('Membership API response:', {
+        status: response.status,
+        ok: response.ok
+      });
       if (response.ok) {
         const data = await response.json();
+        console.log('Membership data:', data);
         setMembershipType(data.membershipType || 'FREE');
       }
     }
@@ -65,13 +71,14 @@ export default function DashboardClient() {
 
   useEffect(() => {
     if (session?.user?.id) {
-      fetchReplies();
+      console.log('Session changed, fetching membership type');
+      fetchMembershipType();
     }
   }, [session?.user?.id]);
 
   useEffect(() => {
     if (session?.user?.id) {
-      fetchMembershipType();
+      fetchReplies();
     }
   }, [session?.user?.id]);
 
