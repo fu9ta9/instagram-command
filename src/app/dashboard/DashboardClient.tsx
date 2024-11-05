@@ -70,10 +70,12 @@ export default function DashboardClient() {
   };
 
   useEffect(() => {
+    console.log('Session initialized, session?.user?.id:', session?.user?.id);
     if (session?.user?.id) {
       console.log('Session changed, fetching membership type');
       fetchMembershipType();
     }
+    fetchMembershipType();
   }, []);
 
   useEffect(() => {
