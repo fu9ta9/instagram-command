@@ -12,12 +12,7 @@ import { MembershipType } from "@prisma/client"
 export default function DashboardClient() {
   const [replies, setReplies] = useState<Reply[]>([]);
   const router = useRouter();
-  const { data: session, status } = useSession({
-    required: true,
-    onUnauthenticated() {
-      router.push('/login')
-    },
-  });
+  const { data: session } = useSession();
   const [isLoading, setIsLoading] = useState(false);
   const [membershipType, setMembershipType] = useState<MembershipType>('FREE');
 
@@ -75,15 +70,18 @@ export default function DashboardClient() {
   };
 
   useEffect(() => {
-    console.log('Session status:', status)
-    console.log('Session data:', session)
-    
-    if (status === 'authenticated' && session?.user?.id) {
-      console.log('Authenticated user ID:', session.user.id)
-      fetchMembershipType()
-      fetchReplies()
+    console.log('Session initialized, session?.user?.id:', session?.user?.id);
+    if (session?.user?.id) {
+      console.log('Session changed, fetching membership type');
+      fetchMembershipType();
     }
-  }, [status, session])
+  }, [session]);
+
+  useEffect(() => {
+    if (session?.user?.id) {
+      fetchReplies();
+    }
+  }, [session?.user?.id]);
 
   const handleReplyAdded = (data: Omit<Reply, 'id'>) => {
     fetch('/api/replies', {
