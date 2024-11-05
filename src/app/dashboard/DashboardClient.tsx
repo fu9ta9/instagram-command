@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from "@/components/ui/button"
 import ReplyForm from '@/components/ReplyForm'
 import ReplyList from '@/components/ReplyList'
@@ -12,7 +12,7 @@ import { MembershipType } from "@prisma/client"
 export default function DashboardClient() {
   const [replies, setReplies] = useState<Reply[]>([]);
   const router = useRouter();
-  const { data: session } = useSession() || {};
+  const { data: session } = useSession();
   const [isLoading, setIsLoading] = useState(false);
   const [membershipType, setMembershipType] = useState<MembershipType>('FREE');
 
@@ -75,8 +75,7 @@ export default function DashboardClient() {
       console.log('Session changed, fetching membership type');
       fetchMembershipType();
     }
-    fetchMembershipType();
-  }, []);
+  }, [session]);
 
   useEffect(() => {
     if (session?.user?.id) {
@@ -109,7 +108,6 @@ export default function DashboardClient() {
       fetchReplies();
     }
   };
-
 
   return (
     <div className="container mx-auto p-4 max-w-4xl">
