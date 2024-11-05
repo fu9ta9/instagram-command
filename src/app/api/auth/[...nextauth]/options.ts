@@ -31,8 +31,10 @@ export const authOptions: NextAuthOptions = {
   },
   callbacks: {
     async session({ session, token, user }) {
+      console.log('Sessionコールバック1 - セッションユーザーID:', session.user.id); // セッションユーザーIDをログに出力
       if (session.user) {
         session.user.id = user.id;
+        console.log('Sessionコールバック2 - セッションユーザーID:', session.user.id); // セッションユーザーIDをログに出力
 
         // Google会員の情報を取得
         const dbUser = await prisma.user.findUnique({
@@ -70,6 +72,7 @@ export const authOptions: NextAuthOptions = {
       return session;
     },
     async jwt({ token, account, user }) {
+      console.log('JWTコールバック1 - トークン:', token); // トークンをログに出力
       if (account && user) {
         token.userId = user.id;
         if (account.provider === 'facebook') {
@@ -79,6 +82,7 @@ export const authOptions: NextAuthOptions = {
       return token;
     },
     async signIn({ user, account, profile }) {
+      console.log('SignInコールバック1 - ユーザー:', user); // ユーザーをログに出力
       if (account && account.provider === 'facebook') {
         try {
           // upsertを使用して、レコードが存在しない場合は作成、存在する場合は更新
