@@ -12,24 +12,92 @@ import { MembershipType } from "@prisma/client"
 export default function DashboardClient() {
   const [replies, setReplies] = useState<Reply[]>([]);
   const router = useRouter();
-  const { data: session } = useSession();
+  const { data: session, status } = useSession({
+    required: true,
+    onUnauthenticated() {
+      console.log('Unauthenticated, redirecting to login...');
+      router.push('/login');
+    },
+  });
   const [isLoading, setIsLoading] = useState(false);
   const [membershipType, setMembershipType] = useState<MembershipType>('FREE');
 
+  useEffect(() => {
+    console.log('Session Debug Info:', {
+      status, // 'loading' | 'authenticated' | 'unauthenticated'
+      sessionExists: !!session,
+      userData: {
+        id: session?.user?.id,
+        name: session?.user?.name,
+        email: session?.user?.email,
+        image: session?.user?.image,
+        facebookAccessToken: session?.user?.facebookAccessToken,
+      },
+      fullSession: session, // セッションの完全な内容
+    });
+  }, [session, status]);
+
+  useEffect(() => {
+    if (status === 'authenticated') {
+      console.log('Membership Debug:', {
+        currentMembershipType: membershipType,
+        userId: session?.user?.id,
+        isAuthenticated: true,
+      });
+      fetchMembershipType();
+    }
+  }, [status, session?.user?.id]);
+
+  const fetchMembershipType = async () => {
+    if (!session?.user?.id) {
+      console.log('Membership Fetch Error: No user ID available');
+      return;
+    }
+
+    try {
+      console.log('Fetching membership for user:', session.user.id);
+      const response = await fetch(`/api/membership/${session.user.id}`);
+      
+      console.log('Membership API Response:', {
+        status: response.status,
+        ok: response.ok,
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Membership Data Received:', data);
+        setMembershipType(data.membershipType || 'FREE');
+      } else {
+        const errorData = await response.json();
+        console.error('Membership Fetch Failed:', errorData);
+      }
+    } catch (error) {
+      console.error('Membership Fetch Error:', error);
+    }
+  };
+
   const handleFacebookConnect = async () => {
     setIsLoading(true);
+    console.log('Starting Facebook Connect...', {
+      sessionStatus: status,
+      userId: session?.user?.id,
+    });
+
     try {
       const result = await signIn('facebook', { 
         callbackUrl: '/dashboard',
         redirect: false
       });
+      
+      console.log('Facebook Connect Result:', result);
+
       if (result?.error) {
-        console.error('Facebook連携エラー:', result.error);
+        console.error('Facebook Connect Error:', result.error);
       } else if (result?.url) {
         router.push(result.url);
       }
     } catch (error) {
-      console.error('Facebook連携エラー:', error);
+      console.error('Facebook Connect Exception:', error);
     } finally {
       setIsLoading(false);
     }
@@ -52,30 +120,6 @@ export default function DashboardClient() {
       console.error('返信の取得エラー:', error);
     }
   };
-
-  const fetchMembershipType = async () => {
-    if (session?.user?.id) {
-      console.log('Fetching membership type for user:', session.user.id);
-      const response = await fetch(`/api/membership/${session.user.id}`);
-      console.log('Membership API response:', {
-        status: response.status,
-        ok: response.ok
-      });
-      if (response.ok) {
-        const data = await response.json();
-        console.log('Membership data:', data);
-        setMembershipType(data.membershipType || 'FREE');
-      }
-    }
-  };
-
-  useEffect(() => {
-    console.log('Session initialized, session?.user?.id:', session?.user?.id);
-    if (session?.user?.id) {
-      console.log('Session changed, fetching membership type');
-      fetchMembershipType();
-    }
-  }, [session]);
 
   useEffect(() => {
     if (session?.user?.id) {
@@ -114,6 +158,7 @@ export default function DashboardClient() {
       <h1 className="text-3xl font-bold mb-8 text-center">自動返信管理ダッシュボード</h1>
       <div className="space-y-8">
         <div className="bg-white p-6 rounded-lg shadow-md">
+          
           {session?.user?.facebookAccessToken ? (
             <Button 
               className="mb-4"
