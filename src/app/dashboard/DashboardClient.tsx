@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect} from 'react'
 import { Button } from "@/components/ui/button"
 import ReplyForm from '@/components/ReplyForm'
 import ReplyList from '@/components/ReplyList'
@@ -19,6 +19,59 @@ export default function DashboardClient() {
   // セッションの状態をログ出力
   console.log('Session status:', status);
   console.log('Session data:', session);
+
+    // セッション状態の監視とメンバーシップ情報の取得
+    useEffect(() => {
+      if (session?.user?.id) {
+        fetchMembershipType();
+        fetchReplies();
+      }
+    }, [session?.user?.id]);
+  
+    // メンバーシップ情報を取得
+    const fetchMembershipType = async () => {
+      try {
+        const response = await fetch(`/api/membership/${session?.user?.id}`);
+        if (response.ok) {
+          const data = await response.json();
+          setMembershipType(data.membershipType);
+        }
+      } catch (error) {
+        console.error('Error fetching membership:', error);
+      }
+    };
+  
+    // 返信一覧を取得
+    const fetchReplies = async () => {
+      try {
+        const response = await fetch('/api/replies');
+        if (response.ok) {
+          const data = await response.json();
+          setReplies(data);
+        }
+      } catch (error) {
+        console.error('Error fetching replies:', error);
+      }
+    };
+  
+    // 返信を追加
+    const handleReplyAdded = async (newReply: Reply) => {
+      try {
+        const response = await fetch('/api/replies', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(newReply),
+        });
+  
+        if (response.ok) {
+          fetchReplies(); // 返信一覧を再取得
+        }
+      } catch (error) {
+        console.error('Error adding reply:', error);
+      }
+    };
 
   if (status === 'loading') {
     return <div className="flex justify-center items-center min-h-screen">
@@ -48,7 +101,7 @@ export default function DashboardClient() {
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-semibold">自動返信一覧</h2>
             <ReplyForm 
-              onReplyAdded={() => {}} // 後で実装
+              onReplyAdded={handleReplyAdded}
               membershipType={membershipType}
             />
           </div>
