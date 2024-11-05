@@ -2,23 +2,19 @@ import { Inter } from 'next/font/google'
 import './globals.css'
 import Header from '@/components/Header'
 import Link from 'next/link'
-import { getServerSession } from 'next-auth/next'
-import { authOptions } from './api/auth/[...nextauth]/options'
-import SessionProvider from '@/components/SessionProvider'
+import { AuthProvider } from '@/components/AuthProvider'
 
 const inter = Inter({ subsets: ['latin'] })
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  const session = await getServerSession(authOptions)
-
   return (
     <html lang="ja">
       <body className={inter.className}>
-        <SessionProvider session={session}>
+        <AuthProvider>
           <div className="flex flex-col min-h-screen">
             <Header />
             {children}
@@ -52,7 +48,7 @@ export default async function RootLayout({
               </nav>
             </footer>
           </div>
-        </SessionProvider>
+        </AuthProvider>
       </body>
     </html>
   )
