@@ -10,15 +10,27 @@ async function fetchInstagramAccountData(accessToken: string) {
 
     if (!response.ok) {
         const errorData = await response.json();
-        console.error('Facebook APIエラー:', errorData);
+        await logExecution('Facebook APIエラー', JSON.stringify(errorData));
         throw new Error('Failed to fetch Instagram account');
     }
 
     return await response.json();
 }
 
+async function logExecution(message: string, error?: string) {
+  try {
+    await prisma.executionLog.create({
+      data: { 
+        errorMessage: error ? `${message}: ${error}` : message
+      }
+    });
+  } catch (e) {
+    console.error('ログの記録中にエラーが発生しました:', e instanceof Error ? e.message : String(e));
+  }
+}
+
 export async function GET() {
-  console.log('GET開始');
+  await logExecution('GET開始');
   const session = await getServerSession(authOptions);
   
   if (!session?.user?.id) { 
@@ -83,10 +95,10 @@ export async function GET() {
       },
     });
 
-    console.log('アカウント詳細:', accountDetails);
+    await logExecution('アカウント詳細', JSON.stringify(accountDetails));
 
     if (!accountDetails?.access_token) {
-      console.log('アカウントエラー: Facebookアカウントが接続されていないか、アクセストークンが見つかりません');
+      await logExecution('アカウントエラー', 'Facebookアカウントが接続されていないか、アクセストークンが見つかりません');
       return NextResponse.json({ 
         error: 'Facebook account not connected', 
         message: 'Facebookアカウントが接続されていません。以下を確認してください：\n1. Facebookログインが完了ていること\n2. 必要な権限が付与されていること' 
@@ -117,7 +129,7 @@ export async function GET() {
       `https://graph.facebook.com/v20.0/me/permissions?access_token=${tmpAccountData.access_token}`
     );
     const scopeData = await scopeResponse.json();
-    console.log('付与されている権限:', scopeData);
+    await logExecution('付与されている権限', JSON.stringify(scopeData));
 
     // 必要な権限のチェック
     const requiredPermissions = [
@@ -159,7 +171,7 @@ export async function GET() {
     }
 
     const instagramAccountData = await accountResponse.json();
-    console.log('Facebook APIレスポンス:', instagramAccountData);
+    await logExecution('Facebook APIレスポンス', JSON.stringify(instagramAccountData));
 
     const instagramAccountId = instagramAccountData.data[0]?.instagram_business_account?.id;
 
@@ -181,7 +193,7 @@ export async function GET() {
 
     if (!postsResponse.ok) {
       const errorData = await postsResponse.json();
-      console.error('Instagram APIエラー:', errorData);
+      await logExecution('Instagram APIエラー', JSON.stringify(errorData));
       return NextResponse.json(
         { 
           error: 'Failed to fetch Instagram posts', 
@@ -193,14 +205,14 @@ export async function GET() {
     }
 
     const postsData = await postsResponse.json();
-    console.log('Instagram投稿データ:', postsData);
+    await logExecution('Instagram投稿データ', JSON.stringify(postsData));
 
     // Facebookページの確認
     const pagesResponse = await fetch(
       `https://graph.facebook.com/v20.0/me/accounts?access_token=${tmpAccountData.access_token}`
     );
     const pagesData = await pagesResponse.json();
-    console.log('Facebookページ情報:', pagesData);
+    await logExecution('Facebookページ情報', JSON.stringify(pagesData));
 
     if (!pagesData.data || pagesData.data.length === 0) {
       return NextResponse.json({
@@ -211,7 +223,7 @@ export async function GET() {
 
     // Instagram Business Accountの確認をより詳細に
     const instagramAccountDataFetched = await fetchInstagramAccountData(tmpAccountData.access_token);
-    console.log('Instagram Business Account情報:', instagramAccountDataFetched);
+    await logExecution('Instagram Business Account情報', JSON.stringify(instagramAccountDataFetched));
 
     if (!instagramAccountDataFetched.data?.[0]?.instagram_business_account) {
       return NextResponse.json({
@@ -221,14 +233,14 @@ export async function GET() {
           以下を確認してください：
           1. Facebookページが存在すること
           2. Instagramアカウントがビジネスアカウントであること
-          3. FacebookページとInstagramビジネ��アカウントが連携されていること
+          3. FacebookページとInstagramビジネアカウントが連携されていること
         `.trim()
       }, { status: 404 });
     }
 
     return NextResponse.json(postsData.data);
   } catch (error) {
-    console.error('Error:', error);
+    await logExecution('Error', error instanceof Error ? error.message : String(error));
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
