@@ -131,14 +131,14 @@ export async function GET() {
       permission => !scopeData.data.some((p: { permission: string; status: string }) => p.permission === permission && p.status === 'granted')
     );
 
-    if (missingPermissions.length > 0) {
-      console.log('不足している権限:', missingPermissions);
-      return NextResponse.json({
-        error: 'Insufficient permissions',
-        message: '必要な権限が不足しています。再度Facebookログインを行ってください。',
-        missingPermissions
-      }, { status: 403 });
-    }
+    // if (missingPermissions.length > 0) {
+    //   console.log('不足している権限:', missingPermissions);
+    //   return NextResponse.json({
+    //     error: 'Insufficient permissions',
+    //     message: '必要な権限が不足しています。再度Facebookログインを行ってください。',
+    //     missingPermissions
+    //   }, { status: 403 });
+    // }
 
     // Instagram Business AccountのIDを取得
     const accountResponse = await fetch(
