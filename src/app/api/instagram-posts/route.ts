@@ -5,7 +5,7 @@ import { prisma } from '@/lib/prisma';
 
 async function fetchInstagramAccountData(accessToken: string) {
     const response = await fetch(
-        `https://graph.facebook.com/v19.0/me/accounts?fields=instagram_business_account{id,name,username}&access_token=${accessToken}`
+        `https://graph.facebook.com/v20.0/me/accounts?fields=instagram_business_account{id,name,username}&access_token=${accessToken}`
     );
 
     if (!response.ok) {
@@ -114,7 +114,7 @@ export async function GET() {
 
     // Instagram Business AccountのIDを取得する前にスコープを確認
     const scopeResponse = await fetch(
-      `https://graph.facebook.com/v19.0/me/permissions?access_token=${tmpAccountData.access_token}`
+      `https://graph.facebook.com/v20.0/me/permissions?access_token=${tmpAccountData.access_token}`
     );
     const scopeData = await scopeResponse.json();
     console.log('付与されている権限:', scopeData);
@@ -142,7 +142,7 @@ export async function GET() {
 
     // Instagram Business AccountのIDを取得
     const accountResponse = await fetch(
-      `https://graph.facebook.com/v19.0/me/accounts?fields=instagram_business_account{id}&access_token=${tmpAccountData.access_token}`
+      `https://graph.facebook.com/v20.0/me/accounts?fields=instagram_business_account{id}&access_token=${tmpAccountData.access_token}`
     );
     
     if (!accountResponse.ok) {
@@ -176,7 +176,7 @@ export async function GET() {
 
     // 投稿を取得
     const postsResponse = await fetch(
-      `https://graph.facebook.com/v19.0/${instagramAccountId}/media?fields=id,media_type,media_url,thumbnail_url,timestamp&access_token=${tmpAccountData.access_token}`
+      `https://graph.facebook.com/v20.0/${instagramAccountId}/media?fields=id,media_type,media_url,thumbnail_url,timestamp&access_token=${tmpAccountData.access_token}`
     );
 
     if (!postsResponse.ok) {
@@ -197,7 +197,7 @@ export async function GET() {
 
     // Facebookページの確認
     const pagesResponse = await fetch(
-      `https://graph.facebook.com/v19.0/me/accounts?access_token=${tmpAccountData.access_token}`
+      `https://graph.facebook.com/v20.0/me/accounts?access_token=${tmpAccountData.access_token}`
     );
     const pagesData = await pagesResponse.json();
     console.log('Facebookページ情報:', pagesData);
