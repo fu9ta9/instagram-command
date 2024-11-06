@@ -55,13 +55,13 @@ export async function GET() {
     const currentScopes = account.scope?.split(',') || [];
     const missingScopes = requiredScopes.filter(scope => !currentScopes.includes(scope));
 
-    if (missingScopes.length > 0) {
-      return NextResponse.json({
-        error: 'Insufficient permissions',
-        message: '必要な権限が不足しています。再度ログインして権限を付与してください。',
-        missingScopes
-      }, { status: 403 });
-    }
+    // if (missingScopes.length > 0) {
+    //   return NextResponse.json({
+    //     error: 'Insufficient permissions',
+    //     message: '必要な権限が不足しています。再度ログインして権限を付与してください。',
+    //     missingScopes
+    //   }, { status: 403 });
+    // }
 
     // アカウントデータの詳細な確認
     const accountDetails = await prisma.account.findFirst({
