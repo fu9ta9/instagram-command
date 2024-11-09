@@ -124,71 +124,12 @@ export async function GET() {
       );
     }
 
-    // Instagram Business AccountのIDを取得する前にスコープを確認
-    const scopeResponse = await fetch(
-      `https://graph.facebook.com/v20.0/me/permissions?access_token=${tmpAccountData.access_token}`
-    );
-    const scopeData = await scopeResponse.json();
-    await logExecution('付与されている権限', JSON.stringify(scopeData));
 
-    // 必要な権限のチェック
-    const requiredPermissions = [
-      'instagram_basic',
-      'instagram_manage_insights',
-      'pages_show_list',
-      'pages_read_engagement'
-    ];
 
-    const missingPermissions = requiredPermissions.filter(
-      permission => !scopeData.data.some((p: { permission: string; status: string }) => p.permission === permission && p.status === 'granted')
-    );
-
-    // if (missingPermissions.length > 0) {
-    //   console.log('不足している権限:', missingPermissions);
-    //   return NextResponse.json({
-    //     error: 'Insufficient permissions',
-    //     message: '必要な権限が不足しています。再度Facebookログインを行ってください。',
-    //     missingPermissions
-    //   }, { status: 403 });
-    // }
-
-    // Instagram Business AccountのIDを取得
-    const accountResponse = await fetch(
-      `https://graph.facebook.com/v20.0/me/accounts?fields=instagram_business_account{id}&access_token=${tmpAccountData.access_token}`
-    );
-    
-    if (!accountResponse.ok) {
-      const errorData = await accountResponse.json();
-      console.error('Facebook APIエラー:', errorData);
-      return NextResponse.json(
-        { 
-          error: 'Failed to fetch Instagram account', 
-          message: 'Instagramアカウントの取得に失敗しました。Facebookの権限設定を確認してください。',
-          details: errorData 
-        }, 
-        { status: accountResponse.status }
-      );
-    }
-
-    const instagramAccountData = await accountResponse.json();
-    await logExecution('Facebook APIレスポンス', JSON.stringify(instagramAccountData));
-
-    const instagramAccountId = instagramAccountData.data[0]?.instagram_business_account?.id;
-
-    if (!instagramAccountId) {
-      console.log('アカウントエラー: Instagramビジネスアカウントが見つかりません');
-      return NextResponse.json(
-        { 
-          error: 'Instagram business account not found', 
-          message: 'Instagramビジネスアカウントが見つかりません。Facebookページに接続されたInstagramビジネスアカウントがあることを確認してください。'
-        }, 
-        { status: 404 }
-      );
-    }
 
     // 投稿を取得
     const postsResponse = await fetch(
-      `https://graph.facebook.com/v20.0/${instagramAccountId}/media?fields=id,media_type,media_url,thumbnail_url,timestamp&access_token=${tmpAccountData.access_token}`
+      `https://graph.facebook.com/v20.0/${accountDetails.id}/media?fields=id,media_type,media_url,thumbnail_url,timestamp&access_token=${tmpAccountData.access_token}`
     );
 
     if (!postsResponse.ok) {
@@ -207,36 +148,6 @@ export async function GET() {
     const postsData = await postsResponse.json();
     await logExecution('Instagram投稿データ', JSON.stringify(postsData));
 
-    // Facebookページの確認
-    const pagesResponse = await fetch(
-      `https://graph.facebook.com/v20.0/me/accounts?access_token=${tmpAccountData.access_token}`
-    );
-    const pagesData = await pagesResponse.json();
-    await logExecution('Facebookページ情報', JSON.stringify(pagesData));
-
-    if (!pagesData.data || pagesData.data.length === 0) {
-      return NextResponse.json({
-        error: 'No Facebook Pages',
-        message: 'Facebookページが見つかりません。Facebookページを作成し、管理者権限を付与してください。'
-      }, { status: 404 });
-    }
-
-    // Instagram Business Accountの確認をより詳細に
-    const instagramAccountDataFetched = await fetchInstagramAccountData(tmpAccountData.access_token);
-    await logExecution('Instagram Business Account情報', JSON.stringify(instagramAccountDataFetched));
-
-    if (!instagramAccountDataFetched.data?.[0]?.instagram_business_account) {
-      return NextResponse.json({
-        error: 'Instagram business account not found',
-        message: `
-          Instagramビジネスアカウントが見つかりません。
-          以下を確認してください：
-          1. Facebookページが存在すること
-          2. Instagramアカウントがビジネスアカウントであること
-          3. FacebookページとInstagramビジネアカウントが連携されていること
-        `.trim()
-      }, { status: 404 });
-    }
 
     return NextResponse.json(postsData.data);
   } catch (error) {
