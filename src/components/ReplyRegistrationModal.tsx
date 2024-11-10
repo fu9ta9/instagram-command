@@ -60,7 +60,12 @@ const KeywordRegistrationModal: React.FC<KeywordRegistrationModalProps> = ({ isO
         setButtons(initialData.buttons || []);
         setStep(3); // 編集モードの場合、最後のステップから始める
       } else {
-        reset();
+        reset({
+          matchType: 'partial',
+          keyword: '',
+          reply: '',
+          instagramPostId: ''
+        });
         setStep(1);
         setSelectedPost(null);
         setButtons([]);
@@ -83,28 +88,49 @@ const KeywordRegistrationModal: React.FC<KeywordRegistrationModalProps> = ({ isO
 
   const handleFormSubmit = async (data: FormData) => {
     try {
+      if (!selectedPost?.id) {
+        throw new Error('投稿が選択されていません');
+      }
+
+      const submitData = {
+        ...data,
+        instagramPostId: selectedPost.id,
+        postImage: selectedPost.thumbnail_url,
+        buttons
+      };
+      
+      console.log('送信データ:', submitData);
+
       const response = await fetch('/api/replies', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          ...data,
-          postImage: selectedPost.thumbnail_url,
-          buttons
-        }),
+        body: JSON.stringify(submitData),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to save reply');
+        const errorData = await response.json();
+        throw new Error(errorData.details || 'Failed to save reply');
       }
 
       const result = await response.json();
-      onSubmit(result); // 親コンポーネントに保存結果を渡す
+      onSubmit(result);
+      
+      // フォームをリセット
+      reset({
+        matchType: 'partial',
+        keyword: '',
+        reply: '',
+        instagramPostId: ''
+      });
+      setSelectedPost(null);
+      setButtons([]);
+      
       onClose();
     } catch (error) {
       console.error('Save error:', error);
-      // エラー処理（例：エラーメッセージの表示）
+      alert(error instanceof Error ? error.message : '保存に失敗しました');
     }
   };
 

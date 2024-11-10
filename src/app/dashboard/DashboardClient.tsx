@@ -73,6 +73,26 @@ export default function DashboardClient() {
       }
     };
 
+  // 返信を削除
+  const handleReplyDeleted = async (id: number | string) => {
+    const response = await fetch(`/api/replies/${id}`, { method: 'DELETE' });
+    if (response.ok) {
+      setReplies(prev => prev.filter(reply => reply.id !== id));
+    }
+  };
+
+  // 返信を更新
+  const handleReplyUpdated = async (id: string, data: Omit<Reply, 'id'>) => {
+    const response = await fetch(`/api/replies/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    if (response.ok) {
+      fetchReplies();
+    }
+  };
+
   if (status === 'loading') {
     return <div className="flex justify-center items-center min-h-screen">
       <p>Loading...</p>
@@ -107,8 +127,8 @@ export default function DashboardClient() {
           </div>
           <ReplyList 
             replies={replies} 
-            onReplyDeleted={() => {}} // 後で実装
-            onReplyUpdated={() => {}} // 後で実装
+            onReplyDeleted={handleReplyDeleted}
+            onReplyUpdated={handleReplyUpdated}
           />
         </div>
       </div>
