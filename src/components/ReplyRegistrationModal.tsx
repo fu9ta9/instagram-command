@@ -81,9 +81,31 @@ const KeywordRegistrationModal: React.FC<KeywordRegistrationModalProps> = ({ isO
     if (step > 1) setStep(step - 1);
   };
 
-  const handleFormSubmit = (data: FormData) => {
-    onSubmit({ ...data, postImage: selectedPost.thumbnail_url, buttons });
-    onClose();
+  const handleFormSubmit = async (data: FormData) => {
+    try {
+      const response = await fetch('/api/replies', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...data,
+          postImage: selectedPost.thumbnail_url,
+          buttons
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to save reply');
+      }
+
+      const result = await response.json();
+      onSubmit(result); // 親コンポーネントに保存結果を渡す
+      onClose();
+    } catch (error) {
+      console.error('Save error:', error);
+      // エラー処理（例：エラーメッセージの表示）
+    }
   };
 
   const handleAddButton = () => {
