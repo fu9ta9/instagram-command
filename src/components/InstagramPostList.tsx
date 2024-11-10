@@ -5,10 +5,12 @@ import { ja } from 'date-fns/locale';
 
 interface InstagramPost {
   id: string;
-  media_url: string;
-  thumbnail_url: string;
+  media_product_type: 'FEED' | 'REELS';
+  media_url?: string;
+  thumbnail_url?: string;
   timestamp: string;
-  media_type: string;
+  comments_count: number;
+  like_count: number;
 }
 
 interface InstagramPostListProps {
@@ -56,7 +58,7 @@ const InstagramPostList: React.FC<InstagramPostListProps> = ({ onSelectPost }) =
   };
 
   const filteredPosts = posts.filter(post => 
-    activeTab === 'feed' ? post.media_type === 'IMAGE' : post.media_type === 'VIDEO'
+    activeTab === 'feed' ? post.media_product_type === 'FEED' : post.media_product_type === 'REELS'
   );
 
   if (isLoading) {
@@ -98,7 +100,7 @@ const InstagramPostList: React.FC<InstagramPostListProps> = ({ onSelectPost }) =
               onClick={() => handlePostClick(post)}
             >
               <Image
-                src={post.thumbnail_url || post.media_url}
+                src={post.media_product_type === 'FEED' ? post.media_url! : post.thumbnail_url!}
                 alt={`Post from ${post.timestamp}`}
                 fill
                 className="object-cover"
@@ -106,6 +108,10 @@ const InstagramPostList: React.FC<InstagramPostListProps> = ({ onSelectPost }) =
               />
               <div className="absolute top-0 right-0 bg-black bg-opacity-50 text-white text-xs p-1">
                 {format(new Date(post.timestamp), 'MM/dd', { locale: ja })}
+              </div>
+              <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white text-xs p-1 flex justify-between">
+                <span>❤️ {post.like_count}</span>
+                <span>💬 {post.comments_count}</span>
               </div>
               {selectedPostId === post.id && (
                 <div className="absolute bottom-2 right-2 bg-blue-500 rounded-full p-1">
