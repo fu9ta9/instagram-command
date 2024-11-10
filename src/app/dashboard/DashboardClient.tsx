@@ -4,7 +4,7 @@ import { useState, useEffect} from 'react'
 import { Button } from "@/components/ui/button"
 import ReplyForm from '@/components/ReplyForm'
 import ReplyList from '@/components/ReplyList'
-import { Reply } from '@/types/reply'
+import { Reply, ReplyInput } from '@/types/reply'
 import { signIn, useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { MembershipType } from "@prisma/client"
@@ -82,7 +82,7 @@ export default function DashboardClient() {
   };
 
   // 返信を更新
-  const handleReplyUpdated = async (id: string, data: Omit<Reply, 'id'>) => {
+  const handleReplyUpdated = async (id: string, data: ReplyInput) => {
     const response = await fetch(`/api/replies/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },

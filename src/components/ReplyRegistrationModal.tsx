@@ -22,13 +22,23 @@ const schema = z.object({
   })).optional()
 });
 
-type FormData = z.infer<typeof schema>;
+// zodスキーマの型と一致させる
+interface FormData {
+  keyword: string;
+  reply: string;
+  matchType: 'exact' | 'partial';
+  instagramPostId: string;
+  buttons?: Array<{
+    title: string;
+    url: string;
+  }>;
+}
 
 interface KeywordRegistrationModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (data: Omit<Reply, 'id'>) => void;
-  initialData?: Omit<Reply, 'id'>;
+  initialData?: ReplyFormData;  // ReplyFormDataを使用
   isEditing?: boolean;
 }
 
@@ -43,9 +53,12 @@ const KeywordRegistrationModal: React.FC<KeywordRegistrationModalProps> = ({ isO
   const { control, handleSubmit, setValue, watch, reset, formState: { errors, isValid } } = useForm<FormData>({
     resolver: zodResolver(schema),
     mode: 'onChange',
-    defaultValues: initialData || {
-      matchType: 'partial',
-      buttons: []
+    defaultValues: {
+      keyword: initialData?.keyword || '',
+      reply: initialData?.reply || '',
+      matchType: initialData?.matchType || 'partial',
+      instagramPostId: initialData?.instagramPostId || '',
+      buttons: initialData?.buttons || []
     }
   });
 
@@ -55,16 +68,26 @@ const KeywordRegistrationModal: React.FC<KeywordRegistrationModalProps> = ({ isO
   useEffect(() => {
     if (isOpen) {
       if (initialData) {
-        reset(initialData);
-        setSelectedPost({ id: initialData.instagramPostId, thumbnail_url: initialData.postImage });
+        reset({
+          keyword: initialData.keyword,
+          reply: initialData.reply,
+          matchType: initialData.matchType,
+          instagramPostId: initialData.instagramPostId,
+          buttons: initialData.buttons
+        });
+        setSelectedPost({ 
+          id: initialData.instagramPostId,
+          thumbnail_url: null // 必要に応じて適切な値を設定
+        });
         setButtons(initialData.buttons || []);
-        setStep(3); // 編集モードの場合、最後のステップから始める
+        setStep(3);
       } else {
         reset({
-          matchType: 'partial',
           keyword: '',
           reply: '',
-          instagramPostId: ''
+          matchType: 'partial',
+          instagramPostId: '',
+          buttons: []
         });
         setStep(1);
         setSelectedPost(null);
@@ -119,10 +142,11 @@ const KeywordRegistrationModal: React.FC<KeywordRegistrationModalProps> = ({ isO
       
       // フォームをリセット
       reset({
-        matchType: 'partial',
         keyword: '',
         reply: '',
-        instagramPostId: ''
+        matchType: 'partial',
+        instagramPostId: '',
+        buttons: []
       });
       setSelectedPost(null);
       setButtons([]);
