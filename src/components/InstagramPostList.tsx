@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import Image from 'next/image';
 import { format } from 'date-fns';
 import { ja } from 'date-fns/locale';
 
@@ -99,12 +98,10 @@ const InstagramPostList: React.FC<InstagramPostListProps> = ({ onSelectPost }) =
               }`}
               onClick={() => handlePostClick(post)}
             >
-              <Image
+              <img
                 src={post.media_product_type === 'FEED' ? post.media_url! : post.thumbnail_url!}
                 alt={`Post from ${post.timestamp}`}
-                fill
-                className="object-cover"
-                sizes="(max-width: 768px) 33vw, 200px"
+                className="absolute inset-0 w-full h-full object-cover"
               />
               <div className="absolute top-0 right-0 bg-black bg-opacity-50 text-white text-xs p-1">
                 {format(new Date(post.timestamp), 'MM/dd', { locale: ja })}
