@@ -40,8 +40,13 @@ export async function GET(
     }
 
     // Instagram Graph APIから投稿のメディアURLのみを取得
+    // const response = await fetch(
+    //   `https://graph.facebook.com/v20.0/${params.postId}?fields=media_url,thumbnail_url&access_token=${account.access_token}`
+    // );
+
+    // test
     const response = await fetch(
-      `https://graph.facebook.com/v20.0/${params.postId}?fields=media_url,thumbnail_url&access_token=${account.access_token}`
+      `https://graph.facebook.com/v20.0/${params.postId}?fields=media_url,thumbnail_url&access_token=EAA0daofnui4BO1GfArcl5j8uq6wvppbL8ASSfg6V97i1SxGLuH3iKeYJWaOnv9djnbG3WLoWsnKMdlrwaMYscvRCuEkNiBZCEiQQxtvzEpgZAHsu1eqTtnee8tjb86CyBAZCE13NbVslqapClG6FGKjskPF5IJcj0nJjC0YJAQURLDO8Wl8ypfJT7PegwrY`
     );
 
     if (!response.ok) {
