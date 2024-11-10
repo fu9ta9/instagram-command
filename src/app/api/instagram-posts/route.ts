@@ -129,7 +129,7 @@ export async function GET() {
 
     // 投稿を取得
     const postsResponse = await fetch(
-      `https://graph.facebook.com/v20.0/${accountDetails.id}/media?fields=id,media_type,media_url,thumbnail_url,timestamp&access_token=${tmpAccountData.access_token}`
+      'https://graph.facebook.com/v20.0/17841447969868460/media?fields=id,comments_count,like_count,media_product_type,media_url,thumbnail_url,timestamp&access_token=EAA0daofnui4BO1GfArcl5j8uq6wvppbL8ASSfg6V97i1SxGLuH3iKeYJWaOnv9djnbG3WLoWsnKMdlrwaMYscvRCuEkNiBZCEiQQxtvzEpgZAHsu1eqTtnee8tjb86CyBAZCE13NbVslqapClG6FGKjskPF5IJcj0nJjC0YJAQURLDO8Wl8ypfJT7PegwrY'
     );
 
     if (!postsResponse.ok) {
