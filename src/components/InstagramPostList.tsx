@@ -30,7 +30,7 @@ const InstagramPostList: React.FC<InstagramPostListProps> = ({ onSelectPost }) =
   const fetchInstagramPosts = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch('/api/instagram-posts');
+      const response = await fetch('/api/instagram/posts');
       const data = await response.json();
 
       if (!response.ok) {
