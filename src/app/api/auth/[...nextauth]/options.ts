@@ -17,13 +17,13 @@ export const authOptions: NextAuthOptions = {
       clientSecret: process.env.FACEBOOK_CLIENT_SECRET!,
       authorization: {
         params: {
-          scope: [
-            'public_profile',
-            'pages_manage_metadata',
-            'pages_read_engagement',
-            'instagram_basic',
-            'instagram_content_publish'
-          ].join(',')
+          // scope: [
+          //   'public_profile',
+          //   'pages_manage_metadata',
+          //   'pages_read_engagement',
+          //   'instagram_basic',
+          //   'instagram_content_publish'
+          // ].join(',')
         }
       }
     }),
