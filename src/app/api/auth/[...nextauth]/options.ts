@@ -18,11 +18,10 @@ export const authOptions: NextAuthOptions = {
       authorization: {
         params: {
           scope: [
+            'email',
             'public_profile',
-        //     'pages_manage_metadata',
-        //     'pages_read_engagement',
-        //     'instagram_basic',
-        //     'instagram_content_publish'
+            'instagram_basic',
+            'pages_show_list'
           ].join(',')
         }
       }
