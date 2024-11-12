@@ -1,32 +1,33 @@
-import { signIn, useSession } from 'next-auth/react';
-import { useState, useEffect } from 'react';
+import { signIn } from 'next-auth/react';
+import { Button } from "@/components/ui/button";
+import { useState } from 'react';
 
 export default function FacebookConnect() {
-  const { data: session } = useSession();
-  const [isFacebookConnected, setIsFacebookConnected] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
-  useEffect(() => {
-    if (session?.user?.facebookAccessToken) {
-      setIsFacebookConnected(true);
-    }
-  }, [session]);
-
-  const handleFacebookConnect = async () => {
-    const result = await signIn('facebook', { redirect: false });
-    if (result?.error) {
-      console.error('Facebook連携に失敗しました:', result.error);
-    } else {
-      setIsFacebookConnected(true);
+  const handleConnect = async () => {
+    setIsLoading(true);
+    try {
+      await signIn('facebook', { 
+        callbackUrl: '/dashboard',
+        redirect: false
+      });
+    } catch (error) {
+      console.error('サインインエラー:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  if (isFacebookConnected) {
-    return <p>Facebookは既に連携されています</p>;
-  }
-
   return (
-    <button onClick={handleFacebookConnect}>
-      Facebookと連携する
-    </button>
+    <div className="bg-white p-6 rounded-lg shadow-md">
+      <Button 
+        onClick={handleConnect} 
+        className="mb-4"
+        disabled={isLoading}
+      >
+        {isLoading ? 'ログイン中...' : 'Facebook/Instagram連携'}
+      </Button>
+    </div>
   );
 }

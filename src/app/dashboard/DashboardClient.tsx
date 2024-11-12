@@ -1,77 +1,76 @@
 'use client'
 
 import { useState, useEffect} from 'react'
-import { Button } from "@/components/ui/button"
 import ReplyForm from '@/components/ReplyForm'
 import ReplyList from '@/components/ReplyList'
 import { Reply, ReplyInput } from '@/types/reply'
-import { signIn, useSession } from 'next-auth/react'
+import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { MembershipType } from "@prisma/client"
+import FacebookConnect from '@/components/FacebookConnect'
 
 export default function DashboardClient() {
   const [replies, setReplies] = useState<Reply[]>([]);
   const router = useRouter();
   const { data: session, status } = useSession();
-  const [isLoading, setIsLoading] = useState(false);
   const [membershipType, setMembershipType] = useState<MembershipType>('FREE');
 
   // セッションの状態をログ出力
   console.log('Session status:', status);
   console.log('Session data:', session);
 
-    // セッション状態の監視とメンバーシップ情報の取得
-    useEffect(() => {
-      if (session?.user?.id) {
-        fetchMembershipType();
-        fetchReplies();
+  // セッション状態の監視とメンバーシップ情報の取得
+  useEffect(() => {
+    if (session?.user?.id) {
+      fetchMembershipType();
+      fetchReplies();
+    }
+  }, [session?.user?.id]);
+
+  // メンバーシップ情報を取得
+  const fetchMembershipType = async () => {
+    try {
+      const response = await fetch(`/api/membership/${session?.user?.id}`);
+      if (response.ok) {
+        const data = await response.json();
+        setMembershipType(data.membershipType);
       }
-    }, [session?.user?.id]);
-  
-    // メンバーシップ情報を取得
-    const fetchMembershipType = async () => {
-      try {
-        const response = await fetch(`/api/membership/${session?.user?.id}`);
-        if (response.ok) {
-          const data = await response.json();
-          setMembershipType(data.membershipType);
-        }
-      } catch (error) {
-        console.error('Error fetching membership:', error);
+    } catch (error) {
+      console.error('Error fetching membership:', error);
+    }
+  };
+
+  // 返信一覧を取得
+  const fetchReplies = async () => {
+    try {
+      const response = await fetch('/api/replies');
+      if (response.ok) {
+        const data = await response.json();
+        setReplies(data);
       }
-    };
-  
-    // 返信一覧を取得
-    const fetchReplies = async () => {
-      try {
-        const response = await fetch('/api/replies');
-        if (response.ok) {
-          const data = await response.json();
-          setReplies(data);
-        }
-      } catch (error) {
-        console.error('Error fetching replies:', error);
+    } catch (error) {
+      console.error('Error fetching replies:', error);
+    }
+  };
+
+  // 返信を追加
+  const handleReplyAdded = async (newReply: Reply) => {
+    try {
+      const response = await fetch('/api/replies', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(newReply),
+      });
+
+      if (response.ok) {
+        fetchReplies(); // 返信一覧を再取得
       }
-    };
-  
-    // 返信を追加
-    const handleReplyAdded = async (newReply: Reply) => {
-      try {
-        const response = await fetch('/api/replies', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(newReply),
-        });
-  
-        if (response.ok) {
-          fetchReplies(); // 返信一覧を再取得
-        }
-      } catch (error) {
-        console.error('Error adding reply:', error);
-      }
-    };
+    } catch (error) {
+      console.error('Error adding reply:', error);
+    }
+  };
 
   // 返信を削除
   const handleReplyDeleted = async (id: number | string) => {
@@ -108,15 +107,7 @@ export default function DashboardClient() {
     <div className="container mx-auto p-4 max-w-4xl">
       <h1 className="text-3xl font-bold mb-8 text-center">自動返信管理ダッシュボード</h1>
       <div className="space-y-8">
-        <div className="bg-white p-6 rounded-lg shadow-md">
-          <Button 
-            onClick={() => signIn('facebook')} 
-            className="mb-4"
-            disabled={isLoading}
-          >
-            {isLoading ? 'ログイン中...' : 'Facebook/Instagram連携'}
-          </Button>
-        </div>
+        <FacebookConnect />
         <div className="bg-white p-6 rounded-lg shadow-md">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-semibold">自動返信一覧</h2>
