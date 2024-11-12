@@ -34,8 +34,29 @@ export const authOptions: NextAuthOptions = {
       }
       return session;
     },
+    async signIn({ user, account, profile }) {
+      if (!account) {
+        return false; // account が null の場合はサインインを拒否
+      }
+      if (account.provider === 'google') {
+        // Google ログイン時の処理
+        await prisma.executionLog.create({
+          data: {
+            errorMessage: `Google サインイン: ${JSON.stringify(user)}`
+          }
+        });
+      } else if (account.provider === 'facebook') {
+        // Facebook ログイン時の処理
+        await prisma.executionLog.create({
+          data: {
+            errorMessage: `Facebook サインイン: ${JSON.stringify(user)}`
+          }
+        });
+      }
+      return true; // サインインを許可
+    },
   },
   pages: {
-    signIn: '/login',
+    signIn: '/dashboard',
   },
 }

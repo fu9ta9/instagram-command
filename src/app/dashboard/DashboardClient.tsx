@@ -98,11 +98,6 @@ export default function DashboardClient() {
     </div>
   }
 
-  if (status === 'unauthenticated') {
-    router.push('/login');
-    return null;
-  }
-
   return (
     <div className="container mx-auto p-4 max-w-4xl">
       <h1 className="text-3xl font-bold mb-8 text-center">自動返信管理ダッシュボード</h1>
