@@ -46,6 +46,7 @@ model User {
   replies       Reply[]   // ここを変更
   membershipType MembershipType @default(FREE)
   trialStartDate DateTime?
+  password      String?
 }
 
 model VerificationToken {
