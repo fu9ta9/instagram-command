@@ -15,30 +15,31 @@ const ReplyForm: React.FC<ReplyFormProps> = ({ onReplyAdded, membershipType }) =
   const router = useRouter();
 
   const handleOpenModal = async () => {
-    if (membershipType === MembershipType.FREE) {
-      setError("この機能を利用するには、会員プランのアップグレードが必要です。");
-      return;
-    }
+    setIsModalOpen(true);
+    // if (membershipType === MembershipType.FREE) {
+    //   setError("この機能を利用するには、会員プランのアップグレードが必要です。");
+    //   return;
+    // }
 
     try {
-      const response = await fetch('/api/member-ship', {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+    //   const response = await fetch('/api/member-ship', {
+    //     method: 'GET',
+    //     headers: {
+    //       'Content-Type': 'application/json',
+    //     },
+    //   });
 
-      if (!response.ok) {
-        throw new Error('会員種別の確認に失敗しました');
-      }
+    //   if (!response.ok) {
+    //     throw new Error('会員種別の確認に失敗しました');
+    //   }
 
-      const data = await response.json();
+    //   const data = await response.json();
 
-      if (data.membershipType === MembershipType.FREE) {
-        setError("会員プランの有効期限が切れています。会員プランをアップグレードしてください。");
-      } else {
-        setIsModalOpen(true);
-      }
+    //   if (data.membershipType === MembershipType.FREE) {
+    //     setError("会員プランの有効期限が切れています。会員プランをアップグレードしてください。");
+    //   } else {
+    //     setIsModalOpen(true);
+    //   }
     } catch (error) {
       setError('エラーが発生しました。しばらくしてから再度お試しください。');
     } finally {
@@ -58,7 +59,8 @@ const ReplyForm: React.FC<ReplyFormProps> = ({ onReplyAdded, membershipType }) =
 
   return (
     <div>
-      <Button onClick={handleOpenModal} disabled={membershipType === MembershipType.FREE}>
+      {/* <Button onClick={handleOpenModal} disabled={membershipType === MembershipType.FREE}> */}
+      <Button onClick={handleOpenModal}>
         自動返信登録
       </Button>
       {error && (
