@@ -15,10 +15,6 @@ export default function DashboardClient() {
   const { data: session, status } = useSession();
   const [membershipType, setMembershipType] = useState<MembershipType>('FREE');
 
-  // セッションの状態をログ出力
-  console.log('Session status:', status);
-  console.log('Session data:', session);
-
   // セッション状態の監視とメンバーシップ情報の取得
   useEffect(() => {
     if (session?.user?.id) {
@@ -92,11 +88,11 @@ export default function DashboardClient() {
     }
   };
 
-  if (status === 'loading') {
-    return <div className="flex justify-center items-center min-h-screen">
-      <p>Loading...</p>
-    </div>
-  }
+  // if (status === 'loading') {
+  //   return <div className="flex justify-center items-center min-h-screen">
+  //     <p>Loading...</p>
+  //   </div>
+  // }
 
   return (
     <div className="container mx-auto p-4 max-w-4xl">
