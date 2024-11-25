@@ -9,17 +9,47 @@ import { useRouter } from 'next/navigation'
 import { MembershipType } from "@prisma/client"
 import FacebookConnect from '@/components/FacebookConnect'
 
+interface ConnectionStatus {
+  facebook: {
+    connected: boolean;
+    name?: string;
+    id?: string;
+  };
+  instagram: {
+    connected: boolean;
+    name?: string;
+    id?: string;
+  };
+}
+
 export default function DashboardClient() {
   const [replies, setReplies] = useState<Reply[]>([]);
+  const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>({
+    facebook: { connected: false },
+    instagram: { connected: false }
+  });
   const router = useRouter();
   const { data: session, status } = useSession();
   const [membershipType, setMembershipType] = useState<MembershipType>('FREE');
 
-  // セッション状態の監視とメンバーシップ情報の取得
+  // 連携状態を取得
+  const fetchConnectionStatus = async () => {
+    try {
+      const response = await fetch('/api/connections/status');
+      if (response.ok) {
+        const data = await response.json();
+        setConnectionStatus(data);
+      }
+    } catch (error) {
+      console.error('連携状態の取得に失敗:', error);
+    }
+  };
+
   useEffect(() => {
     if (session?.user?.id) {
       fetchMembershipType();
       fetchReplies();
+      fetchConnectionStatus();
     }
   }, [session?.user?.id]);
 
@@ -98,7 +128,39 @@ export default function DashboardClient() {
     <div className="container mx-auto p-4 max-w-4xl">
       <h1 className="text-3xl font-bold mb-8 text-center">自動返信管理ダッシュボード</h1>
       <div className="space-y-8">
-        <FacebookConnect />
+        {/* 連携状態の表示 */}
+        <div className="bg-white p-6 rounded-lg shadow-md">
+          <h2 className="text-xl font-semibold mb-4">連携状態</h2>
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <div>
+                <h3 className="font-medium">Facebook連携</h3>
+                {connectionStatus.facebook.connected ? (
+                  <p className="text-sm text-gray-600">
+                    {connectionStatus.facebook.name} (ID: {connectionStatus.facebook.id})
+                  </p>
+                ) : (
+                  <p className="text-sm text-red-500">未連携</p>
+                )}
+              </div>
+              {!connectionStatus.facebook.connected && <FacebookConnect />}
+            </div>
+            
+            <div className="flex justify-between items-center">
+              <div>
+                <h3 className="font-medium">Instagram連携</h3>
+                {connectionStatus.instagram.connected ? (
+                  <p className="text-sm text-gray-600">
+                    {connectionStatus.instagram.name} (ID: {connectionStatus.instagram.id})
+                  </p>
+                ) : (
+                  <p className="text-sm text-red-500">未連携</p>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div className="bg-white p-6 rounded-lg shadow-md">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-semibold">自動返信一覧</h2>
