@@ -3,6 +3,18 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../../auth/[...nextauth]/options';
 import { prisma } from '@/lib/prisma';
 
+type FacebookInfo = {
+  connected: boolean;
+  name?: string;
+  id?: string;
+};
+
+type InstagramInfo = {
+  connected: boolean;
+  name?: string;
+  id?: string;
+};
+
 export async function GET() {
   const session = await getServerSession(authOptions);
 
@@ -19,8 +31,8 @@ export async function GET() {
       },
     });
 
-    let instagramInfo = { connected: false };
-    let facebookInfo = { connected: false };
+    let instagramInfo: InstagramInfo = { connected: false };
+    let facebookInfo: FacebookInfo = { connected: false };
 
     if (account?.access_token) {
       // Facebook情報を取得
