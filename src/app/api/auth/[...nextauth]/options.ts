@@ -30,12 +30,12 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
-    session: async ({ session, user }) => {
-      if (session?.user) {
-        session.user.id = user.id;
-      }
-      return session;
-    },
+    // session: async ({ session, user }) => {
+    //   if (session?.user) {
+    //     session.user.id = user.id;
+    //   }
+    //   return session;
+    // },
     async signIn({ user, account, profile }) {
       await logExecution('Facebook連携開始', {
         user,
