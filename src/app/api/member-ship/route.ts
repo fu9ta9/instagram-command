@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth/next'
 import { authOptions } from '../auth/[...nextauth]/options'
 import { prisma } from '@/lib/prisma'
-import { MembershipType } from '@prisma/client'
+import { MembershipType } from '@/types/membership' 
 
 export async function GET() {
   const session = await getServerSession(authOptions)
@@ -14,14 +14,14 @@ export async function GET() {
   try {
     const user = await prisma.user.findUnique({
       where: { email: session.user.email },
-      select: { membershipType: true, trialStartDate: true }
+      select: { membershipType: true, trialStartDate: true, id: true, name: true }
     })
 
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
-    let effectiveMembershipType = user.membershipType
+    let effectiveMembershipType = user?.membershipType;
 
     // トライアル期間のチェック
     if (user.membershipType === MembershipType.TRIAL && user.trialStartDate) {
@@ -31,7 +31,7 @@ export async function GET() {
         // ユーザーの会員種別を更新
         await prisma.user.update({
           where: { email: session.user.email },
-          data: { membershipType: MembershipType.FREE }
+          data: { membershipType: { set: MembershipType.FREE } }
         })
       }
     }
