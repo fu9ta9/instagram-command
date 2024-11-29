@@ -41,7 +41,7 @@ export async function GET() {
     if (account?.access_token) {
       // Facebook情報を取得
       const fbResponse = await fetch(
-        `https://graph.facebook.com/v20.0/me?fields=id,name&access_token=EAAQZBfxgF2PsBO6apwO0mT4mXhWDWYlZBNzlm4AZBNLj7C0Ac48nfyrZAGj8GCz9mFhYZBFrZBBri5ZCbga4E6Tat0qWhvkrXVxOGuXhL9yNUgZAH7TUCXmDCj9YbnnQDI3C4c9Ux2ItZAO6qWQ7mZCAzD1J91T5qgqptQX29ojfOSgfZCTIILUsj6QZCUQcnrlIXlqDa5P3pikDrnjl19BhgWWrZAJjxUOtaAuSO51LksFrTMgZDZD`
+        `https://graph.facebook.com/v20.0/me?fields=id,name&access_token=${account.access_token}`
       );
       const fbData = await fbResponse.json();
       await logExecution('Facebook API レスポンス', fbData);
@@ -55,7 +55,7 @@ export async function GET() {
 
         // Instagram Business Account情報を取得
         const igResponse = await fetch(
-          `https://graph.facebook.com/v20.0/me/accounts?fields=instagram_business_account{id,name,username}&access_token=EAAQZBfxgF2PsBO6apwO0mT4mXhWDWYlZBNzlm4AZBNLj7C0Ac48nfyrZAGj8GCz9mFhYZBFrZBBri5ZCbga4E6Tat0qWhvkrXVxOGuXhL9yNUgZAH7TUCXmDCj9YbnnQDI3C4c9Ux2ItZAO6qWQ7mZCAzD1J91T5qgqptQX29ojfOSgfZCTIILUsj6QZCUQcnrlIXlqDa5P3pikDrnjl19BhgWWrZAJjxUOtaAuSO51LksFrTMgZDZD`
+          `https://graph.facebook.com/v20.0/me/accounts?fields=instagram_business_account{id,name,username}&access_token=${account.access_token}`
         );
         const igData = await igResponse.json();
         await logExecution('Instagram API レスポンス', igData);
