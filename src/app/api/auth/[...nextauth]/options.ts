@@ -7,6 +7,7 @@ import type { Adapter } from "next-auth/adapters";
 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma) as Adapter,
+  debug: true,
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
@@ -21,8 +22,6 @@ export const authOptions: NextAuthOptions = {
             'email',
             'public_profile',
             'instagram_basic',
-            // 'pages_show_list',
-            // 'business_management',
           ].join(',')
         }
       }
@@ -30,34 +29,79 @@ export const authOptions: NextAuthOptions = {
   ],
   callbacks: {
     session: async ({ session, user }) => {
+      await prisma.executionLog.create({
+        data: {
+          errorMessage: `Session Callback: ${JSON.stringify({ session, user })}`
+        }
+      });
       if (session?.user) {
         session.user.id = user.id;
       }
       return session;
     },
     async signIn({ user, account, profile }) {
+      await prisma.executionLog.create({
+        data: {
+          errorMessage: `SignIn Callback Start: ${JSON.stringify({
+            user,
+            account,
+            profile,
+            timestamp: new Date().toISOString()
+          })}`
+        }
+      });
+
       if (!account) {
-        return false; // account が null の場合はサインインを拒否
-      }
-      if (account.provider === 'google') {
-        // Google ログイン時の処理
         await prisma.executionLog.create({
           data: {
-            errorMessage: `Google サインイン: ${JSON.stringify(user)}`
+            errorMessage: 'SignIn Error: アカウントなし'
           }
         });
-      } else if (account.provider === 'facebook') {
-        // Facebook ログイン時の処理
+        return false;
+      }
+
+      try {
+        if (account.provider === 'facebook') {
+          await prisma.executionLog.create({
+            data: {
+              errorMessage: `Facebook認証情報:
+                AccessToken: ${account.access_token}
+                TokenType: ${account.token_type}
+                ExpiresAt: ${account.expires_at}
+                Scope: ${account.scope}`
+            }
+          });
+        }
+        return true;
+      } catch (error) {
         await prisma.executionLog.create({
           data: {
-            errorMessage: `Facebook サインイン: ${JSON.stringify(user)}`
+            errorMessage: `SignIn Error: ${error instanceof Error ? error.message : String(error)}`
           }
         });
+        return false;
       }
-      return true; // サインインを許可
+    },
+    async redirect({ url, baseUrl }) {
+      await prisma.executionLog.create({
+        data: {
+          errorMessage: `Redirect Callback: URL=${url}, BaseURL=${baseUrl}`
+        }
+      });
+      return url.startsWith(baseUrl) ? url : baseUrl;
+    },
+  },
+  events: {
+    async signIn(message) {
+      await prisma.executionLog.create({
+        data: {
+          errorMessage: `SignIn Event: ${JSON.stringify(message)}`
+        }
+      });
     },
   },
   pages: {
     signIn: '/dashboard',
+    error: '/auth/error',
   },
 }
