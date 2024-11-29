@@ -87,9 +87,8 @@ export async function GET() {
     return NextResponse.json({
       facebook: facebookInfo,
       instagram: instagramInfo
-      });
-    }
-  }
+    });
+
   } catch (error) {
     await logExecution('連携状態取得エラー', {
       error: error instanceof Error ? error.message : String(error)
