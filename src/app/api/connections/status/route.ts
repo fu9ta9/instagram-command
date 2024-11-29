@@ -34,7 +34,6 @@ export async function GET() {
     let instagramInfo: InstagramInfo = { connected: false };
     let facebookInfo: FacebookInfo = { connected: false };
 
-    console.log(account);
     if (account?.access_token) {
       // Facebook情報を取得
       const fbResponse = await fetch(
