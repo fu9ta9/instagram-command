@@ -6,7 +6,7 @@ import ReplyList from '@/components/ReplyList'
 import { Reply, ReplyInput } from '@/types/reply'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import { MembershipType } from '@/types/membership' 
+import { MembershipType } from "@prisma/client"
 import FacebookConnect from '@/components/FacebookConnect'
 
 interface ConnectionStatus {

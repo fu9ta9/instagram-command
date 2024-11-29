@@ -1,1 +1,0 @@
-export type MembershipType = 'FREE' | 'TRIAL' | 'PAID'; 
