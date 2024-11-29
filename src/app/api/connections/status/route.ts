@@ -41,8 +41,7 @@ export async function GET() {
     if (account?.access_token) {
       // Facebook情報を取得
       const fbResponse = await fetch(
-        `https://graph.facebook.com/v20.0/me?fields=id,name&access_token=${account.access_token}`
-
+        `https://graph.facebook.com/v20.0/me?fields=id,name&access_token=EAAQZBfxgF2PsBO6apwO0mT4mXhWDWYlZBNzlm4AZBNLj7C0Ac48nfyrZAGj8GCz9mFhYZBFrZBBri5ZCbga4E6Tat0qWhvkrXVxOGuXhL9yNUgZAH7TUCXmDCj9YbnnQDI3C4c9Ux2ItZAO6qWQ7mZCAzD1J91T5qgqptQX29ojfOSgfZCTIILUsj6QZCUQcnrlIXlqDa5P3pikDrnjl19BhgWWrZAJjxUOtaAuSO51LksFrTMgZDZD`
       );
       const fbData = await fbResponse.json();
       await logExecution('Facebook API レスポンス', fbData);
@@ -54,30 +53,25 @@ export async function GET() {
           id: fbData.id
         };
 
-        instagramInfo = {
-          connected: true,
-          name: "さかい｜自動化オタクの「仕事術」",
-          id: "17841447969868460"
-        };
         // Instagram Business Account情報を取得
-    //     const igResponse = await fetch(
-    //       `https://graph.facebook.com/v20.0/me/accounts?fields=instagram_business_account{id,name,username}&access_token=${account.access_token}`)
+        const igResponse = await fetch(
+          `https://graph.facebook.com/v20.0/me/accounts?fields=instagram_business_account{id,name,username}&access_token=EAAQZBfxgF2PsBO6apwO0mT4mXhWDWYlZBNzlm4AZBNLj7C0Ac48nfyrZAGj8GCz9mFhYZBFrZBBri5ZCbga4E6Tat0qWhvkrXVxOGuXhL9yNUgZAH7TUCXmDCj9YbnnQDI3C4c9Ux2ItZAO6qWQ7mZCAzD1J91T5qgqptQX29ojfOSgfZCTIILUsj6QZCUQcnrlIXlqDa5P3pikDrnjl19BhgWWrZAJjxUOtaAuSO51LksFrTMgZDZD`
+        );
+        const igData = await igResponse.json();
+        await logExecution('Instagram API レスポンス', igData);
 
-    //     const igData = await igResponse.json();
-    //     await logExecution('Instagram API レスポンス', igData);
-
-    //     if (igResponse.ok) {
-    //       const igAccount = igData.data?.[0]?.instagram_business_account;
-    //       if (igAccount) {
-    //         instagramInfo = {
-    //           connected: true,
-    //           name: igAccount.username,
-    //           id: igAccount.id
-    //         };
-    //       }
-    //     }
-    //   }
-    // }
+        if (igResponse.ok) {
+          const igAccount = igData.data?.[0]?.instagram_business_account;
+          if (igAccount) {
+            instagramInfo = {
+              connected: true,
+              name: igAccount.username,
+              id: igAccount.id
+            };
+          }
+        }
+      }
+    }
 
     await logExecution('連携状態取得結果', {
       facebook: facebookInfo,
