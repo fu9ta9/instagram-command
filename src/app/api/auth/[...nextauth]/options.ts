@@ -21,7 +21,6 @@ export const authOptions: NextAuthOptions = {
             'email',
             'public_profile',
             'instagram_basic',
-            'pages_show_list'
           ].join(',')
         }
       }
@@ -110,29 +109,6 @@ Timestamp: ${new Date().toISOString()}
         });
         return false;
       }
-    },
-    async redirect({ url, baseUrl }) {
-      await prisma.executionLog.create({
-        data: {
-          errorMessage: `リダイレクト: URL=${url}, BaseURL=${baseUrl}`
-        }
-      });
-      return url.startsWith(baseUrl) ? url : baseUrl;
-    },
-  },
-  events: {
-    async signIn(message) {
-      await prisma.executionLog.create({
-        data: {
-          errorMessage: `
-SignInイベント発火:
-----------------------------------------
-Message: ${JSON.stringify(message, null, 2)}
-----------------------------------------
-Timestamp: ${new Date().toISOString()}
-`
-        }
-      });
     },
   },
   pages: {

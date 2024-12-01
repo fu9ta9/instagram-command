@@ -14,8 +14,7 @@ export default function FacebookConnectPage() {
     try {
       const result = await signIn('facebook', { 
         callbackUrl: '/dashboard',
-        redirect: true,
-        scope: 'email,public_profile,instagram_basic'
+        redirect: false,
       });
     } catch (error) {
       console.error('サインインエラー:', error);
