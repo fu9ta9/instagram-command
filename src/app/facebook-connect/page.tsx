@@ -14,26 +14,15 @@ export default function FacebookConnectPage() {
     try {
       const result = await signIn('facebook', { 
         callbackUrl: '/dashboard',
-        redirect: false
-      })
-      if (result?.error) {
-        console.error('サインインエラー:', result.error)
-        // エラーが発生してもダッシュボードにリダイレクト
-        router.push('/dashboard')
-      } else if (result?.url) {
-        router.push('/dashboard')
-      } else {
-        console.error('予期せぬ結果:', result)
-        router.push('/dashboard')
-      }
+        redirect: true,
+        scope: 'email,public_profile,instagram_basic'
+      });
     } catch (error) {
-      console.error('サインインエラー:', error)
-      // エラーが発生してもダッシュボードにリダイレクト
-      router.push('/dashboard')
+      console.error('サインインエラー:', error);
     } finally {
       setIsLoading(false);
     }
-  }
+  };
 
   return (
     <div className="container mx-auto p-4 max-w-md">
@@ -42,5 +31,5 @@ export default function FacebookConnectPage() {
         {isLoading ? 'ログイン中...' : 'Facebookでログイン'}
       </Button>
     </div>
-  ) 
+  );
 }

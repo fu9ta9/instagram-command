@@ -7,7 +7,6 @@ import type { Adapter } from "next-auth/adapters";
 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma) as Adapter,
-  debug: true,
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
@@ -22,6 +21,7 @@ export const authOptions: NextAuthOptions = {
             'email',
             'public_profile',
             'instagram_basic',
+            'pages_show_list'
           ].join(',')
         }
       }
@@ -42,19 +42,14 @@ export const authOptions: NextAuthOptions = {
     async signIn({ user, account, profile }) {
       await prisma.executionLog.create({
         data: {
-          errorMessage: `SignIn Callback Start: ${JSON.stringify({
-            user,
-            account,
-            profile,
-            timestamp: new Date().toISOString()
-          })}`
+          errorMessage: `SignIn開始: ${JSON.stringify({ user, account, profile })}`
         }
       });
 
-      if (!account) {
+      if (!account || !user) {
         await prisma.executionLog.create({
           data: {
-            errorMessage: 'SignIn Error: アカウントなし'
+            errorMessage: 'SignInエラー: アカウントまたはユーザーなし'
           }
         });
         return false;
@@ -64,11 +59,7 @@ export const authOptions: NextAuthOptions = {
         if (account.provider === 'facebook') {
           await prisma.executionLog.create({
             data: {
-              errorMessage: `Facebook認証情報:
-                AccessToken: ${account.access_token}
-                TokenType: ${account.token_type}
-                ExpiresAt: ${account.expires_at}
-                Scope: ${account.scope}`
+              errorMessage: `Facebookアカウント保存成功: UserID=${user.id}`
             }
           });
         }
@@ -76,7 +67,7 @@ export const authOptions: NextAuthOptions = {
       } catch (error) {
         await prisma.executionLog.create({
           data: {
-            errorMessage: `SignIn Error: ${error instanceof Error ? error.message : String(error)}`
+            errorMessage: `アカウント保存エラー: ${error instanceof Error ? error.message : String(error)}`
           }
         });
         return false;
@@ -85,7 +76,7 @@ export const authOptions: NextAuthOptions = {
     async redirect({ url, baseUrl }) {
       await prisma.executionLog.create({
         data: {
-          errorMessage: `Redirect Callback: URL=${url}, BaseURL=${baseUrl}`
+          errorMessage: `リダイレクト: URL=${url}, BaseURL=${baseUrl}`
         }
       });
       return url.startsWith(baseUrl) ? url : baseUrl;
@@ -104,4 +95,5 @@ export const authOptions: NextAuthOptions = {
     signIn: '/dashboard',
     error: '/auth/error',
   },
+  debug: true,
 }
