@@ -22,8 +22,8 @@ export const authOptions: NextAuthOptions = {
             'email',
             'public_profile',
             'instagram_basic',
-            // 'pages_show_list',
-            // 'business_management'
+            'pages_show_list',
+            'business_management'
           ].join(',')
         }
       }
