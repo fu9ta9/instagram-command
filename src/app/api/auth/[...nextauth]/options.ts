@@ -21,7 +21,7 @@ export const authOptions: NextAuthOptions = {
           scope: [
             'email',
             'public_profile',
-            // 'instagram_basic',
+            'instagram_basic',
             // 'pages_show_list',
             // 'business_management'
           ].join(',')
