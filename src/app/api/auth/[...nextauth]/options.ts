@@ -42,7 +42,17 @@ export const authOptions: NextAuthOptions = {
     async signIn({ user, account, profile }) {
       await prisma.executionLog.create({
         data: {
-          errorMessage: `SignIn開始: ${JSON.stringify({ user, account, profile })}`
+          errorMessage: `
+SignInコールバック開始:
+----------------------------------------
+User: ${JSON.stringify(user, null, 2)}
+----------------------------------------
+Account: ${JSON.stringify(account, null, 2)}
+----------------------------------------
+Profile: ${JSON.stringify(profile, null, 2)}
+----------------------------------------
+Timestamp: ${new Date().toISOString()}
+`
         }
       });
 
@@ -57,9 +67,37 @@ export const authOptions: NextAuthOptions = {
 
       try {
         if (account.provider === 'facebook') {
+          await prisma.account.upsert({
+            where: {
+              provider_providerAccountId: {
+                provider: account.provider,
+                providerAccountId: account.providerAccountId
+              }
+            },
+            create: {
+              userId: user.id,
+              type: account.type,
+              provider: account.provider,
+              providerAccountId: account.providerAccountId,
+              access_token: account.access_token,
+              token_type: account.token_type,
+              expires_at: account.expires_at,
+              scope: account.scope,
+            },
+            update: {
+              access_token: account.access_token,
+              token_type: account.token_type,
+              expires_at: account.expires_at,
+              scope: account.scope,
+            }
+          });
+
           await prisma.executionLog.create({
             data: {
-              errorMessage: `Facebookアカウント保存成功: UserID=${user.id}`
+              errorMessage: `Facebookアカウント保存成功: 
+                UserID=${user.id}
+                AccountID=${account.providerAccountId}
+                Scope=${account.scope}`
             }
           });
         }
@@ -86,7 +124,13 @@ export const authOptions: NextAuthOptions = {
     async signIn(message) {
       await prisma.executionLog.create({
         data: {
-          errorMessage: `SignIn Event: ${JSON.stringify(message)}`
+          errorMessage: `
+SignInイベント発火:
+----------------------------------------
+Message: ${JSON.stringify(message, null, 2)}
+----------------------------------------
+Timestamp: ${new Date().toISOString()}
+`
         }
       });
     },

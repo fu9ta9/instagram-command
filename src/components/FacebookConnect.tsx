@@ -10,7 +10,12 @@ export default function FacebookConnect() {
     try {
       await signIn('facebook', { 
         callbackUrl: '/dashboard',
-        redirect: false
+        redirect: true,
+        scope: [
+          'email',
+          'public_profile',
+          'instagram_basic',
+        ].join(',')
       });
     } catch (error) {
       console.error('サインインエラー:', error);
