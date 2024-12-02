@@ -16,17 +16,15 @@ export const authOptions: NextAuthOptions = {
     FacebookProvider({
       clientId: process.env.FACEBOOK_CLIENT_ID!,
       clientSecret: process.env.FACEBOOK_CLIENT_SECRET!,
-      authorization: {
-        params: {
-          scope: [
-            'email',
-            'public_profile',
-            'instagram_basic',
-            'pages_show_list',
-            'business_management'
-          ].join(',')
-        }
-      }
+      // authorization: {
+      //   params: {
+      //     scope: [
+      //       'email',
+      //       'public_profile',
+      //       'instagram_basic',
+      //     ].join(',')
+      //   }
+      // }
     }),
   ],
     pages: {
