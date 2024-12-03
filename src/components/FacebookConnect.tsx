@@ -1,39 +1,19 @@
+import { signIn } from 'next-auth/react';
 import { Button } from "@/components/ui/button";
 import { useState } from 'react';
 
 export default function FacebookConnect() {
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleConnect = () => {
+  const handleConnect = async () => {
     setIsLoading(true);
     try {
-      // Business Login用のカスタムURL構築
-      const params = new URLSearchParams({
-        client_id: process.env.NEXT_PUBLIC_FACEBOOK_CLIENT_ID!,
-        display: 'page',
-        extras: JSON.stringify({
-          setup: {
-            channel: "IG_API_ONBOARDING"
-          }
-        }),
-        redirect_uri: `${process.env.NEXTAUTH_URL}/dashboard`,
-        response_type: 'token',
-        scope: [
-          'instagram_basic',
-          'instagram_content_publish',
-          'instagram_manage_comments',
-          'instagram_manage_insights',
-          'pages_show_list',
-          'pages_read_engagement'
-        ].join(',')
+      await signIn('facebook', { 
+        callbackUrl: '/dashboard',
+        redirect: true
       });
-
-      // Facebook Business Login URLへリダイレクト
-      const loginUrl = `https://www.facebook.com/dialog/oauth?${params.toString()}`;
-      window.location.href = loginUrl;
-
     } catch (error) {
-      console.error('Facebook Business Login Error:', error);
+      console.error('サインインエラー:', error);
     } finally {
       setIsLoading(false);
     }
