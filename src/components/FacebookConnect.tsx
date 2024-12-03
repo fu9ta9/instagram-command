@@ -10,7 +10,7 @@ export default function FacebookConnect() {
     try {
       await signIn('facebook', { 
         callbackUrl: '/dashboard',
-        redirect: true
+        redirect: false
       });
     } catch (error) {
       console.error('サインインエラー:', error);
