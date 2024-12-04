@@ -24,6 +24,7 @@ export const authOptions: NextAuthOptions = {
               channel: "IG_API_ONBOARDING"
             }
           }),
+          redirect_uri: `${process.env.NEXT_PUBLIC_NEXTAUTH_URL}/dashboard`,
           response_type: "token",
           scope: [
             'instagram_basic',
