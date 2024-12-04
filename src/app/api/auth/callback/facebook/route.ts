@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
-export async function GET(request: Request): Promise<Boolean> {
+export async function GET(request: Request): Promise<Response> {
   try {
     await prisma.executionLog.create({
       data: {
@@ -13,13 +13,16 @@ export async function GET(request: Request): Promise<Boolean> {
     });
 
     // NextAuthのハンドラーにリダイレクト
-    return true;
+    return NextResponse.json({ success: true });
   } catch (error) {
     await prisma.executionLog.create({
       data: {
         errorMessage: `Facebook Callback エラー: ${error instanceof Error ? error.message : String(error)}`
       }
     });
-    return false;
+    return NextResponse.json(
+      { error: 'Callback error' },
+      { status: 500 }
+    );
   }
 } 
