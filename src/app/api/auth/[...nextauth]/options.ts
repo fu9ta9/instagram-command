@@ -42,8 +42,35 @@ export const authOptions: NextAuthOptions = {
       }
       return token
     },
-    async signIn({ user, account, profile, email, credentials }) {
-      return true
+    async signIn({ user, account, profile }) {
+      if (account && account.provider === 'facebook') {
+        try {
+          // upsertを使用して、レコードが存在しない場合は作成、存在する場合は更新
+          await prisma.account.upsert({
+            where: {
+              provider_providerAccountId: {
+                provider: 'facebook',
+                providerAccountId: account.providerAccountId,
+              },
+            },
+            update: {
+              scope: account.scope,
+              access_token: account.access_token,
+            },
+            create: {
+              userId: user.id,
+              type: account.type,
+              provider: account.provider,
+              providerAccountId: account.providerAccountId,
+              access_token: account.access_token,
+              scope: account.scope,
+            },
+          });
+        } catch (error) {
+          console.error('Error updating account:', error);
+        }
+      }
+      return true;
     },
   },
   pages: {
