@@ -21,7 +21,7 @@ export const authOptions: NextAuthOptions = {
           display: "page",
           extras: JSON.stringify({
             setup: {
-              channel: "IG_API_ONBOARDING"
+              channel: "Instagram_Onboarding"
             }
           }),
           redirect_uri: `${process.env.NEXT_PUBLIC_NEXTAUTH_URL}/dashboard`,
