@@ -24,7 +24,7 @@ export const authOptions: NextAuthOptions = {
               channel: "Instagram_Onboarding"
             }
           }),
-          redirect_uri: `${process.env.NEXT_PUBLIC_NEXTAUTH_URL}/dashboard`,
+          redirect_uri: `${process.env.NEXT_PUBLIC_NEXTAUTH_URL}/api/auth/callback/facebook`,
           response_type: "token",
           scope: [
             'instagram_basic',

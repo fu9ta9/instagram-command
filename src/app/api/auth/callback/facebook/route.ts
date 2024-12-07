@@ -10,32 +10,74 @@ export async function GET(request: Request): Promise<Response> {
     // ヘッダー情報を安全に取得
     const headersList = headers();
     const url = new URL(request.url);
-    const searchParams = url.searchParams;
+    const hash = url.hash; // #以降の文字列を取得
 
-    // リクエスト情報をログに記録
+    // アクセストークンの取得
+    const accessToken = hash.match(/access_token=([^&]*)/)?.[1];
+    const expiresIn = hash.match(/expires_in=([^&]*)/)?.[1];
+    const dataAccessExpirationTime = hash.match(/data_access_expiration_time=([^&]*)/)?.[1];
+
     await prisma.executionLog.create({
       data: {
         errorMessage: `Facebook Callback受信:
-        Full URL: ${url.toString()}
-        Search Params: ${JSON.stringify(Object.fromEntries(searchParams.entries()))}
+        URL: ${url.toString()}
+        Access Token: ${accessToken ? `${accessToken.substring(0, 10)}...` : 'なし'}
+        Expires In: ${expiresIn}
+        Data Access Expiration: ${dataAccessExpirationTime}
         Headers: ${JSON.stringify(Object.fromEntries(headersList.entries()))}
         Timestamp: ${new Date().toISOString()}`
       }
     });
 
-    // NextAuthのコールバックURLにリダイレクト
-    const nextAuthCallbackUrl = new URL('/api/auth/callback/facebook', process.env.NEXTAUTH_URL!);
-    nextAuthCallbackUrl.search = url.search;
+    if (accessToken) {
+      try {
+        // アカウント情報をDBに保存
+        await prisma.account.upsert({
+          where: {
+            provider_providerAccountId: {
+              provider: 'facebook',
+              providerAccountId: accessToken // 一時的にアクセストークンをIDとして使用
+            }
+          },
+          create: {
+            userId: '1', // 仮のユーザーID
+            type: 'oauth',
+            provider: 'facebook',
+            providerAccountId: accessToken,
+            access_token: accessToken,
+            expires_at: expiresIn ? parseInt(expiresIn) : undefined,
+            scope: 'instagram_basic,instagram_manage_comments,pages_show_list,pages_read_engagement'
+          },
+          update: {
+            access_token: accessToken,
+            expires_at: expiresIn ? parseInt(expiresIn) : undefined
+          }
+        });
 
-    await prisma.executionLog.create({
-      data: {
-        errorMessage: `NextAuth Callback リダイレクト:
-        URL: ${nextAuthCallbackUrl.toString()}
-        Timestamp: ${new Date().toISOString()}`
+        await prisma.executionLog.create({
+          data: {
+            errorMessage: `アカウント情報保存成功:
+            Provider: facebook
+            Access Token: ${accessToken.substring(0, 10)}...
+            Expires In: ${expiresIn}
+            Timestamp: ${new Date().toISOString()}`
+          }
+        });
+
+      } catch (error) {
+        await prisma.executionLog.create({
+          data: {
+            errorMessage: `アカウント保存エラー:
+            Error: ${error instanceof Error ? error.message : String(error)}
+            Stack: ${error instanceof Error ? error.stack : ''}
+            Timestamp: ${new Date().toISOString()}`
+          }
+        });
       }
-    });
+    }
 
-    return NextResponse.redirect(nextAuthCallbackUrl.toString());
+    // ダッシュボードにリダイレクト
+    return NextResponse.redirect(new URL('/dashboard', process.env.NEXT_PUBLIC_NEXTAUTH_URL!));
 
   } catch (error) {
     await prisma.executionLog.create({
