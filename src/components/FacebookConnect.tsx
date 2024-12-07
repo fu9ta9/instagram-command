@@ -8,9 +8,9 @@ export default function FacebookConnect() {
   const handleConnect = async () => {
     setIsLoading(true);
     try {
-      await signIn('facebook', { 
-        callbackUrl: '/dashboard',
-        redirect: false
+      await signIn('facebook', {
+        callbackUrl: '/api/auth/callback/facebook',
+        redirect: true
       });
     } catch (error) {
       console.error('サインインエラー:', error);
