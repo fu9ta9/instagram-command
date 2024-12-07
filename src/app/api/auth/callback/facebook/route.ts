@@ -7,20 +7,20 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request): Promise<Response> {
   try {
-    // ヘッダー情報を安全に取得
     const headersList = headers();
     const url = new URL(request.url);
-    const hash = url.hash; // #以降の文字列を取得
+    const searchParams = url.searchParams;
 
-    // アクセストークンの取得
-    const accessToken = hash.match(/access_token=([^&]*)/)?.[1];
-    const expiresIn = hash.match(/expires_in=([^&]*)/)?.[1];
-    const dataAccessExpirationTime = hash.match(/data_access_expiration_time=([^&]*)/)?.[1];
+    // クエリパラメータからトークン情報を取得
+    const accessToken = searchParams.get('access_token');
+    const expiresIn = searchParams.get('expires_in');
+    const dataAccessExpirationTime = searchParams.get('data_access_expiration_time');
 
     await prisma.executionLog.create({
       data: {
         errorMessage: `Facebook Callback受信:
         URL: ${url.toString()}
+        Search Params: ${JSON.stringify(Object.fromEntries(searchParams.entries()))}
         Access Token: ${accessToken ? `${accessToken.substring(0, 10)}...` : 'なし'}
         Expires In: ${expiresIn}
         Data Access Expiration: ${dataAccessExpirationTime}
