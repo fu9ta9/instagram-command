@@ -87,8 +87,19 @@ export async function GET(request: Request): Promise<Response> {
       }
     }
 
-    // ダッシュボードにリダイレクト
-    return NextResponse.redirect(new URL('/dashboard', process.env.NEXTAUTH_URL!));
+    // 正しい環境変数の使用
+    const baseUrl = process.env.NEXT_PUBLIC_NEXTAUTH_URL || 'https://insta-command.com';
+    await prisma.executionLog.create({
+      data: {
+        errorMessage: `リダイレクト:
+        Base URL: ${baseUrl}
+        Environment: ${process.env.NODE_ENV}
+        Timestamp: ${new Date().toISOString()}`
+      }
+    });
+
+    // 文字列連結で安全にURLを構築
+    return NextResponse.redirect(`${baseUrl}/dashboard`);
 
   } catch (error) {
     await prisma.executionLog.create({
@@ -100,9 +111,8 @@ export async function GET(request: Request): Promise<Response> {
       }
     });
 
-    return NextResponse.json(
-      { error: 'Callback error' },
-      { status: 500 }
-    );
+    // エラー時は安全なURLにリダイレクト
+    const baseUrl = process.env.NEXTAUTH_URL || 'https://insta-command.com';
+    return NextResponse.redirect(`${baseUrl}/error`);
   }
 } 
