@@ -141,6 +141,12 @@ export const authOptions: NextAuthOptions = {
         });
         return false;
       }
+    },
+    session: async ({ session, user }) => {
+      if (session?.user) {
+        session.user.id = user.id;
+      }
+      return session;
     }
   },
   pages: {
