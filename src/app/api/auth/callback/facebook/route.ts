@@ -1,12 +1,14 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { headers } from 'next/headers';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '../../[...nextauth]/options';
 
-// 動的ルートとして明示的に設定
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request): Promise<Response> {
   try {
+    const session = await getServerSession(authOptions);
     const headersList = headers();
     const url = new URL(request.url);
     const searchParams = url.searchParams;
@@ -21,13 +23,22 @@ export async function GET(request: Request): Promise<Response> {
         errorMessage: `Facebook Callback受信:
         URL: ${url.toString()}
         Search Params: ${JSON.stringify(Object.fromEntries(searchParams.entries()))}
+        Session User: ${JSON.stringify(session?.user)}
         Access Token: ${accessToken ? `${accessToken.substring(0, 10)}...` : 'なし'}
         Expires In: ${expiresIn}
         Data Access Expiration: ${dataAccessExpirationTime}
-        Headers: ${JSON.stringify(Object.fromEntries(headersList.entries()))}
         Timestamp: ${new Date().toISOString()}`
       }
     });
+
+    if (!session?.user?.id) {
+      await prisma.executionLog.create({
+        data: {
+          errorMessage: 'ユーザーIDが見つかりません'
+        }
+      });
+      return NextResponse.redirect(new URL('/login', process.env.NEXTAUTH_URL!));
+    }
 
     if (accessToken) {
       try {
@@ -40,7 +51,7 @@ export async function GET(request: Request): Promise<Response> {
             }
           },
           create: {
-            userId: '1', // 仮のユーザーID
+            userId: session.user.id, // セッションからユーザーIDを取得
             type: 'oauth',
             provider: 'facebook',
             providerAccountId: accessToken,
@@ -57,7 +68,7 @@ export async function GET(request: Request): Promise<Response> {
         await prisma.executionLog.create({
           data: {
             errorMessage: `アカウント情報保存成功:
-            Provider: facebook
+            UserID: ${session.user.id}
             Access Token: ${accessToken.substring(0, 10)}...
             Expires In: ${expiresIn}
             Timestamp: ${new Date().toISOString()}`
@@ -77,7 +88,7 @@ export async function GET(request: Request): Promise<Response> {
     }
 
     // ダッシュボードにリダイレクト
-    return NextResponse.redirect(new URL('/dashboard', process.env.NEXT_PUBLIC_NEXTAUTH_URL!));
+    return NextResponse.redirect(new URL('/dashboard', process.env.NEXTAUTH_URL!));
 
   } catch (error) {
     await prisma.executionLog.create({
