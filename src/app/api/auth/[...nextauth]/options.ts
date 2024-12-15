@@ -37,92 +37,121 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
+    async jwt({ token, account }) {
+      if (account) {
+        token.accessToken = account.access_token
+      }
+      return token
+    },
     async signIn({ user, account, profile }) {
       await prisma.executionLog.create({
         data: {
-          errorMessage: `SignIn開始: ${JSON.stringify({ user, account, profile })}`
+          errorMessage: `SignIn開始:
+          User: ${JSON.stringify(user)}
+          Account: ${JSON.stringify(account)}
+          Profile: ${JSON.stringify(profile)}`
         }
       });
 
-      // 既存のセッションをクリア
-      await prisma.session.deleteMany({
-        where: { userId: user.id }
-      });
-
-      // 既存のアカウント登録処理はそのまま維持
-      if (account?.provider === 'facebook' && account.access_token) {
-        try {
-          await prisma.account.upsert({
-            where: {
-              provider_providerAccountId: {
-                provider: account.provider,
-                providerAccountId: account.providerAccountId
-              }
-            },
-            create: {
-              userId: user.id,
-              type: account.type,
-              provider: account.provider,
-              providerAccountId: account.providerAccountId,
-              access_token: account.access_token,
-              token_type: account.token_type,
-              expires_at: account.expires_at,
-              scope: account.scope,
-            },
-            update: {
-              access_token: account.access_token,
-              token_type: account.token_type,
-              expires_at: account.expires_at,
-              scope: account.scope,
-            }
-          });
-        } catch (error) {
-          await prisma.executionLog.create({
-            data: {
-              errorMessage: `アカウント保存エラー: ${error instanceof Error ? error.message : String(error)}`
-            }
-          });
-          return false;
-        }
+      if (!account || !user) {
+        await prisma.executionLog.create({
+          data: {
+            errorMessage: 'SignInエラー: アカウントまたはユーザー情報なし'
+          }
+        });
+        return false;
       }
 
-      return true;
-    },
-    async session({ session, user }) {
-      if (session?.user) {
-        // 現在のユーザー情報を再取得して検証
-        const currentUser = await prisma.user.findUnique({
-          where: { id: user.id }
+      try {
+        // アカウント情報をDBに保存/更新
+        await prisma.account.upsert({
+          where: {
+            provider_providerAccountId: {
+              provider: account.provider,
+              providerAccountId: account.providerAccountId
+            }
+          },
+          create: {
+            userId: user.id,
+            type: account.type,
+            provider: account.provider,
+            providerAccountId: account.providerAccountId,
+            access_token: account.access_token,
+            token_type: account.token_type,
+            expires_at: account.expires_at,
+            scope: account.scope,
+          },
+          update: {
+            access_token: account.access_token,
+            token_type: account.token_type,
+            expires_at: account.expires_at,
+            scope: account.scope,
+          }
         });
 
-        if (!currentUser) {
-          throw new Error('User not found');
+        // アクセストークンを使用してFacebookページ情報を取得
+        if (account.access_token) {
+          const pagesResponse = await fetch(
+            `https://graph.facebook.com/v11.0/me/accounts?fields=id,name,access_token,instagram_business_account{id,name,username}&access_token=${account.access_token}`
+          );
+          
+          if (pagesResponse.ok) {
+            const pagesData = await pagesResponse.json();
+            await prisma.executionLog.create({
+              data: {
+                errorMessage: `Facebookページ情報取得成功: ${JSON.stringify(pagesData)}`
+              }
+            });
+
+            // Instagram Business Account情報があれば保存
+            const page = pagesData.data?.[0];
+            if (page?.instagram_business_account) {
+              await prisma.account.update({
+                where: {
+                  provider_providerAccountId: {
+                    provider: account.provider,
+                    providerAccountId: account.providerAccountId
+                  }
+                },
+                data: {
+                  access_token: page.access_token,
+                  providerAccountId: page.instagram_business_account.id,
+                  scope: account.scope
+                }
+              });
+
+              await prisma.executionLog.create({
+                data: {
+                  errorMessage: `Instagram Business Account更新:
+                  ID: ${page.instagram_business_account.id}
+                  Username: ${page.instagram_business_account.username}
+                  Access Token: ${page.access_token.substring(0, 10)}...`
+                }
+              });
+            }
+          }
         }
 
-        // セッション情報を更新
-        session.user.id = currentUser.id;
-        session.user.email = currentUser.email;
+        return true;
+      } catch (error) {
+        await prisma.executionLog.create({
+          data: {
+            errorMessage: `アカウント保存エラー: ${error instanceof Error ? error.message : String(error)}`
+          }
+        });
+        return false;
       }
-
+    },
+    session: async ({ session, user }) => {
+      if (session?.user) {
+        session.user.id = user.id;
+      }
       return session;
     }
-  },
-  session: {
-    strategy: 'jwt',
-    maxAge: 24 * 60 * 60, // 24時間
   },
   pages: {
     signIn: '/dashboard',
     error: '/auth/error',
   },
-  events: {
-    async signOut({ session, token }) {
-      // ログアウト時にセッションを削除
-      if (session?.user?.id) {
-        await prisma.session.deleteMany({
-          where: { userId: session.user.id }
-        });
-      }
-    }
-  }
-};
+  debug: true,
+}
