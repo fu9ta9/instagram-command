@@ -46,27 +46,47 @@ export async function GET() {
       },
       select: {
         access_token: true,
-        providerAccountId: true,  // Instagram Business Account ID
-        scope: true,
       },
     });
 
-    if (!account?.access_token || !account.providerAccountId) {
-      await logExecution('アカウントエラー', 'アクセストークンまたはInstagram Business Account IDが見つかりません');
+    if (!account?.access_token) {
+      await logExecution('アカウントエラー', 'アクセストークンが見つかりません');
       return NextResponse.json({ 
-        error: 'Instagram account not connected',
-        message: 'Instagramビジネスアカウントが接続されていません。'
+        error: 'Facebook account not connected',
+        message: 'Facebookアカウントが接続されていません。'
       }, { status: 401 });
     }
 
-    // Instagram投稿を取得（DBの値を使用）
+    // まずInstagram Business Account IDを取得
+    const igAccountResponse = await fetch(
+      `https://graph.facebook.com/v20.0/me/accounts?fields=instagram_business_account{id}&access_token=${account.access_token}`
+    );
+
+    if (!igAccountResponse.ok) {
+      const errorData = await igAccountResponse.json();
+      await logExecution('Instagram Account APIエラー', JSON.stringify(errorData));
+      return NextResponse.json({ error: errorData }, { status: igAccountResponse.status });
+    }
+
+    const igAccountData = await igAccountResponse.json();
+    const igBusinessAccountId = igAccountData.data?.[0]?.instagram_business_account?.id;
+
+    if (!igBusinessAccountId) {
+      await logExecution('Instagram Business Account IDが見つかりません');
+      return NextResponse.json({
+        error: 'Instagram business account not found',
+        message: 'Instagramビジネスアカウントが見つかりません。'
+      }, { status: 404 });
+    }
+
+    // Instagram投稿を取得
     const postsResponse = await fetch(
-      `https://graph.facebook.com/v20.0/${account.providerAccountId}/media?fields=id,comments_count,like_count,media_product_type,media_url,thumbnail_url,timestamp&access_token=${account.access_token}`
+      `https://graph.facebook.com/v20.0/${igBusinessAccountId}/media?fields=id,comments_count,like_count,media_product_type,media_url,thumbnail_url,timestamp&access_token=${account.access_token}`
     );
 
     if (!postsResponse.ok) {
       const errorData = await postsResponse.json();
-      await logExecution('Instagram APIエラー', JSON.stringify(errorData));
+      await logExecution('Instagram Posts APIエラー', JSON.stringify(errorData));
       return NextResponse.json(
         { 
           error: 'Failed to fetch Instagram posts', 
@@ -79,7 +99,7 @@ export async function GET() {
 
     const postsData = await postsResponse.json();
     await logExecution('Instagram投稿データ取得成功', 
-      `Account ID: ${account.providerAccountId.substring(0, 5)}...`
+      `Business Account ID: ${igBusinessAccountId.substring(0, 5)}...`
     );
 
     return NextResponse.json(postsData.data);
