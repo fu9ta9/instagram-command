@@ -28,9 +28,9 @@ export const authOptions: NextAuthOptions = {
           response_type: "token",
           scope: [
             'instagram_basic',
-            // 'instagram_manage_comments',
-            // 'pages_show_list',
-            // 'pages_read_engagement'
+            'instagram_manage_comments',
+            'pages_show_list',
+            'pages_read_engagement'
           ].join(',')
         }
       },
