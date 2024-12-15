@@ -132,6 +132,21 @@ export const authOptions: NextAuthOptions = {
           }
         }
 
+        // メールアドレス認証の場合のみ、セッションをリセット
+        if (account?.provider === 'credentials' || account?.provider === 'google') {
+          await prisma.session.deleteMany({
+            where: { userId: user.id }
+          });
+          await prisma.executionLog.create({
+            data: {
+              errorMessage: `セッションリセット:
+              UserID=${user.id}
+              Provider=${account.provider}
+              Timestamp=${new Date().toISOString()}`
+            }
+          });
+        }
+
         return true;
       } catch (error) {
         await prisma.executionLog.create({
