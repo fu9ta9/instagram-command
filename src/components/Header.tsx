@@ -1,8 +1,22 @@
+'use client'
+
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { BarChart3 } from "lucide-react"
+import { useSession, signOut } from "next-auth/react"
+import { useRouter } from "next/navigation"
 
 export default function Header() {
+  const { data: session } = useSession()
+  const router = useRouter()
+
+  const handleLogout = async () => {
+    await signOut({ 
+      redirect: true,
+      callbackUrl: '/' 
+    })
+  }
+
   return (
     <header className="px-4 lg:px-6 h-14 flex items-center">
       <Link className="flex items-center justify-center" href="#">
@@ -19,9 +33,15 @@ export default function Header() {
         <Link className="text-sm font-medium hover:underline underline-offset-4" href="#contact">
           お問い合わせ
         </Link>
-        <Button variant="outline" asChild>
-          <Link href="/login">ログイン</Link>
-        </Button>
+        {session ? (
+          <Button variant="outline" onClick={handleLogout}>
+            ログアウト
+          </Button>
+        ) : (
+          <Button variant="outline" asChild>
+            <Link href="/login">ログイン</Link>
+          </Button>
+        )}
       </nav>
     </header>
   )
