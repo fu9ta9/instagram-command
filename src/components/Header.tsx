@@ -20,7 +20,7 @@ export default function Header() {
           お問い合わせ
         </Link>
         <Button variant="outline" asChild>
-          <Link href="/dashboard">ログイン</Link>
+          <Link href="/login">ログイン</Link>
         </Button>
       </nav>
     </header>
