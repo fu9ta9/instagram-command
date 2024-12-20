@@ -46,12 +46,13 @@ export default function DashboardClient() {
   };
 
   useEffect(() => {
-    if (session?.user?.id) {
+    // セッションがロード完了し、ユーザーが認証済みの場合
+    if (status === 'authenticated' && session?.user?.id) {
       fetchMembershipType();
       fetchReplies();
       fetchConnectionStatus();
     }
-  }, [session?.user?.id]);
+  }, [status, session?.user?.id]);
 
   // メンバーシップ情報を取得
   const fetchMembershipType = async () => {
