@@ -169,4 +169,19 @@ export const authOptions: NextAuthOptions = {
     error: '/auth/error',
   },
   debug: true,
+  events: {
+    async signOut({ session }) {
+      // セッションを確実に削除
+      if (session?.user?.id) {
+        await prisma.session.deleteMany({
+          where: { userId: session.user.id }
+        });
+        await prisma.executionLog.create({
+          data: {
+            errorMessage: `ログアウト完了: UserID=${session.user.id}`
+          }
+        });
+      }
+    }
+  }
 }
