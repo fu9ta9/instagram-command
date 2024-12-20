@@ -4,6 +4,8 @@ import FacebookProvider from "next-auth/providers/facebook"
 import { PrismaAdapter } from "@auth/prisma-adapter"
 import { prisma } from "@/lib/prisma"
 import type { Adapter } from "next-auth/adapters";
+import CredentialsProvider from "next-auth/providers/credentials"
+import bcrypt from "bcryptjs";
 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma) as Adapter,
@@ -34,6 +36,70 @@ export const authOptions: NextAuthOptions = {
           ].join(',')
         }
       },
+    }),
+    CredentialsProvider({
+      name: "Credentials",
+      credentials: {
+        email: { label: "Email", type: "email" },
+        password: { label: "Password", type: "password" }
+      },
+      async authorize(credentials) {
+        if (!credentials?.email || !credentials?.password) {
+          await prisma.executionLog.create({
+            data: {
+              errorMessage: 'Credentials認証: 必要な情報が不足しています'
+            }
+          });
+          return null;
+        }
+
+        try {
+          // ユーザーを検索
+          const user = await prisma.user.findUnique({
+            where: { email: credentials.email }
+          });
+
+          if (!user || !user.password) {
+            await prisma.executionLog.create({
+              data: {
+                errorMessage: `Credentials認証: ユーザーが見つかりません - ${credentials.email}`
+              }
+            });
+            return null;
+          }
+
+          // パスワードを検証
+          const isValid = await bcrypt.compare(credentials.password, user.password);
+
+          if (!isValid) {
+            await prisma.executionLog.create({
+              data: {
+                errorMessage: `Credentials認証: パスワードが一致しません - ${credentials.email}`
+              }
+            });
+            return null;
+          }
+
+          await prisma.executionLog.create({
+            data: {
+              errorMessage: `Credentials認証成功: ${user.email}`
+            }
+          });
+
+          return {
+            id: user.id,
+            email: user.email,
+            name: user.name
+          };
+        } catch (error) {
+          await prisma.executionLog.create({
+            data: {
+              errorMessage: `Credentials認証エラー: ${error instanceof Error ? error.message : String(error)}`
+            }
+          });
+          return null;
+        }
+      }
     }),
   ],
   callbacks: {
@@ -183,5 +249,8 @@ export const authOptions: NextAuthOptions = {
         });
       }
     }
-  }
+  },
+  session: {
+    strategy: "jwt",  // JWT戦略を明示的に指定
+  },
 }
