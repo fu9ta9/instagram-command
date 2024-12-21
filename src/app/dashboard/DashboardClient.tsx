@@ -168,6 +168,7 @@ export default function DashboardClient() {
             <ReplyForm 
               onReplyAdded={handleReplyAdded}
               membershipType={membershipType}
+              onReplyRegistered={fetchReplies}
             />
           </div>
           <ReplyList 

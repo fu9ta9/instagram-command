@@ -7,9 +7,10 @@ import { useRouter } from 'next/navigation';
 interface ReplyFormProps {
   onReplyAdded: (data: any) => void;
   membershipType: MembershipType;
+  onReplyRegistered: () => void;
 }
 
-const ReplyForm: React.FC<ReplyFormProps> = ({ onReplyAdded, membershipType }) => {
+const ReplyForm: React.FC<ReplyFormProps> = ({ onReplyAdded, membershipType, onReplyRegistered }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
@@ -50,6 +51,7 @@ const ReplyForm: React.FC<ReplyFormProps> = ({ onReplyAdded, membershipType }) =
   const handleSubmit = (data: any) => {
     onReplyAdded(data);
     setIsModalOpen(false);
+    onReplyRegistered();
   };
 
   console.log('ReplyForm Debug:', {
