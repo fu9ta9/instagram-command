@@ -62,7 +62,7 @@ export async function GET(request: Request): Promise<Response> {
               where: {
                 provider_providerAccountId: {
                   provider: 'facebook',
-                  providerAccountId: page.instagram_business_account.id  // Instagram Business Account IDを使用
+                  providerAccountId: session!.user!.id
                 }
               },
               create: {
