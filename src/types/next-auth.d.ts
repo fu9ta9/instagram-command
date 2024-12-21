@@ -1,13 +1,14 @@
-import NextAuth from "next-auth"
+import { DefaultSession } from 'next-auth';
 
-declare module "next-auth" {
+declare module 'next-auth' {
   interface Session {
     user: {
-      id: string
-      membershipType: string
-      facebookAccessToken?: string
-      // 他の既存のプロパティ
-    } & DefaultSession["user"]
+      id: string;
+      email: string;
+      name: string;
+      provider: string;
+      accessToken: string;
+    } & DefaultSession['user']
   }
 }
 
