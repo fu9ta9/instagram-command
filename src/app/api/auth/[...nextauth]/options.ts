@@ -214,51 +214,6 @@ export const authOptions: NextAuthOptions = {
               scope: token.scope as string,
             }
           });
-  
-          // アクセストークンを使用してFacebookページ情報を取得
-          if (token.access_token) {
-            const pagesResponse = await fetch(
-              `https://graph.facebook.com/v11.0/me/accounts?fields=id,name,access_token,instagram_business_account{id,name,username}&access_token=${token.access_token}`
-            );
-            
-            if (pagesResponse.ok) {
-              const pagesData = await pagesResponse.json();
-              await prisma.executionLog.create({
-                data: {
-                  errorMessage: `Facebookページ情報取得成功: ${JSON.stringify(pagesData)}`
-                }
-              });
-  
-              // Instagram Business Account情報があれば保存
-              const page = pagesData.data?.[0];
-              if (page?.instagram_business_account) {
-                await prisma.account.update({
-                  where: {
-                    provider_providerAccountId: {
-                      provider: token.provider as string,
-                      providerAccountId: token.providerAccountId as string
-                    }
-                  },
-                  data: {
-                    access_token: page.access_token,
-                    providerAccountId: page.instagram_business_account.id,
-                    scope: token.scope as string
-                  }
-                });
-  
-                await prisma.executionLog.create({
-                  data: {
-                    errorMessage: `Instagram Business Account更新:
-                    ID: ${page.instagram_business_account.id}
-                    Username: ${page.instagram_business_account.username}
-                    Access Token: ${page.access_token.substring(0, 10)}...`
-                  }
-                });
-              }
-            }
-          }
-  
-  
           return session as CustomSession;
         } catch (error) {
           await prisma.executionLog.create({

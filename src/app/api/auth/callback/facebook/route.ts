@@ -42,39 +42,53 @@ export async function GET(request: Request): Promise<Response> {
 
     if (accessToken) {
       try {
-        // アカウント情報をDBに保存
-        await prisma.account.upsert({
-          where: {
-            provider_providerAccountId: {
-              provider: 'facebook',
-              providerAccountId: accessToken // 一時的にアクセストークンをIDとして使用
+        // Facebookページ情報を取得してInstagram Business Account IDを取得
+        const pagesResponse = await fetch(
+          `https://graph.facebook.com/v20.0/me/accounts?fields=id,name,access_token,instagram_business_account{id,name,username}&access_token=${accessToken}`
+        );
+
+        if (pagesResponse.ok) {
+          const pagesData = await pagesResponse.json();
+          await prisma.executionLog.create({
+            data: {
+              errorMessage: `Facebookページ情報取得成功: ${JSON.stringify(pagesData)}`
             }
-          },
-          create: {
-            userId: session.user.id, // セッションからユーザーIDを取得
-            type: 'oauth',
-            provider: 'facebook',
-            providerAccountId: accessToken,
-            access_token: accessToken,
-            expires_at: expiresIn ? parseInt(expiresIn) : undefined,
-            scope: 'instagram_basic,instagram_manage_comments,pages_show_list,pages_read_engagement'
-          },
-          update: {
-            access_token: accessToken,
-            expires_at: expiresIn ? parseInt(expiresIn) : undefined
-          }
-        });
+          });
 
-        await prisma.executionLog.create({
-          data: {
-            errorMessage: `アカウント情報保存成功:
-            UserID: ${session.user.id}
-            Access Token: ${accessToken.substring(0, 10)}...
-            Expires In: ${expiresIn}
-            Timestamp: ${new Date().toISOString()}`
-          }
-        });
+          // Instagram Business Account情報があれば保存
+          const page = pagesData.data?.[0];
+          if (page?.instagram_business_account) {
+            await prisma.account.upsert({
+              where: {
+                provider_providerAccountId: {
+                  provider: 'facebook',
+                  providerAccountId: page.instagram_business_account.id  // Instagram Business Account IDを使用
+                }
+              },
+              create: {
+                userId: session!.user!.id,
+                type: 'oauth',
+                provider: 'facebook',
+                providerAccountId: page.instagram_business_account.id,  // Instagram Business Account ID
+                access_token: page.access_token,  // ページのアクセストークン
+                scope: 'instagram_basic'
+              },
+              update: {
+                access_token: page.access_token,
+                scope: 'instagram_basic,instagram_manage_comments,pages_show_list,pages_read_engagement'
+              }
+            });
 
+            await prisma.executionLog.create({
+              data: {
+                errorMessage: `Instagram Business Account更新:
+                ID: ${page.instagram_business_account.id}
+                Username: ${page.instagram_business_account.username}
+                Access Token: ${page.access_token.substring(0, 10)}...`
+              }
+            });
+          }
+        }
       } catch (error) {
         await prisma.executionLog.create({
           data: {
