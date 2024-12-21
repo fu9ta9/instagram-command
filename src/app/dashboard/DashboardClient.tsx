@@ -129,37 +129,19 @@ export default function DashboardClient() {
     <div className="container mx-auto p-4 max-w-4xl">
       <h1 className="text-3xl font-bold mb-8 text-center">自動返信管理ダッシュボード</h1>
       <div className="space-y-8">
-        {/* 連携状態の表示 */}
+        {/* 連携状態の��示 */}
         <div className="bg-white p-6 rounded-lg shadow-md">
           <h2 className="text-xl font-semibold mb-4">連携状態</h2>
-          <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <div>
-                <h3 className="font-medium">Facebook連携</h3>
-                {connectionStatus.facebook.connected ? (
-                  <p className="text-sm text-gray-600">
-                    {connectionStatus.facebook.name} (ID: {connectionStatus.facebook.id})
-                  </p>
-                ) : (
-                  <p className="text-sm text-red-500">未連携</p>
-                )}
-              </div>
-              {!connectionStatus.facebook.connected && <FacebookConnect />}
+          {connectionStatus.facebook.connected ? (
+            <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded flex items-center justify-between">
+              <span>Instagram連携済み</span>
+              <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              </svg>
             </div>
-            
-            <div className="flex justify-between items-center">
-              <div>
-                <h3 className="font-medium">Instagram連携</h3>
-                {connectionStatus.instagram.connected ? (
-                  <p className="text-sm text-gray-600">
-                    {connectionStatus.instagram.name} (ID: {connectionStatus.instagram.id})
-                  </p>
-                ) : (
-                  <p className="text-sm text-red-500">未連携</p>
-                )}
-              </div>
-            </div>
-          </div>
+          ) : (
+            <FacebookConnect />
+          )}
         </div>
 
         <div className="bg-white p-6 rounded-lg shadow-md">
