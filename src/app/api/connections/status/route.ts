@@ -13,6 +13,7 @@ type InstagramInfo = {
   connected: boolean;
   name?: string;
   id?: string;
+  profile_picture_url?: string;
 };
 
 export async function GET(): Promise<Response> {
@@ -75,7 +76,7 @@ export async function GET(): Promise<Response> {
 
         // Instagram Business Account情報を取得
         const igResponse = await fetch(
-          ` https://graph.facebook.com/v20.0/me?fields=instagram_business_account{id,name,username}&access_token=${account.access_token} `
+          `https://graph.facebook.com/v20.0/me?fields=instagram_business_account{id,name,username,profile_picture_url}&access_token=${account.access_token}`
         );
 
         // Instagramレスポンスログ
@@ -101,7 +102,8 @@ export async function GET(): Promise<Response> {
             instagramInfo = {
               connected: true,
               name: igData.instagram_business_account.username,
-              id: igData.instagram_business_account.id
+              id: igData.instagram_business_account.id,
+              profile_picture_url: igData.instagram_business_account.profile_picture_url
             };
           }
         }

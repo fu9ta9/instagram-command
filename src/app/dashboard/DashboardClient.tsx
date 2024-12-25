@@ -15,11 +15,13 @@ interface ConnectionStatus {
     name?: string;
     id?: string;
     instagramId?: string;
+    profile_picture_url?: string;
   };
   instagram: {
     connected: boolean;
     name?: string;
     id?: string;
+    profile_picture_url?: string;
   };
 }
 
@@ -135,17 +137,25 @@ export default function DashboardClient() {
           <h2 className="text-xl font-semibold mb-4">連携状態</h2>
           {connectionStatus.facebook.connected ? (
             <div className="space-y-2">
-              <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded flex items-center justify-between">
-                <span>Instagram連携済み</span>
+              <div className="inline-flex items-center bg-green-100 border border-green-400 text-green-700 px-4 py-2 rounded">
+                <span className="mr-2">Instagram連携済み</span>
                 <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                 </svg>
               </div>
               {connectionStatus.instagram.connected && (
-                <div className="text-sm text-gray-600 px-4">
-                  Instagram ID: {connectionStatus.instagram.id}
-                  <br />
-                  Username: {connectionStatus.instagram.name}
+                <div className="flex items-center space-x-4 px-4 py-2 bg-gray-50 rounded">
+                  {connectionStatus.instagram.profile_picture_url && (
+                    <img 
+                      src={connectionStatus.instagram.profile_picture_url} 
+                      alt="Profile" 
+                      className="w-12 h-12 rounded-full object-cover"
+                    />
+                  )}
+                  <div className="text-sm text-gray-600">
+                    <div className="font-medium">{connectionStatus.instagram.name}</div>
+                    <div className="text-gray-500">ID: {connectionStatus.instagram.id}</div>
+                  </div>
                 </div>
               )}
             </div>
