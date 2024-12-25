@@ -15,20 +15,36 @@ type InstagramInfo = {
   id?: string;
 };
 
-export async function GET() {
-  const session = await getServerSession(authOptions);
-
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
-  }
-
+export async function GET(): Promise<Response> {
   try {
-    // Facebookアカウント情報を取得
+    const session = await getServerSession(authOptions);
+    
+    // セッションログ
+    await prisma.executionLog.create({
+      data: {
+        errorMessage: `Connection Status Check:
+        Session: ${JSON.stringify(session)}`
+      }
+    });
+
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+    }
+
+    // アカウント情報取得
     const account = await prisma.account.findFirst({
       where: {
         userId: session.user.id,
-        provider: 'facebook',
-      },
+        provider: 'facebook'
+      }
+    });
+
+    // アカウント情報ログ
+    await prisma.executionLog.create({
+      data: {
+        errorMessage: `Facebook Account:
+        Account: ${JSON.stringify(account)}`
+      }
     });
 
     let instagramInfo: InstagramInfo = { connected: false };
@@ -39,6 +55,16 @@ export async function GET() {
       const fbResponse = await fetch(
         `https://graph.facebook.com/v20.0/me?fields=id,name&access_token=${account.access_token}`
       );
+      
+      // Facebookレスポンスログ
+      await prisma.executionLog.create({
+        data: {
+          errorMessage: `Facebook API Response:
+          Status: ${fbResponse.status}
+          OK: ${fbResponse.ok}`
+        }
+      });
+
       if (fbResponse.ok) {
         const fbData = await fbResponse.json();
         facebookInfo = {
@@ -51,19 +77,45 @@ export async function GET() {
         const igResponse = await fetch(
           ` https://graph.facebook.com/v20.0/me?fields=instagram_business_account{id,name,username}&access_token=${account.access_token} `
         );
+
+        // Instagramレスポンスログ
+        await prisma.executionLog.create({
+          data: {
+            errorMessage: `Instagram API Response:
+            Status: ${igResponse.status}
+            OK: ${igResponse.ok}
+            Response: ${JSON.stringify(await igResponse.clone().json())}`
+          }
+        });
+
         if (igResponse.ok) {
           const igData = await igResponse.json();
-          const igAccount = igData.data?.[0]?.instagram_business_account;
-          if (igAccount) {
+          await prisma.executionLog.create({
+            data: {
+              errorMessage: `Instagram Data:
+              Data: ${JSON.stringify(igData)}`
+            }
+          });
+
+          if (igData.instagram_business_account) {
             instagramInfo = {
               connected: true,
-              name: igAccount.username,
-              id: igAccount.id
+              name: igData.instagram_business_account.username,
+              id: igData.instagram_business_account.id
             };
           }
         }
       }
     }
+
+    // 最終結果ログ
+    await prisma.executionLog.create({
+      data: {
+        errorMessage: `Final Status:
+        Facebook: ${JSON.stringify(facebookInfo)}
+        Instagram: ${JSON.stringify(instagramInfo)}`
+      }
+    });
 
     return NextResponse.json({
       facebook: facebookInfo,
@@ -71,9 +123,12 @@ export async function GET() {
     });
 
   } catch (error) {
-    return NextResponse.json(
-      { error: 'Failed to fetch connection status' },
-      { status: 500 }
-    );
+    await prisma.executionLog.create({
+      data: {
+        errorMessage: `Connection Status Error:
+        Error: ${error instanceof Error ? error.message : String(error)}`
+      }
+    });
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 } 
