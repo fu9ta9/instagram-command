@@ -108,7 +108,7 @@ export default function DashboardClient() {
     }
   };
 
-  // 返信を���新
+  // 返信を更新
   const handleReplyUpdated = async (id: string, data: ReplyInput) => {
     const response = await fetch(`/api/replies/${id}`, {
       method: 'PUT',
@@ -141,9 +141,11 @@ export default function DashboardClient() {
                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                 </svg>
               </div>
-              {connectionStatus.facebook.instagramId && (
+              {connectionStatus.instagram.connected && (
                 <div className="text-sm text-gray-600 px-4">
-                  Instagram ID: {connectionStatus.facebook.instagramId}
+                  Instagram ID: {connectionStatus.instagram.id}
+                  <br />
+                  Username: {connectionStatus.instagram.name}
                 </div>
               )}
             </div>
