@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
+import { headers } from 'next/headers';
+import { getServerSession } from 'next-auth';
 import { authOptions } from '../../auth/[...nextauth]/options';
 import { prisma } from '@/lib/prisma';
 
@@ -15,6 +16,8 @@ type InstagramInfo = {
   id?: string;
   profile_picture_url?: string;
 };
+
+export const dynamic = 'force-dynamic';
 
 export async function GET(): Promise<Response> {
   try {
