@@ -105,12 +105,17 @@ async function processInstagramComment(webhookData: any) {
       }
     });
 
-    // 検索結果ログ
+    // 検索結果を詳細にログ出力
     await prisma.executionLog.create({
       data: {
-        errorMessage: `返信検索結果:
-        検索件数: ${replies.length}
-        検索結果: ${JSON.stringify(replies, null, 2)}`
+        errorMessage: `SQL実行結果:
+        Query: ${JSON.stringify(prisma.reply.findMany.toString())}
+        Parameters: replyType=1
+        返信検索件数: ${replies.length}
+        返信データ: ${JSON.stringify(replies, null, 2)}
+        ----
+        コメントテキスト: ${commentText}
+        `
       }
     });
 
