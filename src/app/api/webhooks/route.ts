@@ -11,7 +11,7 @@ export async function GET(request: Request) {
     const challenge = searchParams.get('hub.challenge');
 
     // 検証トークンの確認
-    if (mode === 'subscribe' && token === process.env.INSTAGRAM_WEBHOOK_VERIFY_TOKEN) {
+    if (mode === 'subscribe' && token === process.env.NEXT_PUBLIC_WEBHOOK_VERIFY_TOKEN) {
       await prisma.executionLog.create({
         data: {
           errorMessage: `Webhook検証成功: challenge=${challenge}`
