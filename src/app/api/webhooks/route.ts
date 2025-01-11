@@ -81,16 +81,20 @@ async function processInstagramComment(webhookData: any) {
   const commentText = commentData.text;
   
   try {
+    // コメント受信ログ
     await prisma.executionLog.create({
       data: {
-        errorMessage: `コメント受信: ID=${commentId}, Text=${commentText}`
+        errorMessage: `コメント受信詳細:
+        ID: ${commentId}
+        Text: ${commentText}
+        Raw Data: ${JSON.stringify(commentData)}`
       }
     });
 
-    // 登録済みの返信を検索（buttonsも含める）
+    // 登録済みの返信を検索
     const replies = await prisma.reply.findMany({
       where: {
-        replyType: 1, // SPECIFIC_POST
+        replyType: 1,
       },
       include: {
         buttons: {
@@ -101,11 +105,31 @@ async function processInstagramComment(webhookData: any) {
       }
     });
 
+    // 検索結果ログ
+    await prisma.executionLog.create({
+      data: {
+        errorMessage: `返信検索結果:
+        検索件数: ${replies.length}
+        検索結果: ${JSON.stringify(replies, null, 2)}`
+      }
+    });
+
     // コメントに一致する返信を探す
     for (const reply of replies) {
       const isMatch = reply.matchType === 1 
-        ? commentText === reply.keyword  // 完全一致
-        : commentText.includes(reply.keyword); // 部分一致
+        ? commentText === reply.keyword
+        : commentText.includes(reply.keyword);
+
+      // マッチング結果ログ
+      await prisma.executionLog.create({
+        data: {
+          errorMessage: `マッチング試行:
+          コメント: ${commentText}
+          キーワード: ${reply.keyword}
+          マッチタイプ: ${reply.matchType === 1 ? '完全一致' : '部分一致'}
+          結果: ${isMatch ? '一致' : '不一致'}`
+        }
+      });
 
       if (isMatch) {
         const account = await prisma.account.findFirst({
@@ -117,6 +141,15 @@ async function processInstagramComment(webhookData: any) {
           },
         });
 
+        // アカウント検索結果ログ
+        await prisma.executionLog.create({
+          data: {
+            errorMessage: `アカウント検索結果:
+            アカウント存在: ${account ? 'あり' : 'なし'}
+            トークン: ${account?.access_token ? '取得済み' : 'なし'}`
+          }
+        });
+
         if (!account?.access_token) {
           throw new Error('アクセストークンが見つかりません');
         }
@@ -126,6 +159,16 @@ async function processInstagramComment(webhookData: any) {
           title: button.title,
           url: button.url
         }));
+
+        // 送信内容ログ
+        await prisma.executionLog.create({
+          data: {
+            errorMessage: `返信送信内容:
+            CommentID: ${commentId}
+            Reply: ${reply.reply}
+            Buttons: ${JSON.stringify(buttons, null, 2)}`
+          }
+        });
 
         await sendInstagramReply(
           commentId,
@@ -146,7 +189,9 @@ async function processInstagramComment(webhookData: any) {
   } catch (error) {
     await prisma.executionLog.create({
       data: {
-        errorMessage: `自動返信処理エラー: ${error instanceof Error ? error.message : String(error)}`
+        errorMessage: `自動返信処理エラー詳細:
+        Error: ${error instanceof Error ? error.message : String(error)}
+        Stack: ${error instanceof Error ? error.stack : 'No stack trace'}`
       }
     });
     throw error;
