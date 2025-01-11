@@ -93,9 +93,6 @@ async function processInstagramComment(webhookData: any) {
 
     // 登録済みの返信を検索
     const replies = await prisma.reply.findMany({
-      where: {
-        replyType: 1,
-      },
       include: {
         buttons: {
           orderBy: {
