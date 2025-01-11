@@ -179,6 +179,7 @@ export default function DashboardClient() {
             onReplyDeleted={handleReplyDeleted}
             onReplyUpdated={handleReplyUpdated}
           />
+          </div>
         </div>
       </main>
     </div>
