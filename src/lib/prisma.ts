@@ -2,7 +2,12 @@ import { PrismaClient } from '@prisma/client'
 
 const prismaClientSingleton = () => {
   return new PrismaClient({
-    log: ['query', 'error', 'warn'],
+    log: [
+      { emit: 'stdout', level: 'query' },
+      { emit: 'stdout', level: 'error' },
+      { emit: 'stdout', level: 'info' },
+      { emit: 'stdout', level: 'warn' },
+    ],
     datasources: {
       db: {
         url: process.env.DATABASE_URL

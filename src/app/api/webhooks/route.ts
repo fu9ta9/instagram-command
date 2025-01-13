@@ -92,25 +92,40 @@ async function processInstagramComment(webhookData: any) {
     });
 
     // 登録済みの返信を検索
+    console.log('Fetching replies...');
     const replies = await prisma.reply.findMany({
       orderBy: {
         createdAt: 'desc'
       }
     });
 
-    // 検索結果を詳細にログ出力
+    // まず実行結果の基本情報をログ出力
     await prisma.executionLog.create({
       data: {
-        errorMessage: `SQL実行結果:
-        Query: ${JSON.stringify(prisma.reply.findMany.toString())}
-        Parameters: replyType=1
-        返信検索件数: ${replies.length}
-        返信データ: ${JSON.stringify(replies, null, 2)}
-        ----
-        コメントテキスト: ${commentText}
-        `
+        errorMessage: `SQL実行開始:
+        時刻: ${new Date().toISOString()}
+        環境: ${process.env.NODE_ENV}`
       }
     });
+
+    // 検索結果の詳細をログ出力（分割して記録）
+    await prisma.executionLog.create({
+      data: {
+        errorMessage: `SQL実行基本情報:
+        返信検索件数: ${replies.length}
+        実行時刻: ${new Date().toISOString()}`
+      }
+    });
+
+    // データ内容を別ログとして記録
+    if (replies.length > 0) {
+      await prisma.executionLog.create({
+        data: {
+          errorMessage: `返信データサンプル:
+          First Reply: ${JSON.stringify(replies[0], null, 2)}`
+        }
+      });
+    }
 
     // コメントに一致する返信を探す
     for (const reply of replies) {
