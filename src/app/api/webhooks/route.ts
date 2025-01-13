@@ -93,25 +93,11 @@ async function processInstagramComment(webhookData: any) {
 
     // 登録済みの返信を検索
     const replies = await prisma.reply.findMany({
-      select: {
-        id: true,
-        keyword: true,
-        reply: true,
-        userId: true,
-        postId: true,
-        replyType: true,
-        matchType: true,
-        buttons: {
-          select: {
-            id: true,
-            title: true,
-            url: true,
-            order: true
-          },
-          orderBy: {
-            order: 'asc'
-          }
-        }
+      include: {
+        buttons: true
+      },
+      orderBy: {
+        createdAt: 'desc'
       }
     });
 
@@ -170,10 +156,10 @@ async function processInstagramComment(webhookData: any) {
         }
 
         // ボタンがある場合は含めて返信を送信
-        const buttons = reply.buttons?.map(button => ({
+        const buttons = reply.buttons ? reply.buttons.map(button => ({
           title: button.title,
           url: button.url
-        }));
+        })) : [];
 
         // 送信内容ログ
         await prisma.executionLog.create({
