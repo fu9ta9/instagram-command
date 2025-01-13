@@ -48,21 +48,14 @@ export async function POST(request: Request) {
       }
     });
 
-    // コメントデータの検証
     if (!webhookData.entry?.[0]?.changes?.[0]?.value) {
       throw new Error('Invalid webhook data format');
     }
 
-    // コメントデータの処理を非同期で実行
-    processInstagramComment(webhookData).catch(error => {
-      prisma.executionLog.create({
-        data: {
-          errorMessage: `コメント処理エラー: ${error instanceof Error ? error.message : String(error)}`
-        }
-      });
-    });
+    // 非同期処理を同期的に実行
+    await processInstagramComment(webhookData);
 
-    return NextResponse.json({ message: 'Accepted' }, { status: 202 });
+    return NextResponse.json({ message: 'Success' }, { status: 200 });
 
   } catch (error) {
     await prisma.executionLog.create({
