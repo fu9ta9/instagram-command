@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { sendInstagramReply } from '@/lib/instagramApi'
+
 
 // Webhook検証用のGETエンドポイント
 export async function GET(request: Request) {
@@ -207,5 +207,80 @@ async function processInstagramComment(webhookData: any) {
       }
     });
     throw error;
+  }
+}
+
+async function sendInstagramReply(
+  commentId: string,
+  replyText: string,
+  accessToken: string,
+  buttons: Array<{ title: string, url: string }>
+) {
+  try {
+    await prisma.executionLog.create({
+      data: {
+        errorMessage: `Instagram API リクエスト構築:
+        Version: v21.0
+        Endpoint: /me/messages
+        CommentID: ${commentId}`
+      }
+    });
+
+    const messageData = {
+      recipient: {
+        id: commentId  // IGSID (Instagram Scoped ID)
+      },
+      message: {
+        attachment: {
+          type: "template",
+          payload: {
+            template_type: "button",
+            text: replyText,
+            buttons: buttons.map(button => ({
+              type: "web_url",
+              url: button.url,
+              title: button.title
+            }))
+          }
+        }
+      }
+    };
+
+    // リクエスト内容のログ
+    await prisma.executionLog.create({
+      data: {
+        errorMessage: `送信リクエスト詳細:
+        Payload: ${JSON.stringify(messageData, null, 2)}`
+      }
+    });
+
+    const response = await fetch(
+      `https://graph.facebook.com/v21.0/me/messages?access_token=${accessToken}`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(messageData),
+      }
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(`Instagram API error: ${JSON.stringify(errorData)}`);
+    }
+
+    const result = await response.json();
+    await prisma.executionLog.create({
+      data: {
+        errorMessage: `API応答:
+        Status: ${response.status}
+        Response: ${JSON.stringify(result)}`
+      }
+    });
+
+    return result;
+  } catch (error) {
+    throw new Error(`Instagram API error: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
