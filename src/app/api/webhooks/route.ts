@@ -70,7 +70,7 @@ export async function POST(request: Request) {
 // コメント処理の非同期関数
 async function processInstagramComment(webhookData: any) {
   const commentData = webhookData.entry[0].changes[0].value;
-  const commentId = commentData.id;
+  const igId = commentData.from.id;
   const commentText = commentData.text;
   
   try {
@@ -78,7 +78,7 @@ async function processInstagramComment(webhookData: any) {
     await prisma.executionLog.create({
       data: {
         errorMessage: `コメント受信詳細:
-        ID: ${commentId}
+        ID: ${igId}
         Text: ${commentText}
         Raw Data: ${JSON.stringify(commentData)}`
       }
@@ -176,14 +176,14 @@ async function processInstagramComment(webhookData: any) {
         await prisma.executionLog.create({
           data: {
             errorMessage: `返信送信内容:
-            CommentID: ${commentId}
+            CommentID: ${igId}
             Reply: ${reply.reply}
             Buttons: ${JSON.stringify(buttons, null, 2)}`
           }
         });
 
         await sendInstagramReply(
-          commentId,
+          igId,
           reply.reply,
           account.access_token,
           buttons
@@ -191,7 +191,7 @@ async function processInstagramComment(webhookData: any) {
 
         await prisma.executionLog.create({
           data: {
-            errorMessage: `自動返信送信成功: CommentID=${commentId}, Reply=${reply.reply}, Buttons=${JSON.stringify(buttons)}`
+            errorMessage: `自動返信送信成功: CommentID=${igId}, Reply=${reply.reply}, Buttons=${JSON.stringify(buttons)}`
           }
         });
 
