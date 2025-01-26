@@ -160,17 +160,32 @@ async function processInstagramComment(webhookData: any) {
           throw new Error('アクセストークンが見つかりません');
         }
 
-        // Facebook Graph APIからページIDを取得
+        // Facebook Graph APIからページ情報を取得
         const pageResponse = await fetch(
-          `https://graph.facebook.com/v22.0/me/accounts?fields=id&access_token=${account.access_token}`
+          `https://graph.facebook.com/v22.0/me/accounts?fields=id,access_token&access_token=${account.access_token}`
         );
 
         if (!pageResponse.ok) {
-          throw new Error('ページID取得に失敗しました');
+          throw new Error('ページ情報取得に失敗しました');
         }
 
         const pageData = await pageResponse.json();
+        
+        if (!pageData.data?.[0]?.id || !pageData.data?.[0]?.access_token) {
+          throw new Error('ページ情報が見つかりません');
+        }
+
         const pageId = pageData.data[0].id;
+        const pageAccessToken = pageData.data[0].access_token;  // ページアクセストークンを取得
+
+        await prisma.executionLog.create({
+          data: {
+            errorMessage: `ページ情報取得成功:
+            Page ID: ${pageId}
+            Token: ${pageAccessToken.substring(0, 10)}...`
+          }
+        });
+
         // ボタンがある場合は含めて返信を送信
         const buttons = [
           {
@@ -182,8 +197,8 @@ async function processInstagramComment(webhookData: any) {
         await sendInstagramReply(
           igId,
           reply.reply,
-          account.access_token,
-          pageId,  // Facebook APIから取得したページID
+          pageAccessToken,  // ユーザーアクセストークンではなくページアクセストークンを使用
+          pageId,
           buttons
         );
 
