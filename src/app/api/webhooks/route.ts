@@ -143,6 +143,7 @@ async function processInstagramComment(webhookData: any) {
             provider: 'facebook',
           },
           select: {
+            providerAccountId: true,
             access_token: true,
           },
         });
@@ -156,8 +157,8 @@ async function processInstagramComment(webhookData: any) {
           }
         });
 
-        if (!account?.access_token) {
-          throw new Error('アクセストークンが見つかりません');
+        if (!account?.access_token || !account?.providerAccountId) {
+          throw new Error('アクセストークンまたはページIDが見つかりません');
         }
 
         // ボタンがある場合は含めて返信を送信
@@ -167,25 +168,12 @@ async function processInstagramComment(webhookData: any) {
             url: 'https://example.com'
           }
         ];
-        // const buttons = reply.buttons ? reply.buttons.map(button => ({
-        //   title: button.title,
-        //   url: button.url
-        // })) : [];
-
-        // 送信内容ログ
-        await prisma.executionLog.create({
-          data: {
-            errorMessage: `返信送信内容:
-            CommentID: ${igId}
-            Reply: ${reply.reply}
-            Buttons: ${JSON.stringify(buttons, null, 2)}`
-          }
-        });
 
         await sendInstagramReply(
           igId,
           reply.reply,
           account.access_token,
+          account.providerAccountId,
           buttons
         );
 
@@ -214,14 +202,15 @@ async function sendInstagramReply(
   commentId: string,
   replyText: string,
   accessToken: string,
+  pageId: string,
   buttons: Array<{ title: string, url: string }>
 ) {
   try {
     await prisma.executionLog.create({
       data: {
         errorMessage: `Instagram API リクエスト構築:
-        Version: v21.0
-        Endpoint: /me/messages
+        Version: v22.0
+        Endpoint: /${pageId}/messages
         CommentID: ${commentId}`
       }
     });
@@ -255,7 +244,7 @@ async function sendInstagramReply(
     });
 
     const response = await fetch(
-      `https://graph.facebook.com/v21.0/me/messages?access_token=${accessToken}`,
+      `https://graph.facebook.com/v22.0/${pageId}/messages?access_token=${accessToken}`,
       {
         method: 'POST',
         headers: {
