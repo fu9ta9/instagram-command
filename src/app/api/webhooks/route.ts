@@ -143,7 +143,6 @@ async function processInstagramComment(webhookData: any) {
             provider: 'facebook',
           },
           select: {
-            providerAccountId: true,
             access_token: true,
           },
         });
@@ -157,10 +156,21 @@ async function processInstagramComment(webhookData: any) {
           }
         });
 
-        if (!account?.access_token || !account?.providerAccountId) {
-          throw new Error('アクセストークンまたはページIDが見つかりません');
+        if (!account?.access_token) {
+          throw new Error('アクセストークンが見つかりません');
         }
 
+        // Facebook Graph APIからページIDを取得
+        const pageResponse = await fetch(
+          `https://graph.facebook.com/v22.0/me?fields=id&access_token=${account.access_token}`
+        );
+
+        if (!pageResponse.ok) {
+          throw new Error('ページID取得に失敗しました');
+        }
+
+        const pageData = await pageResponse.json();
+        const pageId = pageData.id;
         // ボタンがある場合は含めて返信を送信
         const buttons = [
           {
@@ -173,7 +183,7 @@ async function processInstagramComment(webhookData: any) {
           igId,
           reply.reply,
           account.access_token,
-          account.providerAccountId,
+          pageId,  // Facebook APIから取得したページID
           buttons
         );
 
