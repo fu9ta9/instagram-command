@@ -42,9 +42,9 @@ export async function GET(request: Request): Promise<Response> {
 
     if (accessToken) {
       try {
-        // Facebookページ情報を取得してInstagram Business Account IDを取得
+        // Facebookページ情報を取得
         const pagesResponse = await fetch(
-          `https://graph.facebook.com/v20.0/me/accounts?fields=id,name,access_token,instagram_business_account{id,name,username}&access_token=${accessToken}`
+          `https://graph.facebook.com/v21.0/me/accounts?fields=id,name,access_token,instagram_business_account{id,name,username}&access_token=${accessToken}`
         );
 
         if (pagesResponse.ok) {
@@ -87,6 +87,44 @@ export async function GET(request: Request): Promise<Response> {
                 Access Token: ${page.access_token.substring(0, 10)}...`
               }
             });
+
+            // Webhookサブスクリプションを設定
+            const instagramBusinessId = page.instagram_business_account.id;
+            try {
+              const subscriptionResponse = await fetch(
+                `https://graph.facebook.com/v21.0/${instagramBusinessId}/subscribed_apps`,
+                {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({
+                    subscribed_fields: 'comments,mentions',  // feedは不要
+                    access_token: page.access_token
+                  })
+                }
+              );
+
+              const subscriptionData = await subscriptionResponse.json();
+              await prisma.executionLog.create({
+                data: {
+                  errorMessage: `Webhookサブスクリプション設定:
+                  Instagram Business ID: ${instagramBusinessId}
+                  Response: ${JSON.stringify(subscriptionData)}
+                  Status: ${subscriptionResponse.status}
+                  Timestamp: ${new Date().toISOString()}`
+                }
+              });
+            } catch (error) {
+              await prisma.executionLog.create({
+                data: {
+                  errorMessage: `Webhookサブスクリプションエラー:
+                  Error: ${error instanceof Error ? error.message : String(error)}
+                  Instagram Business ID: ${instagramBusinessId}
+                  Timestamp: ${new Date().toISOString()}`
+                }
+              });
+            }
           }
         }
       } catch (error) {
