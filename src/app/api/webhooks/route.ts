@@ -162,7 +162,7 @@ async function processInstagramComment(webhookData: any) {
 
         // Facebook Graph APIからページIDを取得
         const pageResponse = await fetch(
-          `https://graph.facebook.com/v22.0/me?fields=id&access_token=${account.access_token}`
+          `https://graph.facebook.com/v22.0/me/accounts?fields=id&access_token=${account.access_token}`
         );
 
         if (!pageResponse.ok) {
