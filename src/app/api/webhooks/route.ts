@@ -170,7 +170,7 @@ async function processInstagramComment(webhookData: any) {
         }
 
         const pageData = await pageResponse.json();
-        const pageId = pageData.id;
+        const pageId = pageData.data[0].id;
         // ボタンがある場合は含めて返信を送信
         const buttons = [
           {
