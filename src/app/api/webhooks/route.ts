@@ -48,6 +48,16 @@ export async function POST(request: Request) {
       }
     });
 
+    // エコーメッセージのチェック
+    if (webhookData.entry?.[0]?.messaging?.[0]?.message?.is_echo) {
+      await prisma.executionLog.create({
+        data: {
+          errorMessage: 'エコーメッセージを検出したため処理を終了します'
+        }
+      });
+      return NextResponse.json({ message: 'Echo message ignored' }, { status: 200 });
+    }
+
     if (!webhookData.entry?.[0]?.changes?.[0]?.value) {
       throw new Error('Invalid webhook data format');
     }
