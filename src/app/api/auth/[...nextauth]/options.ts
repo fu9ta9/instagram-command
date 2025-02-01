@@ -35,7 +35,7 @@ export const authOptions: NextAuthOptions = {
           display: "page",
           extras: JSON.stringify({
             setup: {
-              channel: "Instagram_Onboarding"
+              channel: "IG_API_ONBOARDING"
             }
           }),
           redirect_uri: `${process.env.NEXT_PUBLIC_NEXTAUTH_URL}/facebook-callback`,
@@ -46,9 +46,9 @@ export const authOptions: NextAuthOptions = {
             'pages_manage_metadata',
             'instagram_manage_comments',
             'pages_show_list',
-            'business_management'
+            'business_management',
+            'pages_read_engagement'
           ].join(','),
-          auth_type: 'reauthorize'
         }
       }
     }),
