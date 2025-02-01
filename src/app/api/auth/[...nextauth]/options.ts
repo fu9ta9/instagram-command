@@ -48,7 +48,7 @@ export const authOptions: NextAuthOptions = {
             'pages_show_list',
             'business_management',
             'pages_read_engagement'
-          ].join(','),
+          ].join(',')
         }
       }
     }),

@@ -12,19 +12,15 @@ export default function FacebookConnect({ isReconnect = false }: FacebookConnect
   const handleConnect = async () => {
     setIsLoading(true);
     try {
-      const options = {
+      // 別タブで開く
+      await signIn('facebook', {
         callbackUrl: '/api/auth/callback/facebook',
-        redirect: true
-      };
-
-      if (isReconnect) {
-        await signIn('facebook', {
-          ...options,
-          auth_type: 'reauthorize'
-        });
-      } else {
-        await signIn('facebook', options);
-      }
+        redirect: false
+      }).then((result) => {
+        if (result?.url) {
+          window.open(result.url, '_blank');
+        }
+      });
     } catch (error) {
       console.error('サインインエラー:', error);
     } finally {

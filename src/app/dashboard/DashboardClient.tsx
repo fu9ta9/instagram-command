@@ -159,7 +159,6 @@ export default function DashboardClient() {
                     </div>
                   </div>
                 )}
-                <FacebookConnect />
                 {connectionStatus.facebook.connected && (
                   <div className="mt-4">
                     <FacebookConnect isReconnect={true} />
