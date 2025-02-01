@@ -47,9 +47,10 @@ export const authOptions: NextAuthOptions = {
             'instagram_manage_comments',
             'pages_show_list',
             'business_management'
-          ].join(',')
+          ].join(','),
+          auth_type: 'reauthorize'
         }
-      },
+      }
     }),
     CredentialsProvider({
       name: "Credentials",
@@ -220,7 +221,7 @@ export const authOptions: NextAuthOptions = {
         } catch (error) {
           await prisma.executionLog.create({
             data: {
-              errorMessage: `アカウント保��エラー: ${error instanceof Error ? error.message : String(error)}`
+              errorMessage: `アカウント保存エラー: ${error instanceof Error ? error.message : String(error)}`
             }
           });
         }

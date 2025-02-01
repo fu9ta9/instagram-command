@@ -160,6 +160,14 @@ export default function DashboardClient() {
                   </div>
                 )}
                 <FacebookConnect />
+                {connectionStatus.facebook.connected && (
+                  <div className="mt-4">
+                    <FacebookConnect isReconnect={true} />
+                    <div className="mt-2 text-sm text-gray-600">
+                      ※ 権限の更新のみ行います
+                    </div>
+                  </div>
+                )}
               </div>
             ) : (
               <FacebookConnect />
