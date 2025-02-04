@@ -70,11 +70,11 @@ export async function GET(request: Request): Promise<Response> {
                 type: 'oauth',
                 provider: 'facebook',
                 providerAccountId: page.instagram_business_account.id,  // Instagram Business Account ID
-                access_token: page.access_token,  // ページのアクセストークン
+                access_token: accessToken,  // ページのアクセストークン
                 scope: 'instagram_basic'
               },
               update: {
-                access_token: page.access_token,
+                access_token: page.accessToken,
                 scope: 'instagram_basic,instagram_manage_comments,pages_show_list,pages_read_engagement'
               }
             });
@@ -84,7 +84,7 @@ export async function GET(request: Request): Promise<Response> {
                 errorMessage: `Instagram Business Account更新:
                 ID: ${page.instagram_business_account.id}
                 Username: ${page.instagram_business_account.username}
-                Access Token: ${page.access_token.substring(0, 10)}...`
+                Access Token: ${accessToken.substring(0, 10)}...`
               }
             });
 
@@ -100,7 +100,7 @@ export async function GET(request: Request): Promise<Response> {
                   },
                   body: JSON.stringify({
                     subscribed_fields: 'comments,mentions',  // feedは不要
-                    access_token: page.access_token
+                    access_token: accessToken
                   })
                 }
               );
