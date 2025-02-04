@@ -100,7 +100,7 @@ export async function GET(request: Request): Promise<Response> {
                   },
                   body: JSON.stringify({
                     subscribed_fields: 'comments,mentions',  // feedは不要
-                    access_token: accessToken
+                    access_token: page.access_token
                   })
                 }
               );
