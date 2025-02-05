@@ -79,7 +79,7 @@ export async function GET(): Promise<Response> {
 
         // Instagram Business Account情報を取得
         const igResponse = await fetch(
-          `https://graph.facebook.com/v20.0/me?fields=instagram_business_account{id,name,username,profile_picture_url}&access_token=${account.access_token}`
+          `https://graph.facebook.com/v20.0/${account.providerAccountId}?fields=id,name,username,profile_picture_url&access_token=${account.access_token}`
         );
 
         // Instagramレスポンスログ
