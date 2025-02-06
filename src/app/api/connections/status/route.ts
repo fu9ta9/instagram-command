@@ -101,12 +101,12 @@ export async function GET(): Promise<Response> {
             }
           });
 
-          if (igData.instagram_business_account) {
+          if (igData) {
             instagramInfo = {
               connected: true,
-              name: igData.instagram_business_account.username,
-              id: igData.instagram_business_account.id,
-              profile_picture_url: igData.instagram_business_account.profile_picture_url
+              name: igData.username,
+              id: igData.id,
+              profile_picture_url: igData.profile_picture_url
             };
           }
         }
