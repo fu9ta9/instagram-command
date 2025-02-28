@@ -121,13 +121,6 @@ export default function LoginPage() {
                 <span className="sr-only">Sign in with Google</span>
                 Googleでログイン
               </button>
-              <button
-                onClick={handleFacebookLogin}
-                className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
-              >
-                <span className="sr-only">Sign in with Facebook</span>
-                Facebookでログイン
-              </button>
             </div>
 
             <div className="mt-6">
