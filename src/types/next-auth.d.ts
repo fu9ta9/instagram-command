@@ -6,8 +6,9 @@ declare module 'next-auth' {
       id: string;
       email: string;
       name: string;
-      provider: string;
-      accessToken: string;
+      instagram?: {
+        connected: boolean;  // 接続状態のみを保持
+      };
     } & DefaultSession['user']
   }
 }
@@ -15,6 +16,5 @@ declare module 'next-auth' {
 declare module "next-auth/jwt" {
   interface JWT {
     id: string
-    facebookAccessToken?: string
   }
 }

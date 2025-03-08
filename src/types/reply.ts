@@ -27,15 +27,11 @@ export interface ReplyFormData {
   instagramPostId?: string;
 }
 
-export type ReplyInput = {
+export interface ReplyInput {
   keyword: string;
   reply: string;
-  postId: string | null;
   replyType: number;
   matchType: number;
-  buttons?: {
-    title: string;
-    url: string;
-    order: number;
-  }[];
-};
+  postId?: string;
+  buttons: Button[];
+}

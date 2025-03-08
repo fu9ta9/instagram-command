@@ -14,7 +14,7 @@ export default function LandingPage() {
                 インスタグラム分析・運用ツール
               </h1>
               <p className="mx-auto max-w-[700px] text-gray-500 md:text-xl dark:text-gray-400">
-                投稿ランキング、アカウント分析、自動返信機能で、あなたのインスタグラムアカウントを最適化します。
+                自動返信機能で、あなたのインスタグラムアカウントを最適化します。
               </p>
             </div>
             <div className="space-x-4">

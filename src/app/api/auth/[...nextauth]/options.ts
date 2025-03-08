@@ -14,9 +14,10 @@ interface CustomSession extends Session {
     id: string;
     email: string;
     name: string;
-    provider: string;
-    accessToken: string;
-  } & Session["user"];
+    instagram?: {
+      connected: boolean;  // 接続状態のみを保持
+    };
+  } & Session['user']
 }
 
 export const authOptions: NextAuthOptions = {
@@ -166,68 +167,28 @@ export const authOptions: NextAuthOptions = {
       }
     },
 
-    async jwt({ token, user, account }) {
-      // トークンに認証情報を保存
+    async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
-      }
-      if (account) {
-        token.provider = account.provider;
-        token.type = account.type;
-        token.providerAccountId = account.providerAccountId;
-        token.access_token = account.access_token;
-        token.token_type = account.token_type;
-        token.expires_at = account.expires_at;
-        token.scope = account.scope;
       }
       return token;
     },
 
-    async session({ session, token }): Promise<CustomSession> {
-      // セッションにユーザー情報を設定
-      if (session.user) {
-        const customSession = session as CustomSession;  // ここを追加
-        customSession.user.id = token.id as string;
-        customSession.user.provider = token.provider as string;
-        customSession.user.accessToken = token.accessToken as string;
+    async session({ session, token }) {
+      if (session?.user) {
+        session.user.id = token.id as string;
 
-        try {
-          // アカウント情報をDBに保存/更新
-          await prisma.account.upsert({
-            where: {
-              provider_providerAccountId: {
-                provider: token.provider as string,
-                providerAccountId: token.providerAccountId as string
-              }
-            },
-            create: {
-              userId: token.id as string,
-              type: token.type as string,
-              provider: token.provider as string,
-              providerAccountId: token.providerAccountId as string,
-              access_token: token.access_token as string,
-              token_type: token.token_type as string,
-              expires_at: token.expires_at as number,
-              scope: token.scope as string,
-            },
-            update: {
-              access_token: token.access_token as string,
-              token_type: token.token_type as string,
-              expires_at: token.expires_at as number,
-              scope: token.scope as string,
-            }
-          });
-          return session as CustomSession;
-        } catch (error) {
-          await prisma.executionLog.create({
-            data: {
-              errorMessage: `アカウント保存エラー: ${error instanceof Error ? error.message : String(error)}`
-            }
-          });
-        }
-        return session as CustomSession;
+        // IGAccountの存在確認のみ行う
+        const igAccount = await prisma.iGAccount.findFirst({
+          where: { userId: token.id as string },
+          select: { id: true }
+        });
+
+        session.user.instagram = {
+          connected: !!igAccount  // 接続状態のみを保持
+        };
       }
-      return session as CustomSession;
+      return session;
     }
   },
   pages: {

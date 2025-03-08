@@ -1,47 +1,35 @@
 'use client'
 
-import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { BarChart3 } from "lucide-react"
 import { useSession, signOut } from "next-auth/react"
-import { useRouter } from "next/navigation"
+import Link from "next/link"
 
 export default function Header() {
   const { data: session } = useSession()
-  const router = useRouter()
 
-  const handleLogout = async () => {
-    await signOut({ 
-      redirect: true,
-      callbackUrl: '/' 
-    })
+  const handleLogout = () => {
+    signOut({ callbackUrl: '/' })
   }
 
   return (
-    <header className="px-4 lg:px-6 h-14 flex items-center">
-      <Link className="flex items-center justify-center" href="#">
-        <BarChart3 className="h-6 w-6" />
-        <span className="sr-only">Acme Inc</span>
-      </Link>
-      <nav className="ml-auto flex gap-4 sm:gap-6">
-        <Link className="text-sm font-medium hover:underline underline-offset-4" href="#features">
-          機能
-        </Link>
-        <Link className="text-sm font-medium hover:underline underline-offset-4" href="#pricing">
-          料金
-        </Link>
-        <Link className="text-sm font-medium hover:underline underline-offset-4" href="#contact">
-          お問い合わせ
-        </Link>
-        {session ? (
-          <Button variant="outline" onClick={handleLogout}>
-            ログアウト
-          </Button>
-        ) : (
-          <Button variant="outline" asChild>
-            <Link href="/login">ログイン</Link>
-          </Button>
-        )}
+    <header className="bg-white border-b border-gray-200 py-4 px-6">
+      <nav className="flex justify-between items-center">
+        <div></div> {/* 左側の空白スペース */}
+        <div className="flex items-center space-x-2">
+          {session ? (
+            <Button 
+              variant="ghost" 
+              onClick={handleLogout}
+              className="text-gray-700"
+            >
+              ログアウト
+            </Button>
+          ) : (
+            <Button variant="ghost" asChild className="text-gray-700">
+              <Link href="/login">ログイン</Link>
+            </Button>
+          )}
+        </div>
       </nav>
     </header>
   )

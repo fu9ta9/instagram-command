@@ -7,23 +7,22 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Account {
+model IGAccount {
   id                String  @id @default(cuid())
   userId            String
-  type              String
-  provider          String
-  providerAccountId String
-  refresh_token     String? @db.Text
-  access_token      String? @db.Text
-  expires_at        Int?
-  token_type        String?
-  scope             String?
-  id_token          String? @db.Text
-  session_state     String?
+  instagramId       String  @unique              // Instagramのアカウント識別子
+  username          String
+  profilePictureUrl String?
+  accessToken       String  @db.Text
+  expiresAt         Int?
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  replies Reply[]
 
-  @@unique([provider, providerAccountId])
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([userId])
 }
 
 model Session {
@@ -40,13 +39,16 @@ model User {
   email         String?   @unique
   emailVerified DateTime?
   image         String?
-  facebookAccessToken  String?
-  accounts      Account[]
-  sessions      Session[]
-  replies       Reply[]   // ここを変更
-  membershipType MembershipType @default(FREE)
-  trialStartDate DateTime?
   password      String?
+  trialStartDate DateTime?  // トライアル開始日のみを保持
+  membershipType MembershipType @default(FREE)
+  
+  subscription  UserSubscription?
+  sessions     Session[]
+  igAccounts   IGAccount[]  // 名前を変更
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }
 
 model VerificationToken {
@@ -61,14 +63,16 @@ model Reply {
   id            Int      @id @default(autoincrement())
   keyword       String
   reply         String
-  userId        String
+  igAccountId   String   // IGAccount.idを参照
   postId        String?
   replyType     Int      // 1: SPECIFIC_POST, 2: ALL_POSTS, 3: STORY
   matchType     Int      // 1: EXACT, 2: PARTIAL
   buttons       Button[]
+  
+  igAccount     IGAccount @relation(fields: [igAccountId], references: [id], onDelete: Cascade)
+  
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
-  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([keyword, replyType, matchType])
 }
@@ -94,4 +98,17 @@ enum MembershipType {
   FREE
   TRIAL
   PAID
+}
+
+model UserSubscription {
+  id                     String   @id @default(cuid())
+  userId                 String   @unique
+  stripeCustomerId       String   @unique
+  stripeSubscriptionId   String   @unique
+  stripePriceId          String
+  stripeCurrentPeriodEnd DateTime
+  status                 String?
+  endDate                DateTime?
+  
+  user                   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

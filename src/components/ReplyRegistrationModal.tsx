@@ -9,6 +9,12 @@ import { RadioGroup } from "@/components/ui/RadioGroup";
 import Modal from './Modal';
 import InstagramPostList from './InstagramPostList';
 import { Reply, ReplyInput, ReplyFormData } from '@/types/reply';
+import { 
+  Popover, 
+  PopoverContent, 
+  PopoverTrigger 
+} from "@/components/ui/popover";
+import { History, Pencil, Trash2 } from 'lucide-react';
 
 // Zodスキーマの定義
 const schema = z.object({
@@ -37,18 +43,24 @@ interface FormData {
 interface KeywordRegistrationModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (data: Omit<Reply, 'id'>) => void;
-  initialData?: ReplyFormData;  // ReplyFormDataを使用
+  onSubmit: (data: ReplyInput | Omit<Reply, 'id'>) => void;
+  initialData?: ReplyFormData;
   isEditing?: boolean;
 }
 
 const KeywordRegistrationModal: React.FC<KeywordRegistrationModalProps> = ({ isOpen, onClose, onSubmit, initialData, isEditing = false }) => {
-  const [step, setStep] = useState(isEditing ? 3 : 1);
+  const [step, setStep] = useState(1); // 常にステップ1から開始
   const [selectedPost, setSelectedPost] = useState<any>(null);
   const [isAddingButton, setIsAddingButton] = useState(false);
   const [buttonTitle, setButtonTitle] = useState('');
   const [buttonUrl, setButtonUrl] = useState('');
   const [buttons, setButtons] = useState<Array<{title: string, url: string}>>(initialData?.buttons || []);
+  const [editingButtonIndex, setEditingButtonIndex] = useState<number | null>(null);
+  
+  // 過去の返信履歴
+  const [recentReplies, setRecentReplies] = useState<Reply[]>([]);
+  const [isReplyHistoryOpen, setIsReplyHistoryOpen] = useState(false);
+  const [isButtonHistoryOpen, setIsButtonHistoryOpen] = useState(false);
 
   const { control, handleSubmit, setValue, watch, reset, formState: { errors, isValid } } = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -65,6 +77,32 @@ const KeywordRegistrationModal: React.FC<KeywordRegistrationModalProps> = ({ isO
   const replyContent = watch('reply');
   const keyword = watch('keyword');
 
+  // 過去の返信を取得
+  useEffect(() => {
+    const fetchRecentReplies = async () => {
+      try {
+        setRecentReplies([]); // 初期化
+        const response = await fetch('/api/replies/recent');
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          console.error('過去の返信の取得に失敗しました:', errorData);
+          return;
+        }
+        
+        const data = await response.json();
+        console.log('取得した過去の返信:', data);
+        setRecentReplies(data);
+      } catch (error) {
+        console.error('過去の返信の取得に失敗しました:', error);
+      }
+    };
+    
+    if (isOpen) {
+      fetchRecentReplies();
+    }
+  }, [isOpen]);
+
   useEffect(() => {
     if (isOpen) {
       if (initialData) {
@@ -80,7 +118,7 @@ const KeywordRegistrationModal: React.FC<KeywordRegistrationModalProps> = ({ isO
           thumbnail_url: null // 必要に応じて適切な値を設定
         });
         setButtons(initialData.buttons || []);
-        setStep(3);
+        setStep(1); // 編集時も常にステップ1から開始
       } else {
         reset({
           keyword: '',
@@ -93,6 +131,7 @@ const KeywordRegistrationModal: React.FC<KeywordRegistrationModalProps> = ({ isO
         setSelectedPost(null);
         setButtons([]);
       }
+      setEditingButtonIndex(null);
     }
   }, [isOpen, reset, initialData]);
 
@@ -109,12 +148,56 @@ const KeywordRegistrationModal: React.FC<KeywordRegistrationModalProps> = ({ isO
     if (step > 1) setStep(step - 1);
   };
 
+  // 過去の返信文を選択
+  const handleSelectReply = (replyText: string) => {
+    setValue('reply', replyText);
+    setIsReplyHistoryOpen(false);
+  };
+
+  // 過去のボタンを選択
+  const handleSelectButton = (button: {title: string, url: string}) => {
+    setButtonTitle(button.title);
+    setButtonUrl(button.url);
+    setIsButtonHistoryOpen(false);
+  };
+
+  // 過去のボタンセットを選択
+  const handleSelectButtonSet = (buttons: Array<{title: string, url: string}>) => {
+    setButtons(buttons);
+    setIsButtonHistoryOpen(false);
+  };
+
+  // ボタンの編集を開始
+  const handleEditButton = (index: number) => {
+    const button = buttons[index];
+    setButtonTitle(button.title);
+    setButtonUrl(button.url);
+    setEditingButtonIndex(index);
+    setIsAddingButton(true);
+  };
+
+  // ボタンの更新
+  const handleUpdateButton = () => {
+    if (editingButtonIndex !== null && buttonTitle && buttonUrl) {
+      const updatedButtons = [...buttons];
+      updatedButtons[editingButtonIndex] = { title: buttonTitle, url: buttonUrl };
+      setButtons(updatedButtons);
+      setButtonTitle('');
+      setButtonUrl('');
+      setEditingButtonIndex(null);
+      setIsAddingButton(false);
+    }
+  };
+
   const handleFormSubmit = async (data: FormData) => {
     try {
       if (!selectedPost?.id) {
         throw new Error('投稿が選択されていません');
       }
 
+      // 投稿IDをフォームデータに設定
+      setValue('instagramPostId', selectedPost.id);
+      
       const submitData = {
         ...data,
         instagramPostId: selectedPost.id,
@@ -122,7 +205,26 @@ const KeywordRegistrationModal: React.FC<KeywordRegistrationModalProps> = ({ isO
         buttons
       };
       
-      console.log('送信データ:', submitData);
+      // 編集モードの場合はPUTリクエストを送信
+      if (isEditing) {
+        // APIに送信するデータ形式に変換
+        const updateData: ReplyInput = {
+          keyword: data.keyword,
+          reply: data.reply,
+          replyType: 2, // デフォルト値
+          matchType: data.matchType === 'exact' ? 1 : 2,
+          postId: selectedPost.id, // selectedPost.idを使用
+          buttons: buttons.map((button, index) => ({
+            title: button.title,
+            url: button.url,
+            order: index
+          }))
+        };
+        
+        onSubmit(updateData);
+        onClose();
+        return;
+      }
 
       const response = await fetch('/api/replies', {
         method: 'POST',
@@ -134,12 +236,16 @@ const KeywordRegistrationModal: React.FC<KeywordRegistrationModalProps> = ({ isO
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.details || 'Failed to save reply');
+        console.error('API返信エラー:', errorData);
+        throw new Error(errorData.details || '保存に失敗しました');
       }
 
       const result = await response.json();
-      onSubmit(result);
+      console.log('保存成功:', result);
       
+      // 親コンポーネントに新しい返信データを渡す
+      onSubmit(result);
+
       // フォームをリセット
       reset({
         keyword: '',
@@ -160,46 +266,56 @@ const KeywordRegistrationModal: React.FC<KeywordRegistrationModalProps> = ({ isO
 
   const handleAddButton = () => {
     if (buttonTitle && buttonUrl) {
-      setButtons([...buttons, { title: buttonTitle, url: buttonUrl }]);
-      setButtonTitle('');
-      setButtonUrl('');
-      setIsAddingButton(false);
+      if (editingButtonIndex !== null) {
+        // 既存のボタンを更新
+        handleUpdateButton();
+      } else {
+        // 新しいボタンを追加
+        setButtons([...buttons, { title: buttonTitle, url: buttonUrl }]);
+        setButtonTitle('');
+        setButtonUrl('');
+        setIsAddingButton(false);
+      }
     }
   };
 
-  const renderPreview = (content: string) => {
+  // 改行をHTMLの改行タグに変換し、ボタンも表示する
+  const renderPreview = (text: string) => {
+    const formattedText = text.replace(/\n/g, '<br>');
+    
+    const buttonsHtml = buttons.map(button => `
+      <div class="bg-white text-black border border-gray-300 p-3 rounded-lg mt-2 text-center cursor-pointer hover:bg-gray-100 transition-colors">
+        ${button.title}
+      </div>
+    `).join('');
+    
     return `
-      <div class="whitespace-pre-wrap">${content}</div>
-      ${buttons.map(button => `
-        <div class="bg-white text-black border border-gray-300 p-3 rounded-lg mt-2 text-center cursor-pointer hover:bg-gray-100 transition-colors">
-          ${button.title}
-        </div>
-      `).join('')}
+      <div class="whitespace-pre-wrap">${formattedText}</div>
+      ${buttonsHtml}
     `;
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose}>
-      <div className="p-4">
-        {!isEditing && (
-          <div className="mb-4 bg-gray-200 h-2 rounded-full">
-            <div 
-              className="bg-blue-500 h-full rounded-full transition-all duration-300 ease-in-out"
-              style={{ width: `${(step / 3) * 100}%` }}
-            />
-          </div>
-        )}
+    <Modal isOpen={isOpen} onClose={onClose} maxWidth="4xl">
+      <div className="p-6">
+        <h1 className="text-2xl font-bold mb-6">{isEditing ? '返信を編集' : '新規返信登録'}</h1>
+        <div className="mb-4 bg-gray-200 h-2 rounded-full">
+          <div 
+            className="bg-blue-500 h-full rounded-full transition-all duration-300 ease-in-out"
+            style={{ width: `${(step / 3) * 100}%` }}
+          />
+        </div>
         <form onSubmit={handleSubmit(handleFormSubmit)}>
-          {!isEditing && step === 1 && (
+          {step === 1 && (
             <div>
               <h2 className="text-xl font-bold mb-4">投稿を選択</h2>
-              <InstagramPostList onSelectPost={handleSelectPost} />
+              <InstagramPostList onSelectPost={handleSelectPost} initialSelectedPostId={initialData?.instagramPostId} />
               <div className="mt-4 flex justify-end">
                 <Button type="button" onClick={handleNext} disabled={!selectedPost}>次へ</Button>
               </div>
             </div>
           )}
-          {!isEditing && step === 2 && (
+          {step === 2 && (
             <div>
               <h2 className="text-xl font-bold mb-4">キーワードを登録</h2>
               <Controller
@@ -232,59 +348,202 @@ const KeywordRegistrationModal: React.FC<KeywordRegistrationModalProps> = ({ isO
               </div>
             </div>
           )}
-        {(isEditing || step === 3) && (
+          {step === 3 && (
             <div>
               <div className="text-xl font-bold mb-4">返信文を入力</div>
               <div className="flex space-x-4">
                 <div className="w-1/2 flex flex-col">
-                  <div className="font-semibold mb-2">返信内容</div>
+                  <div className="font-semibold mb-2 flex justify-between items-center">
+                    <span>返信内容</span>
+                    <Popover open={isReplyHistoryOpen} onOpenChange={setIsReplyHistoryOpen}>
+                      <PopoverTrigger asChild>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          className="flex items-center gap-1"
+                        >
+                          <History className="h-4 w-4" />
+                          <span>過去の返信</span>
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-80 p-0">
+                        <div className="p-2 font-semibold border-b">過去の返信文</div>
+                        <div className="max-h-60 overflow-y-auto">
+                          {recentReplies.length > 0 ? (
+                            recentReplies.map((reply) => (
+                              <div 
+                                key={reply.id} 
+                                className="p-2 hover:bg-gray-100 cursor-pointer border-b text-sm"
+                                onClick={() => handleSelectReply(reply.reply)}
+                              >
+                                <div className="line-clamp-2">{reply.reply}</div>
+                              </div>
+                            ))
+                          ) : (
+                            <div className="p-4 text-center text-gray-500">
+                              過去の返信がありません
+                            </div>
+                          )}
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+                  </div>
                   <Controller
                     name="reply"
                     control={control}
                     render={({ field }) => (
-                      <div className="flex-grow relative border rounded-md overflow-hidden">
-                        <Textarea 
-                          {...field} 
-                          placeholder="返信内容を入力してください" 
-                          className="h-full min-h-[10rem] pb-10 border-none resize-none" 
-                        />
-                        <div 
-                          className="absolute bottom-0 left-0 right-0 p-2 border-t border-dashed border-gray-200 bg-gray-50"
-                        >
-                          <Button 
-                            type="button" 
-                            onClick={() => setIsAddingButton(true)}
-                            className="w-full text-gray-400 hover:text-gray-600 bg-transparent hover:bg-gray-100"
-                          >
-                            + Add Button
-                          </Button>
-                        </div>
-                      </div>
+                      <Textarea 
+                        {...field} 
+                        placeholder="返信内容を入力してください" 
+                        className="flex-grow min-h-[150px]" 
+                      />
                     )}
                   />
                   {errors.reply && <p className="text-red-500 text-sm mt-1">{errors.reply.message}</p>}
-                  {isAddingButton && (
-                    <div className="mt-2 space-y-2">
-                      <Input
-                        placeholder="ボタンのタイトル"
-                        value={buttonTitle}
-                        onChange={(e) => setButtonTitle(e.target.value)}
-                      />
-                      <Input
-                        placeholder="ボタンのURL"
-                        value={buttonUrl}
-                        onChange={(e) => setButtonUrl(e.target.value)}
-                      />
-                      <div className="flex space-x-2">
-                        <Button type="button" onClick={handleAddButton} disabled={!buttonTitle || !buttonUrl}>
-                          追加
-                        </Button>
-                        <Button type="button" onClick={() => setIsAddingButton(false)} variant="outline">
-                          キャンセル
-                        </Button>
-                      </div>
+                  
+                  <div className="mt-4">
+                    <div className="font-semibold mb-2 flex justify-between items-center">
+                      <span>ボタン</span>
+                      <Popover open={isButtonHistoryOpen} onOpenChange={setIsButtonHistoryOpen}>
+                        <PopoverTrigger asChild>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            className="flex items-center gap-1"
+                          >
+                            <History className="h-4 w-4" />
+                            <span>過去のボタン</span>
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-80 p-0">
+                          <div className="p-2 font-semibold border-b">過去のボタン</div>
+                          <div className="max-h-60 overflow-y-auto">
+                            {recentReplies.filter(reply => reply.buttons && reply.buttons.length > 0).length > 0 ? (
+                              recentReplies.filter(reply => reply.buttons && reply.buttons.length > 0).map((reply) => (
+                                <div 
+                                  key={reply.id} 
+                                  className="p-2 hover:bg-gray-100 cursor-pointer border-b"
+                                >
+                                  <div className="font-medium text-sm mb-1">
+                                    {reply.keyword}の返信
+                                  </div>
+                                  <div className="flex flex-wrap gap-1">
+                                    {reply.buttons?.map((button, idx) => (
+                                      <div 
+                                        key={idx} 
+                                        className="text-xs bg-gray-100 p-1 rounded"
+                                        onClick={() => handleSelectButton({
+                                          title: button.title,
+                                          url: button.url
+                                        })}
+                                      >
+                                        {button.title}
+                                      </div>
+                                    ))}
+                                  </div>
+                                  <Button 
+                                    size="sm" 
+                                    variant="outline" 
+                                    className="mt-1 w-full text-xs"
+                                    onClick={() => handleSelectButtonSet(
+                                      reply.buttons?.map(b => ({
+                                        title: b.title,
+                                        url: b.url
+                                      })) || []
+                                    )}
+                                  >
+                                    このセットを使用
+                                  </Button>
+                                </div>
+                              ))
+                            ) : (
+                              <div className="p-4 text-center text-gray-500">
+                                過去のボタンがありません
+                              </div>
+                            )}
+                          </div>
+                        </PopoverContent>
+                      </Popover>
                     </div>
-                  )}
+                    
+                    {buttons.map((button, index) => (
+                      <div key={index} className="flex items-center mb-2">
+                        <div className="flex-grow border p-2 rounded-lg text-sm">
+                          {button.title} - {button.url}
+                        </div>
+                        <div className="flex ml-2">
+                          <Button 
+                            type="button" 
+                            variant="outline" 
+                            size="icon"
+                            className="h-8 w-8 mr-1"
+                            onClick={() => handleEditButton(index)}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button 
+                            type="button" 
+                            variant="outline" 
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => setButtons(buttons.filter((_, i) => i !== index))}
+                          >
+                            <Trash2 className="h-4 w-4 text-red-500" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                    
+                    {isAddingButton ? (
+                      <div className="mt-2">
+                        <div className="flex mb-2">
+                          <Input 
+                            value={buttonTitle} 
+                            onChange={(e) => setButtonTitle(e.target.value)} 
+                            placeholder="ボタンのタイトル" 
+                            className="mr-2"
+                          />
+                          <Input 
+                            value={buttonUrl} 
+                            onChange={(e) => setButtonUrl(e.target.value)} 
+                            placeholder="URL" 
+                          />
+                        </div>
+                        <div className="flex justify-end space-x-2">
+                          <Button 
+                            type="button" 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => {
+                              setButtonTitle('');
+                              setButtonUrl('');
+                              setEditingButtonIndex(null);
+                              setIsAddingButton(false);
+                            }}
+                          >
+                            キャンセル
+                          </Button>
+                          <Button 
+                            type="button" 
+                            size="sm"
+                            onClick={handleAddButton}
+                            disabled={!buttonTitle || !buttonUrl}
+                          >
+                            {editingButtonIndex !== null ? '更新' : '追加'}
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        className="w-full"
+                        onClick={() => setIsAddingButton(true)}
+                      >
+                        ボタンを追加
+                      </Button>
+                    )}
+                  </div>
                 </div>
                 <div className="w-1/2 flex flex-col">
                   <div className="font-semibold mb-2">プレビュー</div>
@@ -294,7 +553,7 @@ const KeywordRegistrationModal: React.FC<KeywordRegistrationModalProps> = ({ isO
                 </div>
               </div>
               <div className="mt-4 flex justify-between">
-                {!isEditing && <Button type="button" onClick={handleBack}>戻る</Button>}
+                <Button type="button" onClick={handleBack}>戻る</Button>
                 <Button type="submit" disabled={!isValid}>{isEditing ? '更新' : '登録'}</Button>
               </div>
             </div>

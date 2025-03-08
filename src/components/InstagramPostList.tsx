@@ -14,11 +14,12 @@ interface InstagramPost {
 
 interface InstagramPostListProps {
   onSelectPost: (post: InstagramPost) => void;
+  initialSelectedPostId?: string;
 }
 
-const InstagramPostList: React.FC<InstagramPostListProps> = ({ onSelectPost }) => {
+const InstagramPostList: React.FC<InstagramPostListProps> = ({ onSelectPost, initialSelectedPostId }) => {
   const [activeTab, setActiveTab] = useState<'feed' | 'reel'>('feed');
-  const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
+  const [selectedPostId, setSelectedPostId] = useState<string | null>(initialSelectedPostId || null);
   const [posts, setPosts] = useState<InstagramPost[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -26,6 +27,21 @@ const InstagramPostList: React.FC<InstagramPostListProps> = ({ onSelectPost }) =
   useEffect(() => {
     fetchInstagramPosts();
   }, []);
+
+  useEffect(() => {
+    if (initialSelectedPostId) {
+      setSelectedPostId(initialSelectedPostId);
+    }
+  }, [initialSelectedPostId]);
+
+  useEffect(() => {
+    if (selectedPostId && posts.length > 0) {
+      const post = posts.find(p => p.id === selectedPostId);
+      if (post) {
+        onSelectPost(post);
+      }
+    }
+  }, [posts, selectedPostId, onSelectPost]);
 
   const fetchInstagramPosts = async () => {
     try {
@@ -52,6 +68,8 @@ const InstagramPostList: React.FC<InstagramPostListProps> = ({ onSelectPost }) =
   };
 
   const handlePostClick = (post: InstagramPost) => {
+    if (selectedPostId === post.id) return;
+    
     setSelectedPostId(post.id);
     onSelectPost(post);
   };

@@ -3,49 +3,25 @@ import { Button } from "@/components/ui/button";
 import ReplyRegistrationModal from '@/components/ReplyRegistrationModal';
 import { MembershipType } from '@prisma/client';
 import { useRouter } from 'next/navigation';
+import { Reply } from '@/types/reply';
 
 interface ReplyFormProps {
-  onReplyAdded: (data: any) => void;
+  onReplyAdded: (reply: Reply) => void;
   membershipType: MembershipType;
   onReplyRegistered: () => void;
 }
 
-const ReplyForm: React.FC<ReplyFormProps> = ({ onReplyAdded, membershipType, onReplyRegistered }) => {
+export default function ReplyForm({ onReplyAdded, membershipType, onReplyRegistered }: ReplyFormProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
   const handleOpenModal = async () => {
-    setIsModalOpen(true);
-    // if (membershipType === MembershipType.FREE) {
-    //   setError("この機能を利用するには、会員プランのアップグレードが必要です。");
-    //   return;
-    // }
-
-    try {
-    //   const response = await fetch('/api/member-ship', {
-    //     method: 'GET',
-    //     headers: {
-    //       'Content-Type': 'application/json',
-    //     },
-    //   });
-
-    //   if (!response.ok) {
-    //     throw new Error('会員種別の確認に失敗しました');
-    //   }
-
-    //   const data = await response.json();
-
-    //   if (data.membershipType === MembershipType.FREE) {
-    //     setError("会員プランの有効期限が切れています。会員プランをアップグレードしてください。");
-    //   } else {
-    //     setIsModalOpen(true);
-    //   }
-    } catch (error) {
-      setError('エラーが発生しました。しばらくしてから再度お試しください。');
-    } finally {
-
+    if (membershipType === 'FREE') {
+      router.push('/plan');
+      return;
     }
+    setIsModalOpen(true);
   };
 
   const handleSubmit = (data: any) => {
@@ -54,23 +30,18 @@ const ReplyForm: React.FC<ReplyFormProps> = ({ onReplyAdded, membershipType, onR
     onReplyRegistered();
   };
 
-  console.log('ReplyForm Debug:', {
-    membershipType,
-    isOpen: isModalOpen,
-  });
-
   return (
     <div>
-      {/* <Button onClick={handleOpenModal} disabled={membershipType === MembershipType.FREE}> */}
-      <Button onClick={handleOpenModal}>
-        自動返信登録
+      <Button
+        onClick={handleOpenModal}
+        disabled={membershipType === 'FREE'}
+        title={membershipType === 'FREE' ? 'プランをアップグレードして利用可能になります' : ''}
+      >
+        自動返信を追加
       </Button>
       {error && (
         <div className="mt-2 text-red-600">
           <p>{error}</p>
-          <Button onClick={() => router.push('/membership-upgrade')} className="mt-2">
-            会員プランをアップグレード
-          </Button>
         </div>
       )}
       <ReplyRegistrationModal
@@ -80,6 +51,4 @@ const ReplyForm: React.FC<ReplyFormProps> = ({ onReplyAdded, membershipType, onR
       />
     </div>
   );
-};
-
-export default ReplyForm;
+}

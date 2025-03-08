@@ -1,14 +1,7 @@
 import { NextResponse } from 'next/server';
-import { headers } from 'next/headers';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '../../auth/[...nextauth]/options';
 import { prisma } from '@/lib/prisma';
-
-type FacebookInfo = {
-  connected: boolean;
-  name?: string;
-  id?: string;
-};
 
 type InstagramInfo = {
   connected: boolean;
@@ -36,94 +29,23 @@ export async function GET(): Promise<Response> {
     }
 
     // アカウント情報取得
-    const account = await prisma.account.findFirst({
+    const igAccount = await prisma.iGAccount.findFirst({
       where: {
         userId: session.user.id,
-        provider: 'facebook'
-      }
-    });
-
-    // アカウント情報ログ
-    await prisma.executionLog.create({
-      data: {
-        errorMessage: `Facebook Account:
-        Account: ${JSON.stringify(account)}`
       }
     });
 
     let instagramInfo: InstagramInfo = { connected: false };
-    let facebookInfo: FacebookInfo = { connected: false };
 
-    if (account?.access_token) {
-      // Facebook情報を取得
-      const fbResponse = await fetch(
-        `https://graph.facebook.com/v20.0/me?fields=id,name&access_token=${account.access_token}`
-      );
-      
-      // Facebookレスポンスログ
-      await prisma.executionLog.create({
-        data: {
-          errorMessage: `Facebook API Response:
-          Status: ${fbResponse.status}
-          OK: ${fbResponse.ok}`
-        }
-      });
-
-      if (fbResponse.ok) {
-        const fbData = await fbResponse.json();
-        facebookInfo = {
+    if (igAccount?.accessToken) {
+        instagramInfo = {
           connected: true,
-          name: fbData.name,
-          id: fbData.id
+          name: igAccount.username,
+          id: igAccount.instagramId ?? undefined,
+          profile_picture_url: igAccount.profilePictureUrl ?? undefined 
         };
-
-        // Instagram Business Account情報を取得
-        const igResponse = await fetch(
-          `https://graph.facebook.com/v20.0/${account.providerAccountId}?fields=id,name,username,profile_picture_url&access_token=${account.access_token}`
-        );
-
-        // Instagramレスポンスログ
-        await prisma.executionLog.create({
-          data: {
-            errorMessage: `Instagram API Response:
-            Status: ${igResponse.status}
-            OK: ${igResponse.ok}
-            Response: ${JSON.stringify(await igResponse.clone().json())}`
-          }
-        });
-
-        if (igResponse.ok) {
-          const igData = await igResponse.json();
-          await prisma.executionLog.create({
-            data: {
-              errorMessage: `Instagram Data:
-              Data: ${JSON.stringify(igData)}`
-            }
-          });
-
-          if (igData) {
-            instagramInfo = {
-              connected: true,
-              name: igData.username,
-              id: igData.id,
-              profile_picture_url: igData.profile_picture_url
-            };
-          }
-        }
       }
-    }
-
-    // 最終結果ログ
-    await prisma.executionLog.create({
-      data: {
-        errorMessage: `Final Status:
-        Facebook: ${JSON.stringify(facebookInfo)}
-        Instagram: ${JSON.stringify(instagramInfo)}`
-      }
-    });
-
     return NextResponse.json({
-      facebook: facebookInfo,
       instagram: instagramInfo
     });
 

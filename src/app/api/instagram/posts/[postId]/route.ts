@@ -2,35 +2,40 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../../../auth/[...nextauth]/options';
 import { prisma } from '@/lib/prisma';
+import { getInstagramAccessToken, getInstagramAccount } from '@/lib/instagram';
 
 export async function GET(
   request: Request,
   { params }: { params: { postId: string } }
 ) {
-  const session = await getServerSession(authOptions);
-
-  if (!session?.user?.id) {
-    await prisma.executionLog.create({
-      data: {
-        errorMessage: 'Instagram Media取得: 認証エラー'
-      }
-    });
-    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
-  }
-
   try {
-    // アクセストークンを取得
-    const account = await prisma.account.findFirst({
-      where: {
-        userId: session.user.id,
-        provider: 'facebook',
-      },
-      select: {
-        access_token: true,
-      },
-    });
+    const session = await getServerSession(authOptions);
 
-    if (!account?.access_token) {
+    if (!session?.user?.id) {
+      await prisma.executionLog.create({
+        data: {
+          errorMessage: 'Instagram Media取得: 認証エラー'
+        }
+      });
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+    }
+
+    // IGAccountの取得を試みる
+    const igAccount = await getInstagramAccount(session.user.id);
+
+    if (!igAccount) {
+      await prisma.executionLog.create({
+        data: {
+          errorMessage: 'Instagram Media取得: IGAccountが見つかりません'
+        }
+      });
+      return NextResponse.json({ error: 'IGAccount not found' }, { status: 404 });
+    }
+
+    // アクセストークンを取得
+    const accessToken = await getInstagramAccessToken(session.user.id);
+
+    if (!accessToken) {
       await prisma.executionLog.create({
         data: {
           errorMessage: 'Instagram Media取得: アクセストークンなし'
@@ -41,7 +46,7 @@ export async function GET(
 
     // Instagram Graph APIから投稿のメディアURLのみを取得
     const response = await fetch(
-      `https://graph.facebook.com/v20.0/${params.postId}?fields=media_url,thumbnail_url&access_token=${account.access_token}`
+      `https://graph.facebook.com/v20.0/${params.postId}?fields=media_url,thumbnail_url&access_token=${accessToken}`
     );
 
     if (!response.ok) {

@@ -9,22 +9,17 @@ export async function GET(
   { params }: { params: { userId: string } }
 ) {
   const session = await getServerSession(authOptions);
-  
   if (!session?.user?.id) {
-    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  // セッションのユーザーIDとリクエストされたユーザーIDが一致することを確認
-  if (session.user.id !== params.userId) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
-  }
+  const userId = params.userId;
 
   try {
     const user = await prisma.user.findUnique({
-      where: { id: params.userId },
-      select: {
-        membershipType: true,
-        trialStartDate: true,
+      where: { id: userId },
+      include: {
+        subscription: true,
       },
     });
 
@@ -32,30 +27,15 @@ export async function GET(
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    let effectiveMembershipType = user.membershipType;
-
-    // トライアル期間のチェック
-    if (user.membershipType === MembershipType.TRIAL && user.trialStartDate) {
-      const trialEndDate = new Date(user.trialStartDate.getTime() + 14 * 24 * 60 * 60 * 1000); // 14日後
-      if (new Date() > trialEndDate) {
-        effectiveMembershipType = MembershipType.FREE;
-        // トライアル期間が終了した場合、ユーザーの会員種別を更新
-        await prisma.user.update({
-          where: { id: params.userId },
-          data: { membershipType: MembershipType.FREE }
-        });
-      }
-    }
-
     return NextResponse.json({
-      membershipType: effectiveMembershipType,
+      membershipType: user.membershipType,
       trialStartDate: user.trialStartDate,
+      stripeSubscriptionId: user.subscription?.stripeSubscriptionId || null,
+      stripeCurrentPeriodEnd: user.subscription?.stripeCurrentPeriodEnd || null,
+      status: user.subscription?.status || null
     });
   } catch (error) {
     console.error('Error fetching membership:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch membership information' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to fetch membership' }, { status: 500 });
   }
 } 

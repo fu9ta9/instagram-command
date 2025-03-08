@@ -40,21 +40,10 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const webhookData = await request.json();
-    
-    // リクエストの受信をログに記録
-    await prisma.executionLog.create({
-      data: {
-        errorMessage: `Webhookコメント受信: ${JSON.stringify(webhookData)}`
-      }
-    });
+    await logWebhookReceived(webhookData);
 
     // エコーメッセージのチェック
-    if (webhookData.entry?.[0]?.messaging?.[0]?.message?.is_echo) {
-      await prisma.executionLog.create({
-        data: {
-          errorMessage: 'エコーメッセージを検出したため処理を終了します'
-        }
-      });
+    if (isEchoMessage(webhookData)) {
       return NextResponse.json({ message: 'Echo message ignored' }, { status: 200 });
     }
 
@@ -62,11 +51,16 @@ export async function POST(request: Request) {
       throw new Error('Invalid webhook data format');
     }
 
-    // 非同期処理を同期的に実行
-    await processInstagramComment(webhookData);
+    // コメントに対する返信を検索
+    const reply = await findMatchingReply(webhookData);
+    if (!reply) {
+      return NextResponse.json({ message: 'No matching reply found' }, { status: 200 });
+    }
+
+    // 返信を送信
+    await sendReplyToComment(webhookData, reply);
 
     return NextResponse.json({ message: 'Success' }, { status: 200 });
-
   } catch (error) {
     await prisma.executionLog.create({
       data: {
@@ -77,234 +71,163 @@ export async function POST(request: Request) {
   }
 }
 
-// コメント処理の非同期関数
-async function processInstagramComment(webhookData: any) {
-  const commentData = webhookData.entry[0].changes[0].value;
-  const igId = commentData.from.id;
-  const commentText = commentData.text;
-  
+// ヘルパー関数
+async function logWebhookReceived(webhookData: any) {
+  await prisma.executionLog.create({
+    data: {
+      errorMessage: `Webhookコメント受信: ${JSON.stringify(webhookData)}`
+    }
+  });
+}
+
+function isEchoMessage(webhookData: any): boolean {
+  if (webhookData.entry?.[0]?.messaging?.[0]?.message?.is_echo) {
+    prisma.executionLog.create({
+      data: {
+        errorMessage: 'エコーメッセージを検出したため処理を終了します'
+      }
+    });
+    return true;
+  }
+  return false;
+}
+
+async function findMatchingReply(webhookData: any) {
+  const commentData = webhookData.entry[0].changes[0].value
+  const commentText = commentData.text
+  const mediaId = commentData.media.id
+
   try {
-    // コメント受信ログ
-    await prisma.executionLog.create({
-      data: {
-        errorMessage: `コメント受信詳細:
-        ID: ${igId}
-        Text: ${commentText}
-        Raw Data: ${JSON.stringify(commentData)}`
-      }
-    });
-
-    // 登録済みの返信を検索
-    console.log('Fetching replies...');
+    // 返信を検索
     const replies = await prisma.reply.findMany({
-      orderBy: {
-        createdAt: 'desc'
-      }
-    });
-
-    // まず実行結果の基本情報をログ出力
-    await prisma.executionLog.create({
-      data: {
-        errorMessage: `SQL実行開始:
-        時刻: ${new Date().toISOString()}
-        環境: ${process.env.NODE_ENV}`
-      }
-    });
-
-    // 検索結果の詳細をログ出力（分割して記録）
-    await prisma.executionLog.create({
-      data: {
-        errorMessage: `SQL実行基本情報:
-        返信検索件数: ${replies.length}
-        実行時刻: ${new Date().toISOString()}`
-      }
-    });
-
-    // データ内容を別ログとして記録
-    if (replies.length > 0) {
-      await prisma.executionLog.create({
-        data: {
-          errorMessage: `返信データサンプル:
-          First Reply: ${JSON.stringify(replies[0], null, 2)}`
-        }
-      });
-    }
-
-    // コメントに一致する返信を探す
-    for (const reply of replies) {
-      const isMatch = reply.matchType === 1 
-        ? commentText === reply.keyword
-        : commentText.includes(reply.keyword);
-
-      // マッチング結果ログ
-      await prisma.executionLog.create({
-        data: {
-          errorMessage: `マッチング試行:
-          コメント: ${commentText}
-          キーワード: ${reply.keyword}
-          マッチタイプ: ${reply.matchType === 1 ? '完全一致' : '部分一致'}
-          結果: ${isMatch ? '一致' : '不一致'}`
-        }
-      });
-
-      if (isMatch) {
-        const account = await prisma.account.findFirst({
-          where: {
-            provider: 'facebook',
-          },
-          select: {
-            access_token: true,
-          },
-        });
-
-        // アカウント検索結果ログ
-        await prisma.executionLog.create({
-          data: {
-            errorMessage: `アカウント検索結果:
-            アカウント存在: ${account ? 'あり' : 'なし'}
-            トークン: ${account?.access_token ? '取得済み' : 'なし'}`
-          }
-        });
-
-        if (!account?.access_token) {
-          throw new Error('アクセストークンが見つかりません');
-        }
-
-        // Facebook Graph APIからページ情報を取得
-        const pageResponse = await fetch(
-          `https://graph.facebook.com/v22.0/me/accounts?fields=id,access_token&access_token=${account.access_token}`
-        );
-
-        if (!pageResponse.ok) {
-          throw new Error('ページ情報取得に失敗しました');
-        }
-
-        const pageData = await pageResponse.json();
-        
-        if (!pageData.data?.[0]?.id || !pageData.data?.[0]?.access_token) {
-          throw new Error('ページ情報が見つかりません');
-        }
-
-        const pageId = pageData.data[0].id;
-        const pageAccessToken = pageData.data[0].access_token;  // ページアクセストークンを取得
-
-        await prisma.executionLog.create({
-          data: {
-            errorMessage: `ページ情報取得成功:
-            Page ID: ${pageId}
-            Token: ${pageAccessToken.substring(0, 10)}...`
-          }
-        });
-
-        // ボタンがある場合は含めて返信を送信
-        const buttons = [
+      where: {
+        AND: [
+          // 投稿タイプによる条件
           {
-            title: 'ボタン1',
-            url: 'https://example.com'
+            OR: [
+              { replyType: 2 }, // ALL_POSTS
+              { AND: [{ replyType: 1 }, { postId: mediaId }] } // SPECIFIC_POST
+            ]
+          },
+          // キーワードの一致条件
+          {
+            OR: [
+              { AND: [{ matchType: 1 }, { keyword: commentText }] }, // 完全一致
+              { AND: [{ matchType: 2 }, { keyword: { in: commentText.split(' ') } }] } // 部分一致
+            ]
           }
-        ];
-
-        await sendInstagramReply(
-          igId,
-          reply.reply,
-          pageAccessToken,  // ユーザーアクセストークンではなくページアクセストークンを使用
-          pageId,
-          buttons
-        );
-
-        await prisma.executionLog.create({
-          data: {
-            errorMessage: `自動返信送信成功: CommentID=${igId}, Reply=${reply.reply}, Buttons=${JSON.stringify(buttons)}`
+        ]
+      },
+      include: {
+        buttons: true,
+        igAccount: {
+          select: {
+            accessToken: true
           }
-        });
+        }
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 1
+    })
 
-        break;
-      }
+    if (replies.length === 0) {
+      await prisma.executionLog.create({
+        data: { errorMessage: 'マッチする返信が見つかりませんでした' }
+      })
+      return null
     }
+
+    return replies[0]
   } catch (error) {
     await prisma.executionLog.create({
       data: {
-        errorMessage: `自動返信処理エラー詳細:
-        Error: ${error instanceof Error ? error.message : String(error)}
-        Stack: ${error instanceof Error ? error.stack : 'No stack trace'}`
+        errorMessage: `返信検索エラー: ${error instanceof Error ? error.message : String(error)}`
       }
-    });
-    throw error;
+    })
+    throw error
   }
 }
 
-async function sendInstagramReply(
-  commentId: string,
-  replyText: string,
-  accessToken: string,
-  pageId: string,
-  buttons: Array<{ title: string, url: string }>
-) {
-  try {
-    await prisma.executionLog.create({
-      data: {
-        errorMessage: `Instagram API リクエスト構築:
-        Version: v22.0
-        Endpoint: /${pageId}/messages
-        CommentID: ${commentId}`
-      }
-    });
-
-    const messageData = {
-      recipient: {
-        id: commentId  // IGSID (Instagram Scoped ID)
-      },
-      message: {
-        attachment: {
-          type: "template",
-          payload: {
-            template_type: "button",
-            text: replyText,
-            buttons: buttons.map(button => ({
-              type: "web_url",
-              url: button.url,
-              title: button.title
-            }))
-          }
+// メッセージデータを作成する関数
+function createMessageData(commenterId: string, replyText: string, buttons: Array<{ title: string, url: string }>) {
+  return {
+    recipient: {
+      id: commenterId  // IGSID (Instagram Scoped ID)
+    },
+    message: {
+      attachment: {
+        type: "template",
+        payload: {
+          template_type: "button",
+          text: replyText,
+          buttons: buttons.map(button => ({
+            type: "web_url",
+            url: button.url,
+            title: button.title
+          }))
         }
       }
-    };
+    }
+  }
+}
 
-    // リクエスト内容のログ
-    await prisma.executionLog.create({
-      data: {
-        errorMessage: `送信リクエスト詳細:
-        Payload: ${JSON.stringify(messageData, null, 2)}`
-      }
-    });
+async function sendReplyToComment(webhookData: any, reply: any) {
+  const commentData = webhookData.entry[0].changes[0].value
+  const commenterId = commentData.from.id
+  const mediaId = commentData.media.id
 
-    const response = await fetch(
-      `https://graph.facebook.com/v22.0/${pageId}/messages?access_token=${accessToken}`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(messageData),
-      }
-    );
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(`Instagram API error: ${JSON.stringify(errorData)}`);
+  try {
+    if (!reply.igAccount?.accessToken) {
+      throw new Error('アクセストークンが見つかりません')
     }
 
-    const result = await response.json();
+    // Facebook Graph APIからページ情報を取得
+    const pageResponse = await fetch(
+      `https://graph.facebook.com/v22.0/me/accounts?fields=id,access_token&access_token=${reply.igAccount.accessToken}`
+    )
+
+    if (!pageResponse.ok) {
+      throw new Error('ページ情報取得に失敗しました')
+    }
+
+    const pageData = await pageResponse.json()
+    
+    if (!pageData.data?.[0]?.id || !pageData.data?.[0]?.access_token) {
+      throw new Error('ページ情報が見つかりません')
+    }
+
+    const pageId = pageData.data[0].id
+    const pageAccessToken = pageData.data[0].access_token
+
+    // メッセージデータを作成
+    const messageData = createMessageData(commenterId,reply.reply, reply.buttons || [])
+
+    // Instagram APIで返信を送信
+    const response = await fetch(
+      `https://graph.facebook.com/v22.0/${pageId}/messages?access_token=${pageAccessToken}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(messageData)
+      }
+    )
+
+    if (!response.ok) {
+      const errorData = await response.json()
+      throw new Error(`返信送信に失敗: ${JSON.stringify(errorData)}`)
+    }
+
     await prisma.executionLog.create({
       data: {
-        errorMessage: `API応答:
-        Status: ${response.status}
-        Response: ${JSON.stringify(result)}`
+        errorMessage: `自動返信送信成功: CommentID=${commenterId}, Reply=${reply.reply}`
       }
-    });
-
-    return result;
+    })
   } catch (error) {
-    throw new Error(`Instagram API error: ${error instanceof Error ? error.message : String(error)}`);
+    await prisma.executionLog.create({
+      data: {
+        errorMessage: `返信送信エラー: ${error instanceof Error ? error.message : String(error)}`
+      }
+    })
+    throw error
   }
 }

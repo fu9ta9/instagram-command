@@ -1,12 +1,19 @@
 import DashboardClient from './DashboardClient'
+import AppLayout from '@/components/layouts/AppLayout'
+import { getServerSession } from 'next-auth/next'
+import { authOptions } from '../api/auth/[...nextauth]/options'
+import { redirect } from 'next/navigation'
 
 export default async function DashboardPage() {
-  // セッション確認をスキップ
-  // const session = await getServerSession(authOptions)
+  const session = await getServerSession(authOptions)
 
-  // if (!session || !session.user) {
-  //   return <div>ログインしてください</div>
-  // }
+  if (!session?.user) {
+    redirect('/auth/signin')
+  }
 
-  return <DashboardClient />
+  return (
+    <AppLayout>
+      <DashboardClient />
+    </AppLayout>
+  )
 }

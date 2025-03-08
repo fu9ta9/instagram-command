@@ -1,58 +1,80 @@
 "use client"
 
-import React, { useState } from 'react'
+import React from 'react'
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
-import { ChevronLeft, ChevronRight, Wifi, MessageSquare, CreditCard } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Instagram, MessageSquareMore, CreditCard } from 'lucide-react'
 import { cn } from '@/lib/utils'
-
-type NavItem = {
-  name: string
-  href: string
-  icon: React.ElementType
-}
-
-const navItems: NavItem[] = [
-  { name: 'Connection Status', href: '/connection', icon: Wifi },
-  { name: 'Reply Settings', href: '/reply', icon: MessageSquare },
-  { name: 'Payment', href: '/payment', icon: CreditCard },
-]
+import { useSession } from 'next-auth/react'
+import { useSidebar } from '@/contexts/SidebarContext'
+import { useInstagram } from '@/contexts/InstagramContext'
 
 export function Sidebar() {
-  const [isCollapsed, setIsCollapsed] = useState(false)
+  const { isCollapsed, toggleSidebar } = useSidebar()
+  const { status, isLoading } = useInstagram()
   const pathname = usePathname()
+  const { data: session } = useSession()
+
+  const sidebarItems = [
+    {
+      href: '/connect',
+      label: 'Instagram連携',
+      icon: <Instagram className="h-5 w-5" />,
+      requiresAuth: true,
+    },
+    {
+      href: '/reply',
+      label: 'DM自動返信設定',
+      icon: <MessageSquareMore className="h-5 w-5" />,
+      requiresAuth: true,
+    },
+    {
+      href: '/plan',
+      label: 'プラン設定',
+      icon: <CreditCard className="h-5 w-5" />,
+      requiresAuth: true,
+    }
+  ]
+
+  // 認証状態に基づいてフィルタリング
+  const filteredItems = sidebarItems.filter(item => 
+    !item.requiresAuth || (item.requiresAuth && session)
+  )
 
   return (
     <aside className={cn(
-      "flex flex-col h-screen bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200",
+      "flex flex-col h-screen fixed top-0 left-0 z-20",
       "transition-all duration-300 ease-in-out",
-      isCollapsed ? "w-16" : "w-64",
-      "border-r border-gray-200 dark:border-gray-700"
+      isCollapsed ? "w-16" : "w-56",
+      "bg-gradient-to-b from-blue-800 to-blue-900 text-gray-100 border-r border-blue-950"
     )}>
       <div className="flex items-center justify-end p-4">
         <button
-          onClick={() => setIsCollapsed(!isCollapsed)}
-          className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors duration-200"
+          onClick={toggleSidebar}
+          className="p-2 rounded-full hover:bg-blue-700/50 transition-colors duration-200"
           aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
-          {isCollapsed ? <ChevronRight size={24} /> : <ChevronLeft size={24} />}
+          {isCollapsed ? <ChevronRight className="h-5 w-5" /> : <ChevronLeft className="h-5 w-5" />}
         </button>
       </div>
-      <nav className="flex-1">
-        <ul className="space-y-2 px-3">
-          {navItems.map((item) => (
-            <li key={item.name}>
-              <Link href={item.href}
+
+      <nav className="flex-1 overflow-y-auto">
+        <ul className="space-y-2 px-2">
+          {filteredItems.map((item) => (
+            <li key={item.href}>
+              <Link
+                href={item.href}
                 className={cn(
                   "flex items-center space-x-3 p-3 rounded-lg",
                   "transition-all duration-200 ease-in-out",
-                  "hover:bg-gray-100 dark:hover:bg-gray-700",
-                  pathname === item.href && "bg-gray-200 dark:bg-gray-700 text-blue-600 dark:text-blue-400",
+                  pathname === item.href 
+                    ? "bg-white/10 text-white"
+                    : "text-blue-100 hover:bg-blue-700/50",
                   isCollapsed && "justify-center"
                 )}
               >
-                <item.icon size={24} />
-                {!isCollapsed && <span>{item.name}</span>}
+                {item.icon}
+                {!isCollapsed && <span className="whitespace-nowrap">{item.label}</span>}
               </Link>
             </li>
           ))}

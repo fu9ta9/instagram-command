@@ -4,95 +4,113 @@ import { getServerSession } from 'next-auth/next'
 import { authOptions } from '../auth/[...nextauth]/options'
 
 export async function POST(request: Request) {
-  const session = await getServerSession(authOptions)
-
-  if (!session || !session.user || !session.user.id) {
-    await prisma.executionLog.create({
-      data: {
-        errorMessage: 'Reply作成: 認証エラー - セッションが存在しません'
-      }
-    });
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-
   try {
-    const requestData = await request.json()
-    await prisma.executionLog.create({
-      data: {
-        errorMessage: `Reply作成: リクエストデータ - ${JSON.stringify(requestData)}`
-      }
-    });
-
-    // 必須フィールドの検証
-    if (!requestData.keyword || !requestData.reply || !requestData.instagramPostId) {
-      throw new Error('Required fields are missing');
+    const session = await getServerSession(authOptions)
+    if (!session || !session.user || !session.user.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const newReply = await prisma.reply.create({
-      data: {
-        keyword: requestData.keyword,
-        reply: requestData.reply,
+    const data = await request.json()
+    console.log('受信データ:', data);
+
+    // ユーザーのIGアカウントを取得
+    const igAccounts = await prisma.iGAccount.findMany({
+      where: {
         userId: session.user.id,
-        postId: requestData.instagramPostId,
-        replyType: 1, // SPECIFIC_POST
-        matchType: requestData.matchType === 'exact' ? 1 : 2, // 1: EXACT, 2: PARTIAL
-        buttons: {
-          create: requestData.buttons?.map((button: any, index: number) => ({
-            title: button.title,
-            url: button.url,
-            order: index
-          })) || []
-        }
       },
+    });
+
+    if (igAccounts.length === 0) {
+      return NextResponse.json({ 
+        error: 'No Instagram account found',
+        details: 'Instagram account is required to create a reply'
+      }, { status: 400 });
+    }
+
+    const igAccountId = igAccounts[0].id;
+
+    // データを適切な形式に変換
+    const replyData = {
+      keyword: data.keyword,
+      reply: data.reply,
+      replyType: data.replyType || 2, // デフォルト値
+      matchType: data.matchType === 'exact' ? 1 : 2,
+      postId: data.instagramPostId,
+      igAccountId: igAccountId, // IGアカウントIDを設定
+      buttons: {
+        create: data.buttons?.map((button: any, index: number) => ({
+          title: button.title,
+          url: button.url,
+          order: index
+        })) || []
+      }
+    };
+
+    console.log('保存データ:', replyData);
+
+    // 返信を作成
+    const reply = await prisma.reply.create({
+      data: replyData,
       include: {
         buttons: true
       }
-    })
-
-    await prisma.executionLog.create({
-      data: {
-        errorMessage: `Reply作成: 成功 - ID: ${newReply.id}`
-      }
     });
 
-    return NextResponse.json(newReply)
+    return NextResponse.json(reply)
   } catch (error) {
-    await prisma.executionLog.create({
-      data: {
-        errorMessage: `Reply作成エラー: ${error instanceof Error ? error.message : String(error)}`
-      }
-    });
-    return NextResponse.json(
-      { 
-        error: 'Failed to create reply',
-        details: error instanceof Error ? error.message : 'Unknown error'
-      }, 
-      { status: 500 }
-    )
+    console.error('Failed to create reply:', error)
+    // エラーの詳細情報を返す
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorStack = error instanceof Error ? error.stack : '';
+    return NextResponse.json({ 
+      error: 'Failed to create reply', 
+      details: errorMessage,
+      stack: errorStack 
+    }, { status: 500 })
   }
 }
 
-export async function GET() {
-  const session = await getServerSession(authOptions)
-
-  if (!session?.user?.id) {
-    console.log('認証エラー: セッションまたはユーザーIDが存在しません');
-    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
-  }
-
+export async function GET(request: Request) {
   try {
+    const session = await getServerSession(authOptions)
+    if (!session || !session.user || !session.user.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    // ユーザーのIGアカウントを取得
+    const igAccounts = await prisma.iGAccount.findMany({
+      where: {
+        userId: session.user.id,
+      },
+    });
+
+    if (igAccounts.length === 0) {
+      return NextResponse.json([]);
+    }
+
+    const igAccountId = igAccounts[0].id;
+
+    // 返信を取得
     const replies = await prisma.reply.findMany({
       where: {
-        userId: session.user.id
+        igAccountId: igAccountId,
+      },
+      include: {
+        buttons: true,
       },
       orderBy: {
-        createdAt: 'desc'
-      }
+        createdAt: 'desc',
+      },
     });
-    
-    return NextResponse.json(replies);
+
+    return NextResponse.json(replies)
   } catch (error) {
-    console.error('Error fetching replies:', error);
-    return NextResponse.json({ error: 'Failed to fetch replies' }, { status: 500 });
+    console.error('Failed to fetch replies:', error)
+    // エラーの詳細情報を返す
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    return NextResponse.json({ 
+      error: 'Failed to fetch replies', 
+      details: errorMessage 
+    }, { status: 500 })
   }
 }
