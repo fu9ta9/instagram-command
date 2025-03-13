@@ -8,19 +8,19 @@ import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup } from "@/components/ui/RadioGroup";
 import Modal from './Modal';
 import InstagramPostList from './InstagramPostList';
-import { Reply, ReplyInput, ReplyFormData } from '@/types/reply';
+import { Reply, ReplyInput, ReplyFormData, MATCH_TYPE } from '@/types/reply';
 import { 
   Popover, 
   PopoverContent, 
   PopoverTrigger 
 } from "@/components/ui/popover";
-import { History, Pencil, Trash2 } from 'lucide-react';
+import { History, Pencil, Trash2, ChevronRight } from 'lucide-react';
 
-// Zodスキーマの定義
+// Zodスキーマの定義を修正
 const schema = z.object({
   instagramPostId: z.string().min(1, { message: "投稿を選択してください" }),
   keyword: z.string().min(1, { message: "キーワードを入力してください" }),
-  matchType: z.enum(['partial', 'exact']),
+  matchType: z.number().refine(val => val === MATCH_TYPE.EXACT || val === MATCH_TYPE.PARTIAL),
   reply: z.string().min(1, { message: "返信内容を入力してください" }),
   buttons: z.array(z.object({
     title: z.string(),
@@ -28,11 +28,11 @@ const schema = z.object({
   })).optional()
 });
 
-// zodスキーマの型と一致させる
+// FormDataインターフェースも修正
 interface FormData {
   keyword: string;
   reply: string;
-  matchType: 'exact' | 'partial';
+  matchType: MatchType; // 数値型に変更
   instagramPostId: string;
   buttons?: Array<{
     title: string;
@@ -68,7 +68,7 @@ const KeywordRegistrationModal: React.FC<KeywordRegistrationModalProps> = ({ isO
     defaultValues: {
       keyword: initialData?.keyword || '',
       reply: initialData?.reply || '',
-      matchType: initialData?.matchType || 'partial',
+      matchType: initialData?.matchType || MATCH_TYPE.PARTIAL,
       instagramPostId: initialData?.instagramPostId || '',
       buttons: initialData?.buttons || []
     }
@@ -106,24 +106,32 @@ const KeywordRegistrationModal: React.FC<KeywordRegistrationModalProps> = ({ isO
   useEffect(() => {
     if (isOpen) {
       if (initialData) {
+        console.log("初期データ:", initialData); // デバッグ用
+        
+        // matchTypeが数値であることを確認
+        const matchType = typeof initialData.matchType === 'number' 
+          ? initialData.matchType 
+          : MATCH_TYPE.PARTIAL;
+        
         reset({
           keyword: initialData.keyword,
           reply: initialData.reply,
-          matchType: initialData.matchType,
-          instagramPostId: initialData.instagramPostId,
-          buttons: initialData.buttons
+          matchType: matchType,
+          instagramPostId: initialData.instagramPostId || '',
+          buttons: initialData.buttons || []
         });
+        
         setSelectedPost({ 
           id: initialData.instagramPostId,
-          thumbnail_url: null // 必要に応じて適切な値を設定
+          thumbnail_url: null
         });
         setButtons(initialData.buttons || []);
-        setStep(1); // 編集時も常にステップ1から開始
+        setStep(1);
       } else {
         reset({
           keyword: '',
           reply: '',
-          matchType: 'partial',
+          matchType: MATCH_TYPE.PARTIAL,
           instagramPostId: '',
           buttons: []
         });
@@ -148,9 +156,15 @@ const KeywordRegistrationModal: React.FC<KeywordRegistrationModalProps> = ({ isO
     if (step > 1) setStep(step - 1);
   };
 
-  // 過去の返信文を選択
-  const handleSelectReply = (replyText: string) => {
-    setValue('reply', replyText);
+  // 過去の返信選択時の処理を修正
+  const handleSelectRecentReply = (recentReply: Reply) => {
+    // フォームの値を更新
+    setValue('reply', recentReply.reply, { 
+      shouldValidate: true, // バリデーションを実行
+      shouldDirty: true     // フォームを変更済み状態にする
+    });
+    
+    // ポップオーバーを閉じる
     setIsReplyHistoryOpen(false);
   };
 
@@ -189,80 +203,37 @@ const KeywordRegistrationModal: React.FC<KeywordRegistrationModalProps> = ({ isO
     }
   };
 
-  const handleFormSubmit = async (data: FormData) => {
+  // フォーム送信処理の修正
+  const handleFormSubmit = (data: FormData) => {
     try {
-      if (!selectedPost?.id) {
-        throw new Error('投稿が選択されていません');
-      }
+      console.log("フォーム送信データ:", data);
 
-      // 投稿IDをフォームデータに設定
-      setValue('instagramPostId', selectedPost.id);
-      
-      const submitData = {
-        ...data,
-        instagramPostId: selectedPost.id,
-        postImage: selectedPost.thumbnail_url,
-        buttons
+      // ボタンデータの準備
+      const buttonData = buttons.map((button, index) => ({
+        title: button.title,
+        url: button.url,
+        order: index
+      }));
+
+      // 送信データの準備
+      const replyData: ReplyInput = {
+        keyword: data.keyword,
+        reply: data.reply,
+        matchType: data.matchType,
+        replyType: 1, // SPECIFIC_POST
+        postId: data.instagramPostId,
+        buttons: buttonData
       };
-      
-      // 編集モードの場合はPUTリクエストを送信
-      if (isEditing) {
-        // APIに送信するデータ形式に変換
-        const updateData: ReplyInput = {
-          keyword: data.keyword,
-          reply: data.reply,
-          replyType: 2, // デフォルト値
-          matchType: data.matchType === 'exact' ? 1 : 2,
-          postId: selectedPost.id, // selectedPost.idを使用
-          buttons: buttons.map((button, index) => ({
-            title: button.title,
-            url: button.url,
-            order: index
-          }))
-        };
-        
-        onSubmit(updateData);
-        onClose();
-        return;
-      }
 
-      const response = await fetch('/api/replies', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(submitData),
-      });
+      console.log("送信データ:", replyData);
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error('API返信エラー:', errorData);
-        throw new Error(errorData.details || '保存に失敗しました');
-      }
-
-      const result = await response.json();
-      console.log('保存成功:', result);
-      
-      // 親コンポーネントに新しい返信データを渡す
-      onSubmit(result);
-
-      // フォームをリセット
-      reset({
-        keyword: '',
-        reply: '',
-        matchType: 'partial',
-        instagramPostId: '',
-        buttons: []
-      });
-      setSelectedPost(null);
-      setButtons([]);
-      
-      onClose();
+      // 親コンポーネントのonSubmit関数を呼び出し
+      onSubmit(replyData);
     } catch (error) {
-      console.error('Save error:', error);
-      alert(error instanceof Error ? error.message : '保存に失敗しました');
+      console.error('Form submission error:', error);
+      alert('送信中にエラーが発生しました: ' + (error instanceof Error ? error.message : String(error)));
     }
-  };
+  };  
 
   const handleAddButton = () => {
     if (buttonTitle && buttonUrl) {
@@ -295,6 +266,21 @@ const KeywordRegistrationModal: React.FC<KeywordRegistrationModalProps> = ({ isO
     `;
   };
 
+  // useEffectを追加して、initialDataが変更されたときにフォームを更新
+  useEffect(() => {
+    if (initialData) {
+      setValue('keyword', initialData.keyword, { shouldValidate: true });
+      setValue('reply', initialData.reply, { shouldValidate: true });
+      setValue('matchType', initialData.matchType, { shouldValidate: true });
+      setValue('instagramPostId', initialData.instagramPostId || '', { shouldValidate: true });
+      
+      // ボタンデータも設定
+      if (initialData.buttons) {
+        setButtons(initialData.buttons);
+      }
+    }
+  }, [initialData, setValue]);
+
   return (
     <Modal isOpen={isOpen} onClose={onClose} maxWidth="4xl">
       <div className="p-6">
@@ -309,10 +295,11 @@ const KeywordRegistrationModal: React.FC<KeywordRegistrationModalProps> = ({ isO
           {step === 1 && (
             <div>
               <h2 className="text-xl font-bold mb-4">投稿を選択</h2>
-              <InstagramPostList onSelectPost={handleSelectPost} initialSelectedPostId={initialData?.instagramPostId} />
-              <div className="mt-4 flex justify-end">
-                <Button type="button" onClick={handleNext} disabled={!selectedPost}>次へ</Button>
-              </div>
+              <InstagramPostList 
+                onSelectPost={handleSelectPost} 
+                initialSelectedPostId={initialData?.instagramPostId}
+                onNext={handleNext}
+              />
             </div>
           )}
           {step === 2 && (
@@ -331,20 +318,23 @@ const KeywordRegistrationModal: React.FC<KeywordRegistrationModalProps> = ({ isO
                   control={control}
                   render={({ field }) => (
                     <RadioGroup
+                      name="matchType"
+                      control={control}
                       options={[
-                        { value: 'partial', label: '一部含まれる' },
-                        { value: 'exact', label: '完全に一致' },
+                        { value: MATCH_TYPE.EXACT, label: '完全一致' },
+                        { value: MATCH_TYPE.PARTIAL, label: '部分一致' }
                       ]}
-                      value={field.value}
-                      onChange={field.onChange}
-                      name={field.name}
+                      defaultValue={field.value || MATCH_TYPE.PARTIAL}
                     />
                   )}
                 />
               </div>
               <div className="mt-4 flex justify-between">
-                <Button type="button" onClick={handleBack}>戻る</Button>
-                <Button type="button" onClick={handleNext} disabled={!keyword}>次へ</Button>
+                <Button type="button" onClick={handleBack} variant="outline">戻る</Button>
+                <Button type="button" onClick={handleNext} disabled={!keyword}>
+                  次へ
+                  <ChevronRight className="h-4 w-4 ml-1" />
+                </Button>
               </div>
             </div>
           )}
@@ -374,7 +364,7 @@ const KeywordRegistrationModal: React.FC<KeywordRegistrationModalProps> = ({ isO
                               <div 
                                 key={reply.id} 
                                 className="p-2 hover:bg-gray-100 cursor-pointer border-b text-sm"
-                                onClick={() => handleSelectReply(reply.reply)}
+                                onClick={() => handleSelectRecentReply(reply)}
                               >
                                 <div className="line-clamp-2">{reply.reply}</div>
                               </div>
@@ -553,8 +543,10 @@ const KeywordRegistrationModal: React.FC<KeywordRegistrationModalProps> = ({ isO
                 </div>
               </div>
               <div className="mt-4 flex justify-between">
-                <Button type="button" onClick={handleBack}>戻る</Button>
-                <Button type="submit" disabled={!isValid}>{isEditing ? '更新' : '登録'}</Button>
+                <Button type="button" onClick={handleBack} variant="outline">戻る</Button>
+                <Button type="submit" disabled={!isValid}>
+                  {isEditing ? '更新' : '登録'}
+                </Button>
               </div>
             </div>
           )}

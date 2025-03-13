@@ -47,13 +47,19 @@ export default function ReplyClient() {
   }
 
   const handleEdit = (reply) => {
-    setEditingReply(reply)
-    setIsModalOpen(true)
+    console.log("編集するデータ:", reply); // デバッグ用
+    
+    // matchTypeが数値であることを確認
+    const editData = {
+      ...reply,
+      matchType: typeof reply.matchType === 'number' ? reply.matchType : MATCH_TYPE.PARTIAL
+    };
+    
+    setEditingReply(editData);
+    setIsModalOpen(true);
   }
 
-  const handleDelete = async (replyId) => {
-    if (!confirm('この返信を削除してもよろしいですか？')) return
-
+  const handleDelete = async (replyId: string) => {
     try {
       const response = await fetch(`/api/replies/${replyId}`, {
         method: 'DELETE',
@@ -134,7 +140,7 @@ export default function ReplyClient() {
       <ReplyRegistrationModal
         isOpen={isModalOpen}
         onClose={handleCloseModal}
-        onSave={handleSaveReply}
+        onSubmit={handleSaveReply}
         initialData={editingReply}
         isEditing={!!editingReply}
       />

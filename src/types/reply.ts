@@ -1,3 +1,10 @@
+export const MATCH_TYPE = {
+  EXACT: 1,
+  PARTIAL: 2
+} as const;
+
+export type MatchType = typeof MATCH_TYPE[keyof typeof MATCH_TYPE];
+
 export interface Reply {
   id: number;
   keyword: string;
@@ -19,7 +26,7 @@ export interface Reply {
 export interface ReplyFormData {
   keyword: string;
   reply: string;
-  matchType: 'exact' | 'partial';
+  matchType: MatchType;
   buttons?: {
     title: string;
     url: string;

@@ -17,11 +17,11 @@ import {
 
 interface ReplyListProps {
   replies: Reply[];
-  onReplyDeleted: (id: string) => void;
-  onReplyUpdated: (id: string, data: ReplyInput) => void;
+  onEdit: (reply: Reply) => void;
+  onDelete: (id: string) => void;
 }
 
-const ReplyList: React.FC<ReplyListProps> = ({ replies, onReplyDeleted, onReplyUpdated }) => {
+const ReplyList: React.FC<ReplyListProps> = ({ replies, onEdit, onDelete }) => {
   // 投稿IDとメディアURLのマッピング
   const [mediaUrls, setMediaUrls] = useState<Record<string, string>>({});
   const [editingReply, setEditingReply] = useState<Reply | null>(null);
@@ -54,6 +54,10 @@ const ReplyList: React.FC<ReplyListProps> = ({ replies, onReplyDeleted, onReplyU
     fetchMediaUrls();
   }, [replies]);
 
+  const handleEdit = (reply: Reply) => {
+    onEdit(reply);
+  };
+
   const handleDeleteClick = (id: string) => {
     setReplyToDelete(id);
     setDeleteConfirmOpen(true);
@@ -61,27 +65,10 @@ const ReplyList: React.FC<ReplyListProps> = ({ replies, onReplyDeleted, onReplyU
 
   const handleConfirmDelete = async () => {
     if (replyToDelete) {
-      await onReplyDeleted(replyToDelete);
+      await onDelete(replyToDelete);
       setReplyToDelete(null);
     }
     setDeleteConfirmOpen(false);
-  };
-
-  const handleEdit = (reply: Reply) => {
-    // ReplyFormData形式に変換
-    const formData = {
-      keyword: reply.keyword,
-      reply: reply.reply,
-      matchType: reply.matchType === 1 ? 'exact' : 'partial',
-      instagramPostId: reply.postId || '',
-      buttons: reply.buttons?.map(button => ({
-        title: button.title,
-        url: button.url
-      }))
-    };
-    
-    setEditingReply(reply);
-    setIsEditModalOpen(true);
   };
 
   const handleEditSubmit = async (data: any) => {
@@ -92,7 +79,7 @@ const ReplyList: React.FC<ReplyListProps> = ({ replies, onReplyDeleted, onReplyU
           keyword: data.keyword,
           reply: data.reply,
           replyType: 2, // デフォルト値
-          matchType: data.matchType === 'exact' ? 1 : 2,
+          matchType: data.matchType,
           postId: data.postId || data.instagramPostId, // postIdまたはinstagramPostIdを使用
           buttons: data.buttons?.map((button: any, index: number) => ({
             title: button.title,
@@ -133,7 +120,7 @@ const ReplyList: React.FC<ReplyListProps> = ({ replies, onReplyDeleted, onReplyU
         }
         
         // 親コンポーネントの更新関数を呼び出し
-        await onReplyUpdated(editingReply.id.toString(), updateData);
+        onEdit(updatedReply);
         
         // モーダルを閉じる
         setIsEditModalOpen(false);

@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { ja } from 'date-fns/locale';
+import { Button } from '@/components/ui/button';
+import { ChevronRight } from 'lucide-react';
 
 interface InstagramPost {
   id: string;
+  media_type: string; // CAROUSEL_ALBUM, IMAGE, VIDEO
   media_product_type: 'FEED' | 'REELS';
   media_url?: string;
   thumbnail_url?: string;
@@ -15,14 +18,20 @@ interface InstagramPost {
 interface InstagramPostListProps {
   onSelectPost: (post: InstagramPost) => void;
   initialSelectedPostId?: string;
+  onNext?: () => void; // 次へボタンのコールバック
 }
 
-const InstagramPostList: React.FC<InstagramPostListProps> = ({ onSelectPost, initialSelectedPostId }) => {
+const InstagramPostList: React.FC<InstagramPostListProps> = ({ 
+  onSelectPost, 
+  initialSelectedPostId,
+  onNext 
+}) => {
   const [activeTab, setActiveTab] = useState<'feed' | 'reel'>('feed');
   const [selectedPostId, setSelectedPostId] = useState<string | null>(initialSelectedPostId || null);
   const [posts, setPosts] = useState<InstagramPost[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showNextButton, setShowNextButton] = useState(false);
 
   useEffect(() => {
     fetchInstagramPosts();
@@ -31,6 +40,7 @@ const InstagramPostList: React.FC<InstagramPostListProps> = ({ onSelectPost, ini
   useEffect(() => {
     if (initialSelectedPostId) {
       setSelectedPostId(initialSelectedPostId);
+      setShowNextButton(true);
     }
   }, [initialSelectedPostId]);
 
@@ -39,7 +49,10 @@ const InstagramPostList: React.FC<InstagramPostListProps> = ({ onSelectPost, ini
       const post = posts.find(p => p.id === selectedPostId);
       if (post) {
         onSelectPost(post);
+        setShowNextButton(true);
       }
+    } else {
+      setShowNextButton(false);
     }
   }, [posts, selectedPostId, onSelectPost]);
 
@@ -72,11 +85,27 @@ const InstagramPostList: React.FC<InstagramPostListProps> = ({ onSelectPost, ini
     
     setSelectedPostId(post.id);
     onSelectPost(post);
+    setShowNextButton(true);
+    
+    // 投稿選択時に次へボタンが見えるようにスクロール
+    setTimeout(() => {
+      const nextButton = document.getElementById('next-button');
+      if (nextButton) {
+        nextButton.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    }, 100);
   };
 
-  const filteredPosts = posts.filter(post => 
-    activeTab === 'feed' ? post.media_product_type === 'FEED' : post.media_product_type === 'REELS'
-  );
+  // media_typeに基づいてフィルタリング
+  const filteredPosts = posts.filter(post => {
+    if (activeTab === 'feed') {
+      return post.media_product_type === 'FEED' || 
+             (post.media_type && ['IMAGE', 'CAROUSEL_ALBUM'].includes(post.media_type));
+    } else {
+      return post.media_product_type === 'REELS' || 
+             (post.media_type && post.media_type === 'VIDEO' && post.media_product_type !== 'FEED');
+    }
+  });
 
   if (isLoading) {
     return <div className="text-center py-4">読み込み中...</div>;
@@ -87,7 +116,7 @@ const InstagramPostList: React.FC<InstagramPostListProps> = ({ onSelectPost, ini
   }
 
   return (
-    <div>
+    <div className="relative">
       <div className="flex mb-4">
         <button
           className={`flex-1 py-2 ${activeTab === 'feed' ? 'border-b-2 border-blue-500' : ''}`}
@@ -121,13 +150,11 @@ const InstagramPostList: React.FC<InstagramPostListProps> = ({ onSelectPost, ini
                 alt={`Post from ${post.timestamp}`}
                 className="absolute inset-0 w-full h-full object-cover"
               />
-              <div className="absolute top-0 right-0 bg-black bg-opacity-50 text-white text-xs p-1">
+              {/* 日付を楕円形で右上に表示 */}
+              <div className="absolute top-2 right-2 bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded-full">
                 {format(new Date(post.timestamp), 'MM/dd', { locale: ja })}
               </div>
-              <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white text-xs p-1 flex justify-between">
-                <span>❤️ {post.like_count}</span>
-                <span>💬 {post.comments_count}</span>
-              </div>
+              
               {selectedPostId === post.id && (
                 <div className="absolute bottom-2 right-2 bg-blue-500 rounded-full p-1">
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-white" viewBox="0 0 20 20" fill="currentColor">
@@ -139,6 +166,21 @@ const InstagramPostList: React.FC<InstagramPostListProps> = ({ onSelectPost, ini
           ))}
         </div>
       )}
+      
+      {/* 次へボタンをスライドイン表示 */}
+      <div 
+        id="next-button"
+        className={`sticky bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 transition-all duration-300 ${
+          showNextButton ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-full pointer-events-none'
+        }`}
+      >
+        <div className="flex justify-end max-w-full">
+          <Button type="button" onClick={onNext} className="flex items-center">
+            次へ
+            <ChevronRight className="h-4 w-4 ml-1" />
+          </Button>
+        </div>
+      </div>
     </div>
   );
 };
