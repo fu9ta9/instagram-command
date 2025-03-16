@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Reply } from '@/types/reply';
+import { Reply, ReplyInput, MATCH_TYPE } from '@/types/reply';
 import { Button } from "@/components/ui/button";
-import { ReplyInput } from '@/types/reply';
 import ReplyRegistrationModal from './ReplyRegistrationModal';
 import { Pencil, Trash2 } from 'lucide-react';
 import {
@@ -43,7 +42,7 @@ const ReplyList: React.FC<ReplyListProps> = ({ replies, onEdit, onDelete }) => {
               newMediaUrls[reply.postId] = data.media_url || data.thumbnail_url;
             }
           } catch (error) {
-            console.error(`Error fetching media URL for post ${reply.postId}:`, error);
+            console.error(`Failed to fetch media for post ${reply.postId}:`, error);
           }
         }
       }
@@ -72,6 +71,7 @@ const ReplyList: React.FC<ReplyListProps> = ({ replies, onEdit, onDelete }) => {
   };
 
   const handleEditSubmit = async (data: any) => {
+    console.log('handleEditSubmit', data);
     if (editingReply) {
       try {
         // データを適切な形式に変換
@@ -80,7 +80,7 @@ const ReplyList: React.FC<ReplyListProps> = ({ replies, onEdit, onDelete }) => {
           reply: data.reply,
           replyType: 2, // デフォルト値
           matchType: data.matchType,
-          postId: data.postId || data.instagramPostId, // postIdまたはinstagramPostIdを使用
+          postId: data.postId,
           buttons: data.buttons?.map((button: any, index: number) => ({
             title: button.title,
             url: button.url,
@@ -98,7 +98,15 @@ const ReplyList: React.FC<ReplyListProps> = ({ replies, onEdit, onDelete }) => {
         });
 
         if (!response.ok) {
-          throw new Error('更新に失敗しました');
+          const errorData = await response.json();
+          
+          // 409エラー（重複）の場合
+          if (response.status === 409) {
+            alert('同じキーワードと投稿IDの組み合わせが既に登録されています');
+            return; // 処理を中断
+          }
+          
+          throw new Error(errorData.details || errorData.error || '更新に失敗しました');
         }
 
         const updatedReply = await response.json();
@@ -127,7 +135,7 @@ const ReplyList: React.FC<ReplyListProps> = ({ replies, onEdit, onDelete }) => {
         setEditingReply(null);
       } catch (error) {
         console.error('更新エラー:', error);
-        alert('更新に失敗しました');
+        alert('更新に失敗しました: ' + (error instanceof Error ? error.message : String(error)));
       }
     }
   };
@@ -194,8 +202,8 @@ const ReplyList: React.FC<ReplyListProps> = ({ replies, onEdit, onDelete }) => {
             initialData={{
               keyword: editingReply.keyword,
               reply: editingReply.reply,
-              matchType: editingReply.matchType === 1 ? 'exact' : 'partial',
-              instagramPostId: editingReply.postId || '',
+              matchType: editingReply.matchType === 1 ? MATCH_TYPE.EXACT : MATCH_TYPE.PARTIAL,
+              postId: editingReply.postId || '',
               buttons: editingReply.buttons?.map(button => ({
                 title: button.title,
                 url: button.url

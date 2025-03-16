@@ -18,7 +18,7 @@ import { History, Pencil, Trash2, ChevronRight } from 'lucide-react';
 
 // Zodスキーマの定義を修正
 const schema = z.object({
-  instagramPostId: z.string().min(1, { message: "投稿を選択してください" }),
+  postId: z.string().min(1, { message: "投稿を選択してください" }),
   keyword: z.string().min(1, { message: "キーワードを入力してください" }),
   matchType: z.number().refine(val => val === MATCH_TYPE.EXACT || val === MATCH_TYPE.PARTIAL),
   reply: z.string().min(1, { message: "返信内容を入力してください" }),
@@ -32,8 +32,8 @@ const schema = z.object({
 interface FormData {
   keyword: string;
   reply: string;
-  matchType: MatchType; // 数値型に変更
-  instagramPostId: string;
+  matchType: MatchType;
+  postId: string;
   buttons?: Array<{
     title: string;
     url: string;
@@ -69,7 +69,7 @@ const KeywordRegistrationModal: React.FC<KeywordRegistrationModalProps> = ({ isO
       keyword: initialData?.keyword || '',
       reply: initialData?.reply || '',
       matchType: initialData?.matchType || MATCH_TYPE.PARTIAL,
-      instagramPostId: initialData?.instagramPostId || '',
+      postId: initialData?.postId || '',
       buttons: initialData?.buttons || []
     }
   });
@@ -117,12 +117,12 @@ const KeywordRegistrationModal: React.FC<KeywordRegistrationModalProps> = ({ isO
           keyword: initialData.keyword,
           reply: initialData.reply,
           matchType: matchType,
-          instagramPostId: initialData.instagramPostId || '',
+          postId: initialData.postId || '',
           buttons: initialData.buttons || []
         });
         
         setSelectedPost({ 
-          id: initialData.instagramPostId,
+          id: initialData.postId,
           thumbnail_url: null
         });
         setButtons(initialData.buttons || []);
@@ -132,7 +132,7 @@ const KeywordRegistrationModal: React.FC<KeywordRegistrationModalProps> = ({ isO
           keyword: '',
           reply: '',
           matchType: MATCH_TYPE.PARTIAL,
-          instagramPostId: '',
+          postId: '',
           buttons: []
         });
         setStep(1);
@@ -145,7 +145,7 @@ const KeywordRegistrationModal: React.FC<KeywordRegistrationModalProps> = ({ isO
 
   const handleSelectPost = (post: any) => {
     setSelectedPost(post);
-    setValue('instagramPostId', post.id);
+    setValue('postId', post.id);
   };
 
   const handleNext = () => {
@@ -203,7 +203,7 @@ const KeywordRegistrationModal: React.FC<KeywordRegistrationModalProps> = ({ isO
     }
   };
 
-  // フォーム送信処理の修正
+  // フォーム送信処理を修正
   const handleFormSubmit = (data: FormData) => {
     try {
       console.log("フォーム送信データ:", data);
@@ -221,14 +221,22 @@ const KeywordRegistrationModal: React.FC<KeywordRegistrationModalProps> = ({ isO
         reply: data.reply,
         matchType: data.matchType,
         replyType: 1, // SPECIFIC_POST
-        postId: data.instagramPostId,
+        postId: data.postId,
         buttons: buttonData
       };
 
       console.log("送信データ:", replyData);
 
       // 親コンポーネントのonSubmit関数を呼び出し
-      onSubmit(replyData);
+      onSubmit(replyData)
+        .catch(error => {
+          // エラーメッセージを表示
+          if (error.status === 409) {
+            alert('同じキーワードと投稿IDの組み合わせが既に登録されています');
+          } else {
+            alert('送信中にエラーが発生しました: ' + (error.message || '不明なエラー'));
+          }
+        });
     } catch (error) {
       console.error('Form submission error:', error);
       alert('送信中にエラーが発生しました: ' + (error instanceof Error ? error.message : String(error)));
@@ -272,7 +280,7 @@ const KeywordRegistrationModal: React.FC<KeywordRegistrationModalProps> = ({ isO
       setValue('keyword', initialData.keyword, { shouldValidate: true });
       setValue('reply', initialData.reply, { shouldValidate: true });
       setValue('matchType', initialData.matchType, { shouldValidate: true });
-      setValue('instagramPostId', initialData.instagramPostId || '', { shouldValidate: true });
+      setValue('postId', initialData.postId || '', { shouldValidate: true });
       
       // ボタンデータも設定
       if (initialData.buttons) {
@@ -297,7 +305,7 @@ const KeywordRegistrationModal: React.FC<KeywordRegistrationModalProps> = ({ isO
               <h2 className="text-xl font-bold mb-4">投稿を選択</h2>
               <InstagramPostList 
                 onSelectPost={handleSelectPost} 
-                initialSelectedPostId={initialData?.instagramPostId}
+                initialSelectedPostId={initialData?.postId}
                 onNext={handleNext}
               />
             </div>

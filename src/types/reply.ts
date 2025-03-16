@@ -31,7 +31,7 @@ export interface ReplyFormData {
     title: string;
     url: string;
   }[];
-  instagramPostId?: string;
+  postId?: string;
 }
 
 export interface ReplyInput {

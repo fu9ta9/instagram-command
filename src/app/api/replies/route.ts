@@ -29,13 +29,29 @@ export async function POST(request: Request) {
 
     const igAccountId = igAccounts[0].id;
 
+    // 既存の返信を確認（同じキーワードと投稿IDの組み合わせ）
+    const existingReply = await prisma.reply.findFirst({
+      where: {
+        igAccountId: igAccountId,
+        keyword: data.keyword,
+        postId: data.postId
+      }
+    });
+
+    if (existingReply) {
+      return NextResponse.json({ 
+        error: 'Duplicate reply',
+        details: '同じキーワードと投稿IDの組み合わせが既に登録されています'
+      }, { status: 409 }); // 409 Conflict
+    }
+
     // データを適切な形式に変換
     const replyData = {
       keyword: data.keyword,
       reply: data.reply,
       replyType: data.replyType || 2, // デフォルト値
       matchType: data.matchType === 'exact' ? 1 : 2,
-      postId: data.instagramPostId,
+      postId: data.postId,
       igAccountId: igAccountId, // IGアカウントIDを設定
       buttons: {
         create: data.buttons?.map((button: any, index: number) => ({

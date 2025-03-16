@@ -76,43 +76,66 @@ export default function ReplyClient() {
     }
   }
 
-  const handleSaveReply = async (replyData) => {
+  const handleSaveReply = async (data: ReplyInput) => {
     try {
-      let response
-
+      setIsLoading(true);
+      
+      // 編集モードかどうかを確認
       if (editingReply) {
-        // 編集の場合
-        response = await fetch(`/api/replies/${editingReply.id}`, {
+        // 編集の場合はPUTリクエスト
+        const response = await fetch(`/api/replies/${editingReply.id}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify(replyData),
-        })
+          body: JSON.stringify(data),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw { 
+            status: response.status,
+            message: errorData.details || errorData.error || '返信の更新に失敗しました'
+          };
+        }
+
+        const updatedReply = await response.json();
+        
+        // 返信リストを更新
+        setReplies(replies.map(r => r.id === updatedReply.id ? updatedReply : r));
       } else {
-        // 新規作成の場合
-        response = await fetch('/api/replies', {
+        // 新規作成の場合はPOSTリクエスト
+        const response = await fetch('/api/replies', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify(replyData),
-        })
-      }
+          body: JSON.stringify(data),
+        });
 
-      if (response.ok) {
-        handleCloseModal()
-        fetchReplies()
-      } else {
-        const errorData = await response.json()
-        console.error('Error saving reply:', errorData)
-        alert(`保存に失敗しました: ${errorData.message || '不明なエラー'}`)
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw { 
+            status: response.status,
+            message: errorData.details || errorData.error || '返信の登録に失敗しました'
+          };
+        }
+
+        const newReply = await response.json();
+        setReplies([newReply, ...replies]);
       }
+      
+      // モーダルを閉じて編集状態をリセット
+      setIsModalOpen(false);
+      setEditingReply(null);
     } catch (error) {
-      console.error('Error saving reply:', error)
-      alert('保存に失敗しました')
+      console.error('Error saving reply:', error);
+      // エラーを上位コンポーネントに伝播
+      throw error;
+    } finally {
+      setIsLoading(false);
     }
-  }
+  };
 
   if (isLoading) {
     return (
