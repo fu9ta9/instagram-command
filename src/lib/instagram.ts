@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma';
+import { IGAccount } from '@prisma/client';
 
 export async function getInstagramAccount(userId: string) {
   const igAccount = await prisma.iGAccount.findFirst({
@@ -23,26 +24,28 @@ export async function getInstagramAccessToken(userId: string) {
 }
 
 // Instagram APIを使用する関数
-export async function getInstagramPosts(userId: string) {
-  const igAccount = await prisma.iGAccount.findFirst({
-    where: { userId },
-    select: {
-      instagramId: true,
-      accessToken: true
+export async function fetchInstagramPosts(igAccount: IGAccount, afterToken?: string | null) {
+  try {
+    // URLを構築
+    let url = `https://graph.facebook.com/v20.0/${igAccount.instagramId}/media?fields=id,comments_count,like_count,media_product_type,media_url,thumbnail_url,timestamp&access_token=${igAccount.accessToken}`;
+    
+    // afterトークンがある場合は追加
+    if (afterToken) {
+      url += `&after=${afterToken}`;
     }
-  });
-
-  if (!igAccount?.accessToken || !igAccount.instagramId) {
-    throw new Error('Instagram account not connected');
+    
+    const response = await fetch(url);
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('Instagram API error:', errorData);
+      throw new Error(errorData.error?.message || 'Failed to fetch Instagram posts');
+    }
+    
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error fetching Instagram posts:', error);
+    throw error;
   }
-
-  const response = await fetch(
-    `https://graph.facebook.com/v20.0/${igAccount.instagramId}/media?fields=id,comments_count,like_count,media_product_type,media_url,thumbnail_url,timestamp&access_token=${igAccount.accessToken}`
-  );
-
-  if (!response.ok) {
-    throw new Error('Failed to fetch Instagram posts');
-  }
-
-  return response.json();
 } 

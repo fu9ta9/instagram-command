@@ -1,31 +1,48 @@
+import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../../auth/[...nextauth]/options';
-import { NextResponse } from 'next/server';
-import { getInstagramPosts } from '@/lib/instagram';
 import { prisma } from '@/lib/prisma';
+import { fetchInstagramPosts } from '@/lib/instagram';
 
-export async function GET() {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
-    return new Response('Unauthorized', { status: 401 });
-  }
-
+export async function GET(request: Request) {
   try {
-    const postsData = await getInstagramPosts(session.user.id);
-    
-    await prisma.executionLog.create({
-      data: {
-        errorMessage: 'Instagram投稿データ取得成功'
-      }
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // URLからafterパラメータを取得
+    const url = new URL(request.url);
+    const afterToken = url.searchParams.get('after');
+
+    // ユーザーのIGアカウントを取得
+    const igAccount = await prisma.iGAccount.findFirst({
+      where: {
+        userId: session.user.id,
+      },
     });
 
-    return NextResponse.json(postsData.data);
+    if (!igAccount) {
+      return NextResponse.json(
+        { 
+          error: 'Instagram business account not found',
+          message: 'Instagramビジネスアカウントが連携されていません。連携設定を行ってください。'
+        }, 
+        { status: 404 }
+      );
+    }
+
+    // Instagramの投稿を取得
+    const posts = await fetchInstagramPosts(igAccount, afterToken);
+    return NextResponse.json(posts);
   } catch (error) {
-    await prisma.executionLog.create({
-      data: {
-        errorMessage: `Error: ${error instanceof Error ? error.message : String(error)}`
-      }
-    });
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    console.error('Failed to fetch Instagram posts:', error);
+    return NextResponse.json(
+      { 
+        error: 'Failed to fetch Instagram posts',
+        message: 'Instagramの投稿の取得に失敗しました。'
+      }, 
+      { status: 500 }
+    );
   }
 }
