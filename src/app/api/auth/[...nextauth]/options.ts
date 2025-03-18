@@ -47,8 +47,6 @@ export const authOptions: NextAuthOptions = {
             'pages_manage_metadata',
             'instagram_manage_comments',
             'pages_show_list',
-            'business_management',
-            'pages_read_engagement'
           ].join(',')
         }
       }
