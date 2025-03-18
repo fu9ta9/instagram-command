@@ -34,6 +34,14 @@ export interface ReplyFormData {
   postId?: string;
 }
 
+export interface Button {
+  id?: number;
+  title: string;
+  url: string;
+  order?: number;
+  replyId?: number;
+}
+
 export interface ReplyInput {
   keyword: string;
   reply: string;

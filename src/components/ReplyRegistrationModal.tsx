@@ -43,9 +43,15 @@ interface FormData {
 interface KeywordRegistrationModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (data: ReplyInput | Omit<Reply, 'id'>) => void;
+  onSubmit: (data: ReplyInput | Omit<Reply, 'id'>) => Promise<any>;
   initialData?: ReplyFormData;
   isEditing?: boolean;
+}
+
+enum MatchType {
+  EXACT = 0,
+  PARTIAL = 1,
+  REGEX = 2
 }
 
 const KeywordRegistrationModal: React.FC<KeywordRegistrationModalProps> = ({ isOpen, onClose, onSubmit, initialData, isEditing = false }) => {
@@ -228,15 +234,19 @@ const KeywordRegistrationModal: React.FC<KeywordRegistrationModalProps> = ({ isO
       console.log("送信データ:", replyData);
 
       // 親コンポーネントのonSubmit関数を呼び出し
-      onSubmit(replyData)
-        .catch(error => {
-          // エラーメッセージを表示
-          if (error.status === 409) {
-            alert('同じキーワードと投稿IDの組み合わせが既に登録されています');
-          } else {
-            alert('送信中にエラーが発生しました: ' + (error.message || '不明なエラー'));
-          }
-        });
+      try {
+        onSubmit(replyData);
+      } catch (error) {
+        // エラーメッセージを表示
+        if (error && typeof error === 'object' && 'status' in error && error.status === 409) {
+          alert('同じキーワードと投稿IDの組み合わせが既に登録されています');
+        } else {
+          const errorMessage = error && typeof error === 'object' && 'message' in error 
+            ? error.message 
+            : '不明なエラー';
+          alert('送信中にエラーが発生しました: ' + errorMessage);
+        }
+      }
     } catch (error) {
       console.error('Form submission error:', error);
       alert('送信中にエラーが発生しました: ' + (error instanceof Error ? error.message : String(error)));
@@ -290,8 +300,8 @@ const KeywordRegistrationModal: React.FC<KeywordRegistrationModalProps> = ({ isO
   }, [initialData, setValue]);
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} maxWidth="4xl">
-      <div className="p-6">
+    <Modal isOpen={isOpen} onClose={onClose}>
+      <div className="p-6 max-w-4xl mx-auto">
         <h1 className="text-2xl font-bold mb-6">{isEditing ? '返信を編集' : '新規返信登録'}</h1>
         <div className="mb-4 bg-gray-200 h-2 rounded-full">
           <div 

@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import ReplyRegistrationModal from '@/components/ReplyRegistrationModal';
 import { MembershipType } from '@prisma/client';
 import { useRouter } from 'next/navigation';
-import { Reply } from '@/types/reply';
+import { Reply, ReplyInput } from '@/types/reply';
 
 interface ReplyFormProps {
   onReplyAdded: (reply: Reply) => void;
@@ -24,10 +24,11 @@ export default function ReplyForm({ onReplyAdded, membershipType, onReplyRegiste
     setIsModalOpen(true);
   };
 
-  const handleSubmit = (data: any) => {
-    onReplyAdded(data);
+  const handleSubmit = async (data: ReplyInput | Omit<Reply, "id">): Promise<any> => {
+    onReplyAdded(data as Reply);
     setIsModalOpen(false);
     onReplyRegistered();
+    return Promise.resolve();
   };
 
   return (
