@@ -35,13 +35,14 @@ export async function GET(request: Request): Promise<Response> {
     const instagramData = await instagramResponse.json();
 
     // アカウント情報をDBに保存/更新
-    await prisma.account.upsert({
+    await prisma.iGAccount.upsert({
       where: {
-        accountId: page.instagram_business_account.id
+        id: page.instagram_business_account.id
       },
       create: {
         userId: session.user.id,
-        accountId: page.instagram_business_account.id,
+        instagramId: page.instagram_business_account.id,
+        id: page.instagram_business_account.id,
         username: instagramData.username,
         profilePictureUrl: instagramData.profile_picture_url,
         accessToken: accessToken,
