@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "cp .env.local .env && next dev",
     "dev:docker": "cp .env.docker .env && next dev",
-    "build": "cp .env.production .env && prisma generate && next build",
+    "build": "prisma generate && next build",
     "start": "next start",
     "lint": "next lint",
     "prisma:migrate": "dotenv -e .env.docker -- prisma migrate dev",
