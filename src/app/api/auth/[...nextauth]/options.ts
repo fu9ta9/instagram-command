@@ -190,7 +190,7 @@ export const authOptions: NextAuthOptions = {
     }
   },
   pages: {
-    signIn: '/dashboard',
+    signIn: '/login',
     error: '/auth/error',
   },
   debug: true,
