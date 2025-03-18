@@ -6,12 +6,19 @@ import ReplyList from '@/components/ReplyList'
 import ReplyRegistrationModal from '@/components/ReplyRegistrationModal'
 import { Button } from '@/components/ui/button'
 import { PlusIcon, Loader2 } from 'lucide-react'
+import { Reply, ReplyInput, ReplyFormData } from '@/types/reply'
+
+enum MATCH_TYPE {
+  EXACT = 0,
+  PARTIAL = 1,
+  REGEX = 2
+}
 
 export default function ReplyClient() {
   const { data: session } = useSession()
-  const [replies, setReplies] = useState([])
+  const [replies, setReplies] = useState<Reply[]>([])
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const [editingReply, setEditingReply] = useState(null)
+  const [editingReply, setEditingReply] = useState<Reply | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
   // 返信一覧を取得
@@ -46,10 +53,9 @@ export default function ReplyClient() {
     setEditingReply(null)
   }
 
-  const handleEdit = (reply) => {
-    console.log("編集するデータ:", reply); // デバッグ用
+  const handleEdit = (reply: Reply) => {
+    console.log("編集するデータ:", reply);
     
-    // matchTypeが数値であることを確認
     const editData = {
       ...reply,
       matchType: typeof reply.matchType === 'number' ? reply.matchType : MATCH_TYPE.PARTIAL
@@ -76,7 +82,7 @@ export default function ReplyClient() {
     }
   }
 
-  const handleSaveReply = async (data: ReplyInput) => {
+  const handleSaveReply = async (data: ReplyInput | Omit<Reply, "id">) => {
     try {
       setIsLoading(true);
       
@@ -102,7 +108,7 @@ export default function ReplyClient() {
         const updatedReply = await response.json();
         
         // 返信リストを更新
-        setReplies(replies.map(r => r.id === updatedReply.id ? updatedReply : r));
+        setReplies(replies.map((r: Reply) => r.id === updatedReply.id ? updatedReply : r));
       } else {
         // 新規作成の場合はPOSTリクエスト
         const response = await fetch('/api/replies', {
@@ -164,7 +170,7 @@ export default function ReplyClient() {
         isOpen={isModalOpen}
         onClose={handleCloseModal}
         onSubmit={handleSaveReply}
-        initialData={editingReply}
+        initialData={editingReply as ReplyFormData}
         isEditing={!!editingReply}
       />
     </div>
