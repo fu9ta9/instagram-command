@@ -33,7 +33,10 @@ export default function LoginPage() {
   }
 
   const handleGoogleLogin = () => {
-    signIn('google', { callbackUrl: '/dashboard' })
+    signIn('google', { 
+      callbackUrl: '/dashboard',
+      redirect: true
+    })
   }
 
   const handleFacebookLogin = () => {

@@ -29,9 +29,7 @@ export const authOptions: NextAuthOptions = {
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
       authorization: {
         params: {
-          prompt: "consent",
-          access_type: "offline",
-          response_type: "code"
+          prompt: "select_account"
         }
       }
     }),
@@ -158,6 +156,16 @@ export const authOptions: NextAuthOptions = {
     },
     
     async jwt({ token, user, account }) {
+      // デバッグログ
+      await prisma.executionLog.create({
+        data: {
+          errorMessage: `JWT処理:
+          Token: ${JSON.stringify(token)}
+          User: ${JSON.stringify(user)}
+          Account: ${JSON.stringify(account)}`
+        }
+      });
+      
       // userが存在する場合（初回ログイン時）
       if (user) {
         token.id = user.id;
@@ -183,7 +191,7 @@ export const authOptions: NextAuthOptions = {
     }
   },
   pages: {
-    signIn: '/dashboard',
+    signIn: '/login',
     error: '/auth/error',
   },
   debug: true,
