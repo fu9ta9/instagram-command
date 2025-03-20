@@ -184,20 +184,34 @@ export const authOptions: NextAuthOptions = {
         }
       });
       
-      if (session?.user) {
-        session.user.id = token.id as string;
-
-        // IGAccountの存在確認のみ行う
+      // セッションオブジェクトを明示的に作成して返す
+      const updatedSession = {
+        ...session,
+        user: {
+          ...session.user,
+          id: token.id as string
+        }
+      };
+      
+      // IGAccountの存在確認
+      if (token.id) {
         const igAccount = await prisma.iGAccount.findFirst({
           where: { userId: token.id as string },
           select: { id: true }
         });
-
-        session.user.instagram = {
-          connected: !!igAccount  // 接続状態のみを保持
+        
+        updatedSession.user.instagram = {
+          connected: !!igAccount
         };
       }
-      return session as CustomSession;
+      
+      await prisma.executionLog.create({
+        data: {
+          errorMessage: `Updated Session: ${JSON.stringify(updatedSession)}`
+        }
+      });
+      
+      return updatedSession as CustomSession;
     }
   },
   pages: {
