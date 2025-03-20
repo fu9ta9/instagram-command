@@ -174,6 +174,16 @@ export const authOptions: NextAuthOptions = {
     },
     
     async session({ session, token }) {
+      // デバッグログを追加
+      await prisma.executionLog.create({
+        data: {
+          errorMessage: `Session Callback: ${JSON.stringify({ 
+            session: session, 
+            token: token 
+          })}`
+        }
+      });
+      
       if (session?.user) {
         session.user.id = token.id as string;
 
@@ -187,11 +197,11 @@ export const authOptions: NextAuthOptions = {
           connected: !!igAccount  // 接続状態のみを保持
         };
       }
-      return session;
+      return session as CustomSession;
     }
   },
   pages: {
-    signIn: '/login',
+    signIn: '/dashboard',
     error: '/auth/error',
   },
   debug: true,
