@@ -35,45 +35,17 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async signIn({ user, account, profile }) {
       try {
-        await prisma.executionLog.create({
-          data: {
-            errorMessage: `サインイン試行: ${JSON.stringify({ 
-              user: user, 
-              accountType: account?.provider,
-              profile: profile
-            })}`
-          }
-        });
-        
         if (account?.provider === 'google') {
-          await prisma.executionLog.create({
-            data: {
-              errorMessage: `Google認証開始: ${user.email}`
-            }
-          });
-          
           const existingUser = await prisma.user.findUnique({
             where: { email: user.email! }
           });
           
           if (!existingUser) {
-            const newUser = await prisma.user.create({
+            await prisma.user.create({
               data: {
                 email: user.email!,
                 name: user.name || user.email!.split('@')[0],
                 membershipType: 'FREE'
-              }
-            });
-            
-            await prisma.executionLog.create({
-              data: {
-                errorMessage: `Googleユーザー作成成功: ${newUser.id}`
-              }
-            });
-          } else {
-            await prisma.executionLog.create({
-              data: {
-                errorMessage: `既存Googleユーザー: ${existingUser.id}`
               }
             });
           }
@@ -81,11 +53,6 @@ export const authOptions: NextAuthOptions = {
         
         return true;
       } catch (error) {
-        await prisma.executionLog.create({
-          data: {
-            errorMessage: `サインインエラー: ${error instanceof Error ? error.message : String(error)}`
-          }
-        });
         return false;
       }
     },
@@ -119,7 +86,7 @@ export const authOptions: NextAuthOptions = {
     }
   },
   pages: {
-    signIn: '/login',
+    signIn: '/dashboard',
     error: '/auth/error',
   },
   session: {
