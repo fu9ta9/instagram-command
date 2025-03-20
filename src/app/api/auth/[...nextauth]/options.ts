@@ -156,31 +156,42 @@ export const authOptions: NextAuthOptions = {
     },
     
     async jwt({ token, user, account }) {
-      // デバッグログ
+      // 詳細なデバッグログ
       await prisma.executionLog.create({
         data: {
-          errorMessage: `JWT処理:
+          errorMessage: `JWT処理 (詳細):
           Token: ${JSON.stringify(token)}
           User: ${JSON.stringify(user)}
-          Account: ${JSON.stringify(account)}`
+          Account: ${JSON.stringify(account)}
+          Token ID: ${token?.id}
+          User ID: ${user?.id}
+          処理時刻: ${new Date().toISOString()}`
         }
       });
       
       // userが存在する場合（初回ログイン時）
       if (user) {
         token.id = user.id;
+        
+        // IDが設定されたことを確認するログ
+        await prisma.executionLog.create({
+          data: {
+            errorMessage: `JWT ID設定完了: token.id = ${token.id}`
+          }
+        });
       }
       return token;
     },
     
     async session({ session, token }) {
-      // デバッグログを追加
+      // 詳細なデバッグログ
       await prisma.executionLog.create({
         data: {
-          errorMessage: `Session Callback: ${JSON.stringify({ 
-            session: session, 
-            token: token 
-          })}`
+          errorMessage: `Session処理 (詳細):
+          Session Before: ${JSON.stringify(session)}
+          Token: ${JSON.stringify(token)}
+          Token ID: ${token?.id}
+          処理時刻: ${new Date().toISOString()}`
         }
       });
       
@@ -195,19 +206,36 @@ export const authOptions: NextAuthOptions = {
       
       // IGAccountの存在確認
       if (token.id) {
-        const igAccount = await prisma.iGAccount.findFirst({
-          where: { userId: token.id as string },
-          select: { id: true }
-        });
-        
-        updatedSession.user.instagram = {
-          connected: !!igAccount
-        };
+        try {
+          const igAccount = await prisma.iGAccount.findFirst({
+            where: { userId: token.id as string },
+            select: { id: true }
+          });
+          
+          updatedSession.user.instagram = {
+            connected: !!igAccount
+          };
+          
+          // Instagram接続状態のログ
+          await prisma.executionLog.create({
+            data: {
+              errorMessage: `Instagram接続状態: ${!!igAccount ? '接続済み' : '未接続'} (UserID: ${token.id})`
+            }
+          });
+        } catch (error) {
+          // エラーログ
+          await prisma.executionLog.create({
+            data: {
+              errorMessage: `IGAccount検索エラー: ${error instanceof Error ? error.message : String(error)}`
+            }
+          });
+        }
       }
       
+      // 最終的なセッションオブジェクトのログ
       await prisma.executionLog.create({
         data: {
-          errorMessage: `Updated Session: ${JSON.stringify(updatedSession)}`
+          errorMessage: `最終Session: ${JSON.stringify(updatedSession)}`
         }
       });
       
