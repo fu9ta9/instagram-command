@@ -15,15 +15,6 @@ export const dynamic = 'force-dynamic';
 export async function GET(): Promise<Response> {
   try {
     const session = await getServerSession(authOptions);
-    
-    // セッションログ
-    await prisma.executionLog.create({
-      data: {
-        errorMessage: `Connection Status Check:
-        Session: ${JSON.stringify(session)}`
-      }
-    });
-
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
