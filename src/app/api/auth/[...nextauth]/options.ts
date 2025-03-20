@@ -27,6 +27,13 @@ export const authOptions: NextAuthOptions = {
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      authorization: {
+        params: {
+          prompt: "consent",
+          access_type: "offline",
+          response_type: "code"
+        }
+      }
     }),
     FacebookProvider({
       clientId: process.env.NEXT_PUBLIC_FACEBOOK_CLIENT_ID!,
@@ -119,59 +126,45 @@ export const authOptions: NextAuthOptions = {
   ],
   callbacks: {
     async signIn({ user, account, profile }) {
-      if (!account || !user) {
-        await prisma.executionLog.create({
-          data: {
-            errorMessage: 'SignInエラー: アカウントまたはユーザー情報なし'
-          }
+      // ログを追加してデバッグ
+      await prisma.executionLog.create({
+        data: {
+          errorMessage: `サインイン試行: ${JSON.stringify({ 
+            user: user, 
+            accountType: account?.provider 
+          })}`
+        }
+      });
+      
+      if (account?.provider === 'google') {
+        // Googleログイン時の処理
+        const existingUser = await prisma.user.findUnique({
+          where: { email: user.email! }
         });
-        return false;
-      }
-
-      try {
-        // Googleログインの場合のみユーザー登録
-        if (account.provider === 'google') {
-          await prisma.user.upsert({
-            where: { 
-              email: user.email! 
-            },
-            create: {
+        
+        if (!existingUser) {
+          // 新規ユーザーの場合は作成
+          await prisma.user.create({
+            data: {
               email: user.email!,
               name: user.name,
-              image: user.image,
-              membershipType: 'FREE'  // register/route.tsと同じ初期値
-            },
-            update: {
-              name: user.name,
-              image: user.image,
-            }
-          });
-
-          await prisma.executionLog.create({
-            data: {
-              errorMessage: `Googleユーザー登録/更新成功: ${user.email}`
+              membershipType: 'FREE'
             }
           });
         }
-
-        return true;
-      } catch (error) {
-        await prisma.executionLog.create({
-          data: {
-            errorMessage: `ユーザー登録エラー: ${error instanceof Error ? error.message : String(error)}`
-          }
-        });
-        return false;
       }
+      
+      return true;
     },
-
-    async jwt({ token, user }) {
+    
+    async jwt({ token, user, account }) {
+      // userが存在する場合（初回ログイン時）
       if (user) {
         token.id = user.id;
       }
       return token;
     },
-
+    
     async session({ session, token }) {
       if (session?.user) {
         session.user.id = token.id as string;
