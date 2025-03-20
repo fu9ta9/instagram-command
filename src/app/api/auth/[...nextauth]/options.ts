@@ -26,16 +26,27 @@ export const authOptions: NextAuthOptions = {
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
       authorization: {
         params: {
-          prompt: "select_account",
           access_type: "offline",
         }
       }
     }),
   ],
   callbacks: {
-    async signIn({ user, account, profile }) {
+    async signIn({ user, account }) {
+      // デバッグログ
+      console.log("SignIn callback called with:", { 
+        user: user || "undefined", 
+        account: account || "undefined" 
+      });
+      
+      // 安全なアクセスのためのnullチェック
+      if (!account) {
+        console.error("Account object is missing in signIn callback");
+        return false;
+      }
+
       try {
-        if (account?.provider === 'google') {
+        if (account.provider === 'google') {
           const existingUser = await prisma.user.findUnique({
             where: { email: user.email! }
           });
@@ -53,6 +64,7 @@ export const authOptions: NextAuthOptions = {
         
         return true;
       } catch (error) {
+        console.error("Error in signIn callback:", error);
         return false;
       }
     },
