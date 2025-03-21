@@ -19,27 +19,27 @@ async function fetchAllPosts(username: string, igUserId: string, accessToken: st
     attempts++;
     
     // APIエンドポイントを構築
-    const apiUrl = `https://graph.facebook.com/v22.0/${igUserId}?fields=business_discovery.username(${username}){username,name,profile_picture_url,followers_count,media_count,media${afterToken ? `.after(${afterToken})` : ''}{id,comments_count,like_count,media_url,permalink,timestamp,media_type,thumbnail_url}}&access_token=${accessToken}`;
+    const apiUrl: string = `https://graph.facebook.com/v22.0/${igUserId}?fields=business_discovery.username(${username}){username,name,profile_picture_url,followers_count,media_count,media${afterToken ? `.after(${afterToken})` : ''}{id,comments_count,like_count,media_url,permalink,timestamp,media_type,thumbnail_url}}&access_token=${accessToken}`;
     
     console.log(`API呼び出し ${attempts}回目: afterToken=${afterToken || 'なし'}`);
     
     try {
-      const response = await fetch(apiUrl);
+      const response: Response = await fetch(apiUrl);
       
       if (!response.ok) {
-        const errorData = await response.json();
+        const errorData: any = await response.json();
         console.error('Instagram API error:', errorData);
         throw new Error(errorData.error?.message || 'Failed to fetch Instagram posts');
       }
       
-      const data = await response.json();
+      const data: any = await response.json();
       
       if (!data.business_discovery) {
         console.error('business_discoveryが見つかりません:', data);
         throw new Error('アカウントが見つからないか、アクセスできません');
       }
       
-      const businessDiscovery = data.business_discovery;
+      const businessDiscovery: any = data.business_discovery;
       
       // 初回のみアカウント情報を保存
       if (attempts === 1) {
@@ -131,7 +131,7 @@ export async function GET(request: Request) {
     }
     
     // 投稿データを整形
-    const posts = result.posts.map(item => ({
+    const posts = result.posts.map((item: any) => ({
       id: item.id,
       imageUrl: item.media_type === 'VIDEO' ? item.thumbnail_url : item.media_url,
       permalink: item.permalink,

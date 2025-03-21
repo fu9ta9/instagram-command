@@ -46,7 +46,7 @@ export async function GET(request: Request) {
     const paging = mediaData.paging || null;
 
     // 投稿データを整形
-    const posts = mediaItems.map(item => ({
+    const posts = mediaItems.map((item: any) => ({
       id: item.id,
       imageUrl: item.media_type === 'VIDEO' ? item.thumbnail_url : item.media_url,
       permalink: item.permalink,
