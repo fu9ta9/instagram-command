@@ -52,7 +52,8 @@ export function Sidebar() {
       "flex flex-col h-screen fixed top-0 left-0 z-20",
       "transition-all duration-300 ease-in-out",
       isCollapsed ? "w-16" : "w-56",
-      "bg-gradient-to-b from-blue-800 to-blue-900 text-gray-100 border-r border-blue-950"
+      "bg-gradient-to-b from-blue-800 to-blue-900 text-gray-100 border-r border-blue-950",
+      "hidden md:flex" // モバイルでは非表示、デスクトップでは表示
     )}>
       <div className="flex items-center justify-end p-4">
         <button

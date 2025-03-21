@@ -342,7 +342,7 @@ export default function InstagramPostAnalyzer() {
               placeholder="Instagramのユーザー名を入力"
               value={searchInput}
               onChange={handleSearchInputChange}
-              className="pr-10"
+              className="pr-10 w-full"
             />
             {searchInput && (
               <button
@@ -353,14 +353,22 @@ export default function InstagramPostAnalyzer() {
               </button>
             )}
           </div>
-          <Button onClick={handleSearch} disabled={isLoading || !searchInput.trim()}>
+          <Button 
+            onClick={handleSearch} 
+            disabled={isLoading || !searchInput.trim()}
+            className="w-20 min-w-[5rem] px-2" // 幅を固定
+          >
             {isLoading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                検索中...
+                <span className="hidden sm:inline">検索中...</span>
+                <span className="sm:hidden">...</span>
               </>
             ) : (
-              <>検索</>
+              <>
+                <Search className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">検索</span>
+              </>
             )}
           </Button>
         </div>
