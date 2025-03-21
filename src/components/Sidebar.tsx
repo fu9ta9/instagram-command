@@ -3,7 +3,7 @@
 import React from 'react'
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
-import { ChevronLeft, ChevronRight, Instagram, MessageSquareMore, CreditCard } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Instagram, MessageSquareMore, CreditCard, Search } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useSession } from 'next-auth/react'
 import { useSidebar } from '@/contexts/SidebarContext'
@@ -20,6 +20,12 @@ export function Sidebar() {
       href: '/connect',
       label: 'Instagram連携',
       icon: <Instagram className="h-5 w-5" />,
+      requiresAuth: true,
+    },
+    {
+      href: '/search',
+      label: 'アカウント検索',
+      icon: <Search className="h-5 w-5" />,
       requiresAuth: true,
     },
     {
