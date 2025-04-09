@@ -5,6 +5,7 @@ import FacebookConnect from '@/components/FacebookConnect'
 import { useSession } from 'next-auth/react'
 import { Loader2 } from 'lucide-react'
 import { useInstagram } from '@/contexts/InstagramContext'
+import { useSearchParams } from 'next/navigation'
 
 interface ConnectionStatus {
   instagram: {
@@ -24,6 +25,7 @@ export default function ConnectClient() {
   const [isConnecting, setIsConnecting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
+  const searchParams = useSearchParams()
   
   // Instagramコンテキストを使用
   const { updateStatus } = useInstagram()
@@ -44,6 +46,44 @@ export default function ConnectClient() {
       setIsLoading(false)
     }
   };
+
+  // Instagram認証コールバックの処理
+  useEffect(() => {
+    if (!searchParams) return;
+
+    const code = searchParams.get('code');
+    const error = searchParams.get('error');
+    const success = searchParams.get('success');
+
+    if (code) {
+      setIsConnecting(true);
+      fetch(`/api/auth/instagram-callback?code=${code}`)
+        .then(response => {
+          if (response.ok) {
+            setSuccess('Instagramとの連携が完了しました！');
+            updateStatus();
+          } else {
+            setError('Instagramとの連携に失敗しました');
+          }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          setError('Instagramとの連携中にエラーが発生しました');
+        })
+        .finally(() => {
+          setIsConnecting(false);
+        });
+    }
+
+    if (error) {
+      setError('Instagramとの連携に失敗しました');
+    }
+
+    if (success) {
+      setSuccess('Instagramとの連携が完了しました！');
+      updateStatus();
+    }
+  }, [searchParams, updateStatus]);
 
   useEffect(() => {
     if (status === 'authenticated' && session?.user?.id) {
@@ -70,9 +110,8 @@ export default function ConnectClient() {
       await updateStatus()
       
       setSuccess('Instagramとの連携が完了しました！')
-      // 他の成功処理...
     } catch (error) {
-      // エラー処理...
+      setError('Instagramとの連携に失敗しました')
     } finally {
       setIsConnecting(false)
     }
@@ -91,6 +130,21 @@ export default function ConnectClient() {
       <div className="container mx-auto p-4">
         <div className="bg-white dark:bg-gray-900 p-6 rounded-lg shadow-md border border-gray-200 dark:border-gray-800">
           <h2 className="text-xl font-semibold mb-4 dark:text-gray-100">Instagram連携状態</h2>
+          
+          {/* エラーメッセージ */}
+          {error && (
+            <div className="mb-4 p-4 bg-red-100 dark:bg-red-900/30 border border-red-400 dark:border-red-700 text-red-700 dark:text-red-400 rounded">
+              {error}
+            </div>
+          )}
+
+          {/* 成功メッセージ */}
+          {success && (
+            <div className="mb-4 p-4 bg-green-100 dark:bg-green-900/30 border border-green-400 dark:border-green-700 text-green-700 dark:text-green-400 rounded">
+              {success}
+            </div>
+          )}
+
           {connectionStatus.instagram.connected ? (
             <div className="space-y-4">
               <div className="inline-flex items-center bg-green-100 dark:bg-green-900/30 border border-green-400 dark:border-green-700 text-green-700 dark:text-green-400 px-4 py-2 rounded">
