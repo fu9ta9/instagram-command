@@ -1,5 +1,6 @@
 import { cn } from "@/lib/utils";
-import { FormLabel, FormControl, FormMessage } from "@/components/ui/form";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 
 interface FormFieldProps {
   label: string;
@@ -12,27 +13,25 @@ interface FormFieldProps {
 const FormField: React.FC<FormFieldProps> = ({ label, required, error, field, props }) => {
   return (
     <div className="space-y-2 w-full">
-      <FormLabel>
+      <Label>
         {label}
         {required && <span className="text-red-500 ml-1">*</span>}
-      </FormLabel>
-      <FormControl>
-        <input
-          className={cn(
-            "flex w-full rounded-md border border-input bg-background px-3 py-2",
-            "text-sm ring-offset-background",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-            "disabled:cursor-not-allowed disabled:opacity-50",
-            error && "border-red-500"
-          )}
-          {...field}
-          {...props}
-        />
-      </FormControl>
+      </Label>
+      <Input
+        className={cn(
+          "flex w-full rounded-md border border-input bg-background px-3 py-2",
+          "text-sm ring-offset-background",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+          "disabled:cursor-not-allowed disabled:opacity-50",
+          error && "border-red-500"
+        )}
+        {...field}
+        {...props}
+      />
       {error && (
-        <FormMessage className="text-red-500 text-sm">
+        <p className="text-red-500 text-sm">
           {error.message}
-        </FormMessage>
+        </p>
       )}
     </div>
   );
