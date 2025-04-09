@@ -11,8 +11,19 @@ export default function FacebookConnect({ isReconnect = false }: FacebookConnect
   const handleConnect = () => {
     setIsLoading(true);
     try {
-      // Facebook認証URLを直接構築
-      const authUrl = `https://www.facebook.com/dialog/oauth?client_id=${process.env.NEXT_PUBLIC_FACEBOOK_CLIENT_ID}&display=page&extras=${encodeURIComponent(JSON.stringify({setup:{channel:"IG_API_ONBOARDING"}}))}&redirect_uri=${encodeURIComponent(`${process.env.NEXT_PUBLIC_NEXTAUTH_URL}/facebook-callback`)}&response_type=token&scope=${encodeURIComponent(['instagram_basic','pages_manage_metadata','instagram_manage_comments','instagram_manage_messages','pages_show_list'].join(','))}`;
+      // Instagram Business認証URLを構築
+      const authUrl = `https://www.instagram.com/oauth/authorize?` + 
+        `client_id=${process.env.NEXT_PUBLIC_INSTAGRAM_APP_ID}` +
+        `&redirect_uri=${encodeURIComponent(`${process.env.NEXT_PUBLIC_NEXTAUTH_URL}/instagram-callback`)}` +
+        `&response_type=code` +
+        `&scope=${encodeURIComponent([
+          'instagram_business_basic',
+          'instagram_business_manage_messages',
+          'instagram_business_manage_comments',
+          'instagram_business_manage_insights'
+        ].join(','))}` +
+        `&enable_fb_login=0` +
+        `&force_authentication=1`;
       // 新しいタブで開く
       window.open(authUrl, '_blank', 'noopener,noreferrer');
     } catch (error) {
