@@ -12,7 +12,7 @@ export default function FacebookConnect({ isReconnect = false }: FacebookConnect
     setIsLoading(true);
     try {
       // Instagram Business認証URLを構築
-      const redirectUri = `${process.env.NEXT_PUBLIC_NEXTAUTH_URL}/instagram-callback`;
+      const redirectUri = `${process.env.NEXT_PUBLIC_NEXTAUTH_URL}/connect`;
       const scopes = [
         'instagram_business_basic',
         'instagram_business_manage_messages',
