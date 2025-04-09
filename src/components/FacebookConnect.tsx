@@ -12,18 +12,24 @@ export default function FacebookConnect({ isReconnect = false }: FacebookConnect
     setIsLoading(true);
     try {
       // Instagram Business認証URLを構築
+      const redirectUri = `${process.env.NEXT_PUBLIC_NEXTAUTH_URL}/instagram-callback`;
+      const scopes = [
+        'instagram_business_basic',
+        'instagram_business_manage_messages',
+        'instagram_business_manage_comments',
+        'instagram_business_manage_insights'
+      ];
+      
       const authUrl = `https://www.instagram.com/oauth/authorize?` + 
         `client_id=${process.env.NEXT_PUBLIC_INSTAGRAM_APP_ID}` +
-        `&redirect_uri=${encodeURIComponent(`${process.env.NEXT_PUBLIC_NEXTAUTH_URL}/instagram-callback`)}` +
+        `&redirect_uri=${encodeURIComponent(redirectUri)}` +
         `&response_type=code` +
-        `&scope=${encodeURIComponent([
-          'instagram_business_basic',
-          'instagram_business_manage_messages',
-          'instagram_business_manage_comments',
-          'instagram_business_manage_insights'
-        ].join(','))}` +
+        `&scope=${encodeURIComponent(scopes.join(','))}` +
         `&enable_fb_login=0` +
         `&force_authentication=1`;
+      
+      console.log('認証URL:', authUrl);
+      
       // 新しいタブで開く
       window.open(authUrl, '_blank', 'noopener,noreferrer');
     } catch (error) {
