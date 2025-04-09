@@ -87,9 +87,18 @@ export default function ConnectClient() {
 
   useEffect(() => {
     if (status === 'authenticated' && session?.user?.id) {
-      fetchConnectionStatus();
+      // セッションのinstagram.connectedがtrueの場合のみAPIを呼び出す
+      if (session.user.instagram?.connected) {
+        fetchConnectionStatus();
+      } else {
+        // 未連携の場合は直接状態を設定
+        setConnectionStatus({
+          instagram: { connected: false }
+        });
+        setIsLoading(false);
+      }
     }
-  }, [status, session?.user?.id]);
+  }, [status, session?.user?.id, session?.user?.instagram?.connected]);
 
   const handleConnect = async () => {
     setIsConnecting(true)

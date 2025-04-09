@@ -150,24 +150,63 @@ async function findMatchingReply(webhookData: any) {
 
 // メッセージデータを作成する関数
 function createMessageData(commenterId: string, replyText: string, buttons: Array<{ title: string, url: string }>) {
-  return {
-    recipient: {
-      id: commenterId  // IGSID (Instagram Scoped ID)
-    },
-    message: {
-      attachment: {
-        type: "template",
-        payload: {
-          template_type: "button",
-          text: replyText,
-          buttons: buttons.map(button => ({
-            type: "web_url",
-            url: button.url,
-            title: button.title
-          }))
+  // ボタンがある場合とない場合で分岐
+  if (buttons && buttons.length > 0) {
+    // URLが有効なフォーマットかチェックする関数
+    const isValidUrl = (urlString: string) => {
+      try {
+        const url = new URL(urlString);
+        return url.protocol === 'http:' || url.protocol === 'https:';
+      } catch {
+        return false;
+      }
+    };
+
+    // ボタンのURLを検証し、無効なURLを除外
+    const validButtons = buttons
+      .filter(button => isValidUrl(button.url))
+      .map(button => ({
+        type: "web_url",
+        url: button.url,
+        title: button.title.substring(0, 20) // タイトルは20文字までに制限
+      }));
+
+    // 有効なボタンがない場合はテキストメッセージのみ送信
+    if (validButtons.length === 0) {
+      return {
+        recipient: {
+          id: commenterId
+        },
+        message: {
+          text: replyText
+        }
+      };
+    }
+
+    return {
+      recipient: {
+        id: commenterId
+      },
+      message: {
+        attachment: {
+          type: "template",
+          payload: {
+            template_type: "button",
+            text: replyText.substring(0, 640), // テキストは640文字までに制限
+            buttons: validButtons
+          }
         }
       }
-    }
+    };
+  } else {
+    return {
+      recipient: {
+        id: commenterId
+      },
+      message: {
+        text: replyText
+      }
+    };
   }
 }
 
@@ -196,15 +235,24 @@ async function sendReplyToComment(webhookData: any, reply: any) {
       throw new Error('ページ情報が見つかりません')
     }
 
-    const pageId = pageData.data[0].id
-    const pageAccessToken = pageData.data[0].access_token
+    // const pageId = pageData.data[0].id
+    const pageId = "17841447969868460"
+    // const pageAccessToken = pageData.data[0].access_token
+    const pageAccessToken = "IGQWRQZAkk4LTI4Vl9IRENwdlhwUGxaRlNnei1EUG4zR2xXWS1yaVVya0dTWnp5VmhLQnpoT1BjUVVMcFlKclBqcUNRZATZAhSDhSXzFYN1hmS3ZA3UjBsQkhwdWQxM3U2RVdJdDNjVjJpNEkzT1ozLVRLU045QmJJMTQZD"
 
     // メッセージデータを作成
-    const messageData = createMessageData(commenterId,reply.reply, reply.buttons || [])
+    const messageData = createMessageData(commenterId, reply.reply, reply.buttons || [])
+
+    // デバッグ用にメッセージデータをログに記録
+    await prisma.executionLog.create({
+      data: {
+        errorMessage: `送信するメッセージデータ: ${JSON.stringify(messageData)}`
+      }
+    });
 
     // Instagram APIで返信を送信
     const response = await fetch(
-      `https://graph.facebook.com/v22.0/${pageId}/messages?access_token=${pageAccessToken}`,
+      `https://graph.instagram.com/v22.0/${pageId}/messages?access_token=${pageAccessToken}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
