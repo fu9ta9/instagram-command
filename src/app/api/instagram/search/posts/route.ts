@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server';
 
+// 動的ルートとしてマーク
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: Request) {
   try {
     // クエリパラメータを取得

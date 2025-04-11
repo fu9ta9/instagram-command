@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server';
 
+// 動的ルートとしてマーク
+export const dynamic = 'force-dynamic';
+
 // すべての投稿を取得する関数を外部に移動
 async function fetchAllPosts(username: string, igUserId: string, accessToken: string) {
   let allPosts: any[] = [];

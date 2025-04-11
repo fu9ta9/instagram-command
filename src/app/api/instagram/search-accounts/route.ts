@@ -9,6 +9,9 @@ const mockAccounts = [
   { id: "5", username: "fashion_trends", name: "ファッショントレンド", avatar: "https://via.placeholder.com/40" },
 ];
 
+// 動的ルートとしてマーク
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: Request) {
   try {
     // クエリパラメータを取得

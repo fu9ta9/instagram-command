@@ -4,6 +4,9 @@ import { authOptions } from '../../auth/[...nextauth]/options';
 import { prisma } from '@/lib/prisma';
 import { fetchInstagramPosts } from '@/lib/instagram';
 
+// 動的ルートとしてマーク
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: Request) {
   try {
     const session = await getServerSession(authOptions);
