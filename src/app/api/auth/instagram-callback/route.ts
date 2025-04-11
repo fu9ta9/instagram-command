@@ -149,7 +149,7 @@ export async function GET(request: Request) {
     }
 
     // ユーザー情報を取得
-    const userUrl = `https://graph.instagram.com/me?fields=id,username,account_type&access_token=${longLivedTokenData.access_token}`;
+    const userUrl = `https://graph.instagram.com/me?fields=id,username,account_type,profile_picture_url&access_token=${longLivedTokenData.access_token}`;
 
     // デバッグログ: ユーザー情報リクエスト
     await prisma.executionLog.create({
@@ -201,13 +201,24 @@ export async function GET(request: Request) {
         instagramId: userData.id,
         id: userData.id,
         username: userData.username,
+        profilePictureUrl: userData.profile_picture_url || null,
         accessToken: longLivedTokenData.access_token,
         expiresAt: longLivedTokenData.expires_in ? Math.floor(Date.now() / 1000) + parseInt(longLivedTokenData.expires_in) : null
       },
       update: {
         accessToken: longLivedTokenData.access_token,
+        profilePictureUrl: userData.profile_picture_url || null,
         expiresAt: longLivedTokenData.expires_in ? Math.floor(Date.now() / 1000) + parseInt(longLivedTokenData.expires_in) : null,
         updatedAt: new Date()
+      }
+    });
+
+    // プロフィール画像URLのデバッグログ
+    await prisma.executionLog.create({
+      data: {
+        errorMessage: `Instagram Profile Picture URL:
+        Username: ${userData.username}
+        Profile Picture URL: ${userData.profile_picture_url || 'Not available'}`
       }
     });
 
