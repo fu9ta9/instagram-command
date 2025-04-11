@@ -30,18 +30,33 @@ export default function ConnectClient() {
   // Instagramコンテキストを使用
   const { updateStatus } = useInstagram()
 
+  // デバッグログ: セッション状態
+  useEffect(() => {
+    console.log('Session Status:', {
+      status,
+      userId: session?.user?.id,
+      instagramConnected: session?.user?.instagram?.connected
+    });
+  }, [session, status]);
+
   // 連携状態を取得
   const fetchConnectionStatus = async () => {
+    console.log('Fetching connection status...');
     try {
       const response = await fetch('/api/connections/status');
+      console.log('Status API Response:', response.status);
+      
       if (response.ok) {
         const data = await response.json();
+        console.log('Connection Status Data:', data);
         setConnectionStatus({
           instagram: data.instagram
         });
+      } else {
+        console.error('Status API Error:', await response.text());
       }
     } catch (error) {
-      console.error('連携状態の取得に失敗:', error);
+      console.error('Connection Status Error:', error);
     } finally {
       setIsLoading(false)
     }
@@ -55,19 +70,28 @@ export default function ConnectClient() {
     const error = searchParams.get('error');
     const success = searchParams.get('success');
 
+    console.log('Callback Parameters:', { code, error, success });
+
     if (code) {
       setIsConnecting(true);
+      console.log('Initiating Instagram callback with code...');
+      
       fetch(`/api/auth/instagram-callback?code=${code}`)
-        .then(response => {
+        .then(async response => {
+          console.log('Instagram Callback Response:', response.status);
+          const responseText = await response.text();
+          console.log('Instagram Callback Response Text:', responseText);
+          
           if (response.ok) {
             setSuccess('Instagramとの連携が完了しました！');
             updateStatus();
           } else {
             setError('Instagramとの連携に失敗しました');
+            console.error('Instagram Callback Error:', responseText);
           }
         })
         .catch(error => {
-          console.error('Error:', error);
+          console.error('Instagram Callback Error:', error);
           setError('Instagramとの連携中にエラーが発生しました');
         })
         .finally(() => {
@@ -76,10 +100,12 @@ export default function ConnectClient() {
     }
 
     if (error) {
+      console.error('Instagram Error Parameter:', error);
       setError('Instagramとの連携に失敗しました');
     }
 
     if (success) {
+      console.log('Instagram Success Parameter:', success);
       setSuccess('Instagramとの連携が完了しました！');
       updateStatus();
     }
@@ -87,10 +113,13 @@ export default function ConnectClient() {
 
   useEffect(() => {
     if (status === 'authenticated' && session?.user?.id) {
+      console.log('Session authenticated, checking Instagram connection...');
       // セッションのinstagram.connectedがtrueの場合のみAPIを呼び出す
       if (session.user.instagram?.connected) {
+        console.log('Instagram is connected, fetching status...');
         fetchConnectionStatus();
       } else {
+        console.log('Instagram is not connected, setting default state...');
         // 未連携の場合は直接状態を設定
         setConnectionStatus({
           instagram: { connected: false }
@@ -101,6 +130,7 @@ export default function ConnectClient() {
   }, [status, session?.user?.id, session?.user?.instagram?.connected]);
 
   const handleConnect = async () => {
+    console.log('Initiating Instagram connection...');
     setIsConnecting(true)
     setError(null)
     
@@ -109,7 +139,9 @@ export default function ConnectClient() {
         method: 'POST'
       })
       
+      console.log('Connect API Response:', response.status);
       const data = await response.json()
+      console.log('Connect API Data:', data);
       
       if (!response.ok) {
         throw new Error(data.message || 'Instagram連携に失敗しました')
@@ -120,6 +152,7 @@ export default function ConnectClient() {
       
       setSuccess('Instagramとの連携が完了しました！')
     } catch (error) {
+      console.error('Connect Error:', error);
       setError('Instagramとの連携に失敗しました')
     } finally {
       setIsConnecting(false)
