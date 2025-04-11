@@ -10,6 +10,17 @@ export async function GET(request: Request) {
   const errorReason = searchParams.get('error_reason')
   const errorDescription = searchParams.get('error_description')
 
+  // デバッグログ: 環境変数とリダイレクトURI
+  const redirectUri = `${process.env.NEXT_PUBLIC_NEXTAUTH_URL}/instagram-callback`;
+  await prisma.executionLog.create({
+    data: {
+      errorMessage: `Instagram Callback Debug:
+      NEXT_PUBLIC_NEXTAUTH_URL: ${process.env.NEXT_PUBLIC_NEXTAUTH_URL}
+      Redirect URI: ${redirectUri}
+      Request URL: ${request.url}`
+    }
+  });
+
   // デバッグログ: リクエストパラメータ
   await prisma.executionLog.create({
     data: {
@@ -48,7 +59,7 @@ export async function GET(request: Request) {
       client_id: process.env.NEXT_PUBLIC_INSTAGRAM_APP_ID!,
       client_secret: process.env.INSTAGRAM_APP_SECRET!,
       grant_type: 'authorization_code',
-      redirect_uri: `${process.env.NEXT_PUBLIC_NEXTAUTH_URL}/instagram-callback`,
+      redirect_uri: redirectUri,
       code: code
     });
 
