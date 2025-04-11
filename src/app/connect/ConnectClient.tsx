@@ -27,36 +27,20 @@ export default function ConnectClient() {
   const [success, setSuccess] = useState<string | null>(null)
   const searchParams = useSearchParams()
   
-  // Instagramコンテキストを使用
   const { updateStatus } = useInstagram()
-
-  // デバッグログ: セッション状態
-  useEffect(() => {
-    console.log('Session Status:', {
-      status,
-      userId: session?.user?.id,
-      instagramConnected: session?.user?.instagram?.connected
-    });
-  }, [session, status]);
 
   // 連携状態を取得
   const fetchConnectionStatus = async () => {
-    console.log('Fetching connection status...');
     try {
       const response = await fetch('/api/connections/status');
-      console.log('Status API Response:', response.status);
-      
       if (response.ok) {
         const data = await response.json();
-        console.log('Connection Status Data:', data);
         setConnectionStatus({
           instagram: data.instagram
         });
-      } else {
-        console.error('Status API Error:', await response.text());
       }
     } catch (error) {
-      console.error('Connection Status Error:', error);
+      console.error('連携状態の取得に失敗:', error);
     } finally {
       setIsLoading(false)
     }
@@ -69,58 +53,60 @@ export default function ConnectClient() {
     const code = searchParams.get('code');
     const error = searchParams.get('error');
     const success = searchParams.get('success');
+    const message = searchParams.get('message');
 
-    console.log('Callback Parameters:', { code, error, success });
+    // URLパラメータをクリアするための関数
+    const clearUrlParams = () => {
+      const url = new URL(window.location.href);
+      url.search = '';
+      window.history.replaceState({}, '', url.toString());
+    };
 
+    // エラーメッセージの表示のみ行い、追加のAPIコールは行わない
+    if (error) {
+      setError(message || 'Instagramとの連携に失敗しました');
+      clearUrlParams();
+      return;
+    }
+
+    // 成功メッセージの表示のみ行い、追加のAPIコールは行わない
+    if (success) {
+      setSuccess(message || 'Instagramとの連携が完了しました！');
+      updateStatus();
+      clearUrlParams();
+      return;
+    }
+
+    // codeがある場合のみAPIコールを実行（1回のみ）
     if (code) {
       setIsConnecting(true);
-      console.log('Initiating Instagram callback with code...');
       
       fetch(`/api/auth/instagram-callback?code=${code}`)
         .then(async response => {
-          console.log('Instagram Callback Response:', response.status);
-          const responseText = await response.text();
-          console.log('Instagram Callback Response Text:', responseText);
-          
-          if (response.ok) {
-            setSuccess('Instagramとの連携が完了しました！');
-            updateStatus();
-          } else {
-            setError('Instagramとの連携に失敗しました');
-            console.error('Instagram Callback Error:', responseText);
+          if (!response.ok) {
+            throw new Error('API request failed');
           }
+          setSuccess('Instagramとの連携が完了しました！');
+          updateStatus();
         })
         .catch(error => {
-          console.error('Instagram Callback Error:', error);
+          console.error('Instagram連携エラー:', error);
           setError('Instagramとの連携中にエラーが発生しました');
         })
         .finally(() => {
           setIsConnecting(false);
+          // APIコール後にURLパラメータをクリア
+          clearUrlParams();
         });
-    }
-
-    if (error) {
-      console.error('Instagram Error Parameter:', error);
-      setError('Instagramとの連携に失敗しました');
-    }
-
-    if (success) {
-      console.log('Instagram Success Parameter:', success);
-      setSuccess('Instagramとの連携が完了しました！');
-      updateStatus();
     }
   }, [searchParams, updateStatus]);
 
+  // 認証状態が変更された時のみステータスを更新
   useEffect(() => {
     if (status === 'authenticated' && session?.user?.id) {
-      console.log('Session authenticated, checking Instagram connection...');
-      // セッションのinstagram.connectedがtrueの場合のみAPIを呼び出す
       if (session.user.instagram?.connected) {
-        console.log('Instagram is connected, fetching status...');
         fetchConnectionStatus();
       } else {
-        console.log('Instagram is not connected, setting default state...');
-        // 未連携の場合は直接状態を設定
         setConnectionStatus({
           instagram: { connected: false }
         });
@@ -130,7 +116,6 @@ export default function ConnectClient() {
   }, [status, session?.user?.id, session?.user?.instagram?.connected]);
 
   const handleConnect = async () => {
-    console.log('Initiating Instagram connection...');
     setIsConnecting(true)
     setError(null)
     
@@ -139,20 +124,16 @@ export default function ConnectClient() {
         method: 'POST'
       })
       
-      console.log('Connect API Response:', response.status);
       const data = await response.json()
-      console.log('Connect API Data:', data);
       
       if (!response.ok) {
         throw new Error(data.message || 'Instagram連携に失敗しました')
       }
       
-      // 連携成功時にInstagram状態を更新
       await updateStatus()
-      
       setSuccess('Instagramとの連携が完了しました！')
     } catch (error) {
-      console.error('Connect Error:', error);
+      console.error('Instagram連携エラー:', error);
       setError('Instagramとの連携に失敗しました')
     } finally {
       setIsConnecting(false)
