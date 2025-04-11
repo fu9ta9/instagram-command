@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import FacebookConnect from '@/components/FacebookConnect'
 import { useSession } from 'next-auth/react'
 import { Loader2 } from 'lucide-react'
@@ -26,11 +26,12 @@ export default function ConnectClient() {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
   const searchParams = useSearchParams()
+  const hasInitialFetch = useRef(false)
   
   const { updateStatus } = useInstagram()
 
   // 連携状態を取得
-  const fetchConnectionStatus = async () => {
+  const fetchConnectionStatus = useCallback(async () => {
     try {
       const response = await fetch('/api/connections/status');
       if (response.ok) {
@@ -44,7 +45,7 @@ export default function ConnectClient() {
     } finally {
       setIsLoading(false)
     }
-  };
+  }, []);
 
   // Instagram認証コールバックの処理
   useEffect(() => {
@@ -81,13 +82,26 @@ export default function ConnectClient() {
     if (code) {
       setIsConnecting(true);
       
-      fetch(`/api/auth/instagram-callback?code=${code}`)
+      fetch(`/api/auth/instagram-callback?code=${code}`, {
+        redirect: 'manual' // リダイレクトを手動で処理
+      })
         .then(async response => {
-          if (!response.ok) {
+          if (response.type === 'opaqueredirect') {
+            // リダイレクト先のURLを取得
+            const redirectUrl = response.headers.get('Location');
+            if (redirectUrl) {
+              const url = new URL(redirectUrl);
+              // URLパラメータを保持したまま履歴を置き換え
+              window.history.replaceState({}, '', url.pathname + url.search);
+              // 成功パラメータがある場合は状態を更新
+              if (url.searchParams.get('success')) {
+                setSuccess('Instagramとの連携が完了しました！');
+                updateStatus();
+              }
+            }
+          } else {
             throw new Error('API request failed');
           }
-          setSuccess('Instagramとの連携が完了しました！');
-          updateStatus();
         })
         .catch(error => {
           console.error('Instagram連携エラー:', error);
@@ -95,8 +109,6 @@ export default function ConnectClient() {
         })
         .finally(() => {
           setIsConnecting(false);
-          // APIコール後にURLパラメータをクリア
-          clearUrlParams();
         });
     }
   }, [searchParams, updateStatus]);
@@ -104,16 +116,17 @@ export default function ConnectClient() {
   // 認証状態が変更された時のみステータスを更新
   useEffect(() => {
     if (status === 'authenticated' && session?.user?.id) {
-      if (session.user.instagram?.connected) {
+      if (session.user.instagram?.connected && !hasInitialFetch.current) {
+        hasInitialFetch.current = true;
         fetchConnectionStatus();
-      } else {
+      } else if (!session.user.instagram?.connected) {
         setConnectionStatus({
           instagram: { connected: false }
         });
         setIsLoading(false);
       }
     }
-  }, [status, session?.user?.id, session?.user?.instagram?.connected]);
+  }, [status, session?.user?.id, session?.user?.instagram?.connected, fetchConnectionStatus]);
 
   const handleConnect = async () => {
     setIsConnecting(true)
