@@ -22,7 +22,7 @@ async function fetchAllPosts(username: string, igUserId: string, accessToken: st
     attempts++;
     
     // APIエンドポイントを構築
-    const apiUrl: string = `https://graph.instagram.com/v22.0/${igUserId}?fields=business_discovery.username(${username}){username,name,profile_picture_url,followers_count,media_count,media${afterToken ? `.after(${afterToken})` : ''}{id,comments_count,like_count,media_url,permalink,timestamp,media_type,thumbnail_url}}&access_token=${accessToken}`;
+    const apiUrl: string = `https://graph.facebook.com/v22.0/${igUserId}?fields=business_discovery.username(${username}){username,name,profile_picture_url,followers_count,media_count,media${afterToken ? `.after(${afterToken})` : ''}{id,comments_count,like_count,media_url,permalink,timestamp,media_type,thumbnail_url}}&access_token=${accessToken}`;
     
     console.log(`API呼び出し ${attempts}回目: afterToken=${afterToken || 'なし'}`);
     
