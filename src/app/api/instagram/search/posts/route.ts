@@ -25,11 +25,11 @@ export async function GET(request: Request) {
     }
 
     // Instagram Business Discovery APIを呼び出す
-    let apiUrl = `https://graph.facebook.com/v22.0/${igUserId}?fields=business_discovery.username(${accountId}){username,name,profile_picture_url,followers_count,media_count,media{id,comments_count,like_count,media_url,permalink,timestamp,media_type,thumbnail_url}}&access_token=${accessToken}`;
+    let apiUrl = `https://graph.instagram.com/v22.0/${igUserId}?fields=business_discovery.username(${accountId}){username,name,profile_picture_url,followers_count,media_count,media{id,comments_count,like_count,media_url,permalink,timestamp,media_type,thumbnail_url}}&access_token=${accessToken}`;
     
     // afterトークンがある場合は追加
     if (after) {
-      apiUrl = `https://graph.facebook.com/v22.0/${igUserId}?fields=business_discovery.username(${accountId}){username,name,profile_picture_url,followers_count,media_count,media.after(${after}){id,comments_count,like_count,media_url,permalink,timestamp,media_type,thumbnail_url}}&access_token=${accessToken}`;
+      apiUrl = `https://graph.instagram.com/v22.0/${igUserId}?fields=business_discovery.username(${accountId}){username,name,profile_picture_url,followers_count,media_count,media.after(${after}){id,comments_count,like_count,media_url,permalink,timestamp,media_type,thumbnail_url}}&access_token=${accessToken}`;
     }
     
     const response = await fetch(apiUrl);

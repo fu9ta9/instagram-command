@@ -46,7 +46,7 @@ export async function GET(
 
     // Instagram Graph APIから投稿のメディアURLのみを取得
     const response = await fetch(
-      `https://graph.facebook.com/v20.0/${params.postId}?fields=media_url,thumbnail_url&access_token=${accessToken}`
+      `https://graph.instagram.com/v20.0/${params.postId}?fields=media_url,thumbnail_url&access_token=${accessToken}`
     );
 
     if (!response.ok) {

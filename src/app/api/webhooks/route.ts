@@ -222,7 +222,7 @@ async function sendReplyToComment(webhookData: any, reply: any) {
 
     // Facebook Graph APIからページ情報を取得
     const pageResponse = await fetch(
-      `https://graph.facebook.com/v22.0/me/accounts?fields=id,access_token&access_token=${reply.igAccount.accessToken}`
+      `https://graph.instagram.com/v22.0/me/accounts?fields=id,access_token&access_token=${reply.igAccount.accessToken}`
     )
 
     if (!pageResponse.ok) {

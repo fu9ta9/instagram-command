@@ -27,7 +27,7 @@ export async function sendInstagramReply(
 ) {
   try {
     const messageBody = createMessageBody(message, buttons);
-    const url = `https://graph.facebook.com/v20.0/${commentId}/replies`;
+    const url = `https://graph.instagram.com/v20.0/${commentId}/replies`;
     
     const response = await fetch(url, {
       method: 'POST',
