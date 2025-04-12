@@ -1,6 +1,7 @@
 'use client'
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import { useSession } from 'next-auth/react'
 
 export interface InstagramStatus {
   instagram?: {
@@ -27,6 +28,7 @@ const InstagramContext = createContext<InstagramContextType>({
 export function InstagramProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<InstagramStatus | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const { data: session, status: sessionStatus } = useSession()
 
   const updateStatus = async () => {
     try {

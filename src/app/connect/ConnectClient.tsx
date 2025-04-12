@@ -8,17 +8,15 @@ import { useInstagram } from '@/contexts/InstagramContext'
 import { useSearchParams } from 'next/navigation'
 
 interface ConnectionStatus {
-  instagram: {
-    connected: boolean;
-    name?: string;
-    id?: string;
-    profile_picture_url?: string;
-  };
+  connected: boolean;
+  name?: string;
+  id?: string;
+  profile_picture_url?: string;
 }
 
 export default function ConnectClient() {
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>({
-    instagram: { connected: false }
+    connected: false,
   });
   const { data: session, status } = useSession();
   const [isLoading, setIsLoading] = useState(true)
@@ -30,22 +28,20 @@ export default function ConnectClient() {
   
   const { updateStatus } = useInstagram()
 
-  // 連携状態を取得
-  const fetchConnectionStatus = useCallback(async () => {
-    try {
-      const response = await fetch('/api/connections/status');
-      if (response.ok) {
-        const data = await response.json();
-        setConnectionStatus({
-          instagram: data.instagram
-        });
-      }
-    } catch (error) {
-      console.error('連携状態の取得に失敗:', error);
-    } finally {
-      setIsLoading(false)
+  // セッションからInstagramの情報を更新
+  useEffect(() => {
+    if (session?.user?.instagram) {
+      setConnectionStatus({
+        connected: session.user.instagram.connected,
+        name: session.user.instagram.name,
+        id: session.user.instagram.id,
+        profile_picture_url: session.user.instagram.profile_picture_url,
+      });
+      setIsLoading(false);
+    } else if (status !== 'loading') {
+      setIsLoading(false);
     }
-  }, []);
+  }, [session, status]);
 
   // Instagram認証コールバックの処理
   useEffect(() => {
@@ -113,21 +109,6 @@ export default function ConnectClient() {
     }
   }, [searchParams, updateStatus]);
 
-  // 認証状態が変更された時のみステータスを更新
-  useEffect(() => {
-    if (status === 'authenticated' && session?.user?.id) {
-      if (session.user.instagram?.connected && !hasInitialFetch.current) {
-        hasInitialFetch.current = true;
-        fetchConnectionStatus();
-      } else if (!session.user.instagram?.connected) {
-        setConnectionStatus({
-          instagram: { connected: false }
-        });
-        setIsLoading(false);
-      }
-    }
-  }, [status, session?.user?.id, session?.user?.instagram?.connected, fetchConnectionStatus]);
-
   const handleConnect = async () => {
     setIsConnecting(true)
     setError(null)
@@ -181,7 +162,7 @@ export default function ConnectClient() {
             </div>
           )}
 
-          {connectionStatus.instagram.connected ? (
+          {connectionStatus.connected ? (
             <div className="space-y-4">
               <div className="inline-flex items-center bg-green-100 dark:bg-green-900/30 border border-green-400 dark:border-green-700 text-green-700 dark:text-green-400 px-4 py-2 rounded">
                 <span className="mr-2">Instagram連携済み</span>
@@ -190,16 +171,16 @@ export default function ConnectClient() {
                 </svg>
               </div>
               <div className="flex items-center space-x-4 px-4 py-2 bg-gray-50 dark:bg-gray-800 rounded">
-                {connectionStatus.instagram.profile_picture_url && (
+                {connectionStatus.profile_picture_url && (
                   <img 
-                    src={connectionStatus.instagram.profile_picture_url} 
+                    src={connectionStatus.profile_picture_url} 
                     alt="Profile" 
                     className="w-12 h-12 rounded-full object-cover"
                   />
                 )}
                 <div className="text-sm text-gray-600 dark:text-gray-300">
-                  <div className="font-medium dark:text-gray-200">{connectionStatus.instagram.name}</div>
-                  <div className="text-gray-500 dark:text-gray-400">ID: {connectionStatus.instagram.id}</div>
+                  <div className="font-medium dark:text-gray-200">{connectionStatus.name}</div>
+                  <div className="text-gray-500 dark:text-gray-400">ID: {connectionStatus.id}</div>
                 </div>
               </div>
               <div className="mt-4">

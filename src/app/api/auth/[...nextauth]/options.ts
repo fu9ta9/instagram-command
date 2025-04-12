@@ -15,6 +15,9 @@ interface CustomSession extends Session {
     name: string;
     instagram?: {
       connected: boolean;
+      id?: string | undefined;
+      name?: string | undefined;
+      profile_picture_url?: string | undefined;
     };
   } & Session['user']
 }
@@ -117,11 +120,18 @@ export const authOptions: NextAuthOptions = {
         try {
           const igAccount = await prisma.iGAccount.findFirst({
             where: { userId: token.id as string },
-            select: { id: true }
+            select: { 
+              id: true,
+              username: true,
+              profilePictureUrl: true
+            }
           });
           
           session.user.instagram = {
-            connected: !!igAccount
+            connected: !!igAccount,
+            id: igAccount?.id || undefined,
+            name: igAccount?.username || undefined,
+            profile_picture_url: igAccount?.profilePictureUrl || undefined
           };
         } catch (error) {
           // エラーは無視

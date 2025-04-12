@@ -21,15 +21,43 @@ export async function GET(request: Request) {
     const igUserId = process.env.INSTAGRAM_USER_ID;
 
     if (!accessToken || !igUserId) {
-      return NextResponse.json({ error: 'Instagram APIの設定が不足しています' }, { status: 500 });
+      console.error('環境変数が設定されていません:', {
+        hasAccessToken: !!accessToken,
+        hasIgUserId: !!igUserId
+      });
+      return NextResponse.json({ 
+        error: 'Instagram APIの設定が不足しています',
+        details: 'アクセストークンまたはユーザーIDが設定されていません。'
+      }, { status: 500 });
+    }
+
+    // アクセストークンの検証
+    try {
+      const debugTokenUrl = `https://graph.facebook.com/debug_token?input_token=${accessToken}&access_token=${accessToken}`;
+      const tokenResponse = await fetch(debugTokenUrl);
+      const tokenData = await tokenResponse.json();
+
+      if (!tokenResponse.ok || tokenData.error) {
+        console.error('アクセストークンの検証に失敗:', tokenData);
+        return NextResponse.json({ 
+          error: 'アクセストークンが無効です',
+          details: tokenData.error?.message || 'トークンの検証に失敗しました'
+        }, { status: 401 });
+      }
+    } catch (error) {
+      console.error('トークン検証エラー:', error);
+      return NextResponse.json({ 
+        error: 'アクセストークンの検証中にエラーが発生しました',
+        details: error instanceof Error ? error.message : '不明なエラー'
+      }, { status: 500 });
     }
 
     // Instagram Business Discovery APIを呼び出す
-    let apiUrl = `https://graph.instagram.com/v22.0/${igUserId}?fields=business_discovery.username(${accountId}){username,name,profile_picture_url,followers_count,media_count,media{id,comments_count,like_count,media_url,permalink,timestamp,media_type,thumbnail_url}}&access_token=${accessToken}`;
+    let apiUrl = `https://graph.facebook.com/v22.0/${igUserId}?fields=business_discovery.username(${accountId}){username,name,profile_picture_url,followers_count,media_count,media{id,comments_count,like_count,media_url,permalink,timestamp,media_type,thumbnail_url}}&access_token=${accessToken}`;
     
     // afterトークンがある場合は追加
     if (after) {
-      apiUrl = `https://graph.instagram.com/v22.0/${igUserId}?fields=business_discovery.username(${accountId}){username,name,profile_picture_url,followers_count,media_count,media.after(${after}){id,comments_count,like_count,media_url,permalink,timestamp,media_type,thumbnail_url}}&access_token=${accessToken}`;
+      apiUrl = `https://graph.facebook.com/v22.0/${igUserId}?fields=business_discovery.username(${accountId}){username,name,profile_picture_url,followers_count,media_count,media.after(${after}){id,comments_count,like_count,media_url,permalink,timestamp,media_type,thumbnail_url}}&access_token=${accessToken}`;
     }
     
     const response = await fetch(apiUrl);

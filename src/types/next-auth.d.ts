@@ -8,7 +8,10 @@ declare module 'next-auth' {
       email: string;
       name: string;
       instagram?: {
-        connected: boolean;  // 接続状態のみを保持
+        connected: boolean;
+        name?: string;
+        id?: string;
+        profile_picture_url?: string;
       };
     } & DefaultSession['user']
   }

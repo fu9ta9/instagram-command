@@ -43,7 +43,7 @@ export async function GET(request: Request) {
       // ここではIGIDを使用した検索を行います
       
       // 例: ユーザー名で検索する場合
-      const apiUrl = `https://graph.instagram.com/v22.0/${igUserId}?fields=business_discovery.username(${query}){username,name,profile_picture_url,id}&access_token=${accessToken}`;
+      const apiUrl = `https://graph.facebook.com/v22.0/${igUserId}?fields=business_discovery.username(${query}){username,name,profile_picture_url,id}&access_token=${accessToken}`;
       
       const response = await fetch(apiUrl);
       
