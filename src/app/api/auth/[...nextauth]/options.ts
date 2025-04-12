@@ -1,9 +1,11 @@
 import { NextAuthOptions } from "next-auth"
 import GoogleProvider from "next-auth/providers/google"
+import CredentialsProvider from "next-auth/providers/credentials"
 import { PrismaAdapter } from "@auth/prisma-adapter"
 import { prisma } from "@/lib/prisma"
 import type { Adapter } from "next-auth/adapters";
 import type { Session } from "next-auth";
+import bcrypt from 'bcryptjs'
 
 // Session型を拡張
 interface CustomSession extends Session {
@@ -30,6 +32,38 @@ export const authOptions: NextAuthOptions = {
         }
       }
     }),
+    CredentialsProvider({
+      name: 'Credentials',
+      credentials: {
+        email: { label: "メールアドレス", type: "email" },
+        password: { label: "パスワード", type: "password" }
+      },
+      async authorize(credentials) {
+        if (!credentials?.email || !credentials?.password) {
+          throw new Error('メールアドレスとパスワードを入力してください');
+        }
+
+        const user = await prisma.user.findUnique({
+          where: { email: credentials.email }
+        });
+
+        if (!user || !user.password) {
+          throw new Error('メールアドレスまたはパスワードが正しくありません');
+        }
+
+        const isValid = await bcrypt.compare(credentials.password, user.password);
+
+        if (!isValid) {
+          throw new Error('メールアドレスまたはパスワードが正しくありません');
+        }
+
+        return {
+          id: user.id,
+          email: user.email,
+          name: user.name
+        };
+      }
+    })
   ],
   callbacks: {
     async signIn({ user, account }) {
@@ -98,7 +132,7 @@ export const authOptions: NextAuthOptions = {
     }
   },
   pages: {
-    signIn: '/dashboard',
+    signIn: '/login',
     error: '/auth/error',
   },
   session: {
