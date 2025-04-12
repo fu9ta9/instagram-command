@@ -27,7 +27,7 @@ export async function getInstagramAccessToken(userId: string) {
 export async function fetchInstagramPosts(igAccount: IGAccount, afterToken?: string | null) {
   try {
     // URLを構築
-    let url = `https://graph.facebook.com/v20.0/${igAccount.instagramId}/media?fields=id,comments_count,like_count,media_product_type,media_url,thumbnail_url,timestamp&access_token=${igAccount.accessToken}`;
+    let url = `https://graph.instagram.com/v20.0/${igAccount.instagramId}/media?fields=id,comments_count,like_count,media_product_type,media_url,thumbnail_url,timestamp&access_token=${igAccount.accessToken}`;
     
     // afterトークンがある場合は追加
     if (afterToken) {
