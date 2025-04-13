@@ -7,11 +7,9 @@ import { ChevronLeft, ChevronRight, Instagram, MessageSquareMore, CreditCard, Se
 import { cn } from '@/lib/utils'
 import { useSession } from 'next-auth/react'
 import { useSidebar } from '@/contexts/SidebarContext'
-import { useInstagram } from '@/contexts/InstagramContext'
 
 export function Sidebar() {
   const { isCollapsed, toggleSidebar } = useSidebar()
-  const { status, isLoading } = useInstagram()
   const pathname = usePathname()
   const { data: session } = useSession()
 

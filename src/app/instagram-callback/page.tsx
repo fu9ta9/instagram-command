@@ -8,8 +8,7 @@ export default function InstagramCallback() {
   const router = useRouter();
 
   useEffect(() => {
-    // URLパラメータを取得
-    const search = window.location.search.substring(1); // ?を除去
+    const search = window.location.search.substring(1);
     const params = new URLSearchParams(search);
     
     const code = params.get('code');
@@ -26,25 +25,19 @@ export default function InstagramCallback() {
       return;
     }
 
-    // 認証コードをAPIに送信
     fetch(`/api/auth/instagram-callback?code=${code}`, {
-      redirect: 'manual' // リダイレクトを手動で処理
+      redirect: 'manual'
     })
       .then(async response => {
-        // リダイレクトレスポンスの場合
         if (response.type === 'opaqueredirect') {
-          // リダイレクト先のURLを取得
           const redirectUrl = response.headers.get('Location');
           if (redirectUrl) {
             router.push(redirectUrl);
           } else {
-            // リダイレクトURLが取得できない場合は、/connectにリダイレクト
             router.push('/connect');
           }
           return;
         }
-
-        // リダイレクトでない場合（エラー）
         router.push('/connect?error=unknown&message=予期せぬエラーが発生しました');
       })
       .catch(error => {

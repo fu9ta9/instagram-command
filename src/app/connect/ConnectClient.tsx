@@ -4,20 +4,16 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import FacebookConnect from '@/components/FacebookConnect'
 import { useSession } from 'next-auth/react'
 import { Loader2 } from 'lucide-react'
-import { useInstagram } from '@/contexts/InstagramContext'
 import { useSearchParams } from 'next/navigation'
 
-interface ConnectionStatus {
-  connected: boolean;
-  name?: string;
+interface InstagramInfo {
   id?: string;
+  name?: string;
   profile_picture_url?: string;
 }
 
 export default function ConnectClient() {
-  const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>({
-    connected: false,
-  });
+  const [instagramInfo, setInstagramInfo] = useState<InstagramInfo>({});
   const { data: session, status } = useSession();
   const [isLoading, setIsLoading] = useState(true)
   const [isConnecting, setIsConnecting] = useState(false)
@@ -26,15 +22,13 @@ export default function ConnectClient() {
   const searchParams = useSearchParams()
   const hasInitialFetch = useRef(false)
   
-  const { updateStatus } = useInstagram()
 
   // セッションからInstagramの情報を更新
   useEffect(() => {
     if (session?.user?.instagram) {
-      setConnectionStatus({
-        connected: session.user.instagram.connected,
-        name: session.user.instagram.name,
+      setInstagramInfo({
         id: session.user.instagram.id,
+        name: session.user.instagram.name,
         profile_picture_url: session.user.instagram.profile_picture_url,
       });
       setIsLoading(false);
@@ -69,7 +63,6 @@ export default function ConnectClient() {
     // 成功メッセージの表示のみ行い、追加のAPIコールは行わない
     if (success) {
       setSuccess(message || 'Instagramとの連携が完了しました！');
-      updateStatus();
       clearUrlParams();
       return;
     }
@@ -92,7 +85,6 @@ export default function ConnectClient() {
               // 成功パラメータがある場合は状態を更新
               if (url.searchParams.get('success')) {
                 setSuccess('Instagramとの連携が完了しました！');
-                updateStatus();
               }
             }
           } else {
@@ -107,7 +99,7 @@ export default function ConnectClient() {
           setIsConnecting(false);
         });
     }
-  }, [searchParams, updateStatus]);
+  }, [searchParams]);
 
   const handleConnect = async () => {
     setIsConnecting(true)
@@ -124,7 +116,6 @@ export default function ConnectClient() {
         throw new Error(data.message || 'Instagram連携に失敗しました')
       }
       
-      await updateStatus()
       setSuccess('Instagramとの連携が完了しました！')
     } catch (error) {
       console.error('Instagram連携エラー:', error);
@@ -162,7 +153,7 @@ export default function ConnectClient() {
             </div>
           )}
 
-          {connectionStatus.connected ? (
+          {instagramInfo.id ? (
             <div className="space-y-4">
               <div className="inline-flex items-center bg-green-100 dark:bg-green-900/30 border border-green-400 dark:border-green-700 text-green-700 dark:text-green-400 px-4 py-2 rounded">
                 <span className="mr-2">Instagram連携済み</span>
@@ -171,16 +162,16 @@ export default function ConnectClient() {
                 </svg>
               </div>
               <div className="flex items-center space-x-4 px-4 py-2 bg-gray-50 dark:bg-gray-800 rounded">
-                {connectionStatus.profile_picture_url && (
+                {instagramInfo.profile_picture_url && (
                   <img 
-                    src={connectionStatus.profile_picture_url} 
+                    src={instagramInfo.profile_picture_url} 
                     alt="Profile" 
                     className="w-12 h-12 rounded-full object-cover"
                   />
                 )}
                 <div className="text-sm text-gray-600 dark:text-gray-300">
-                  <div className="font-medium dark:text-gray-200">{connectionStatus.name}</div>
-                  <div className="text-gray-500 dark:text-gray-400">ID: {connectionStatus.id}</div>
+                  <div className="font-medium dark:text-gray-200">{instagramInfo.name}</div>
+                  <div className="text-gray-500 dark:text-gray-400">ID: {instagramInfo.id}</div>
                 </div>
               </div>
               <div className="mt-4">

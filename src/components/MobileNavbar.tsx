@@ -3,16 +3,11 @@
 import React from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Instagram, MessageSquareMore, CreditCard, Search, Home } from 'lucide-react'
+import { Instagram, MessageSquareMore, CreditCard, Search } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { useSession } from 'next-auth/react'
 
 export function MobileNavbar() {
   const pathname = usePathname()
-  const { data: session } = useSession()
-
-  // ログインしていない場合は表示しない
-  if (!session) return null
 
   const navItems = [
     {

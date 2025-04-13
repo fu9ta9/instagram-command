@@ -3,9 +3,16 @@ import GoogleProvider from "next-auth/providers/google"
 import CredentialsProvider from "next-auth/providers/credentials"
 import { PrismaAdapter } from "@auth/prisma-adapter"
 import { prisma } from "@/lib/prisma"
-import type { Adapter } from "next-auth/adapters";
-import type { Session } from "next-auth";
+import type { Adapter } from "next-auth/adapters"
+import type { Session } from "next-auth"
 import bcrypt from 'bcryptjs'
+
+// Instagram情報の型定義
+interface InstagramData {
+  id: string;
+  name: string;
+  profile_picture_url?: string;
+}
 
 // Session型を拡張
 interface CustomSession extends Session {
@@ -13,13 +20,53 @@ interface CustomSession extends Session {
     id: string;
     email: string;
     name: string;
-    instagram?: {
-      connected: boolean;
-      id?: string | undefined;
-      name?: string | undefined;
-      profile_picture_url?: string | undefined;
-    };
+    instagram?: InstagramData | null;
   } & Session['user']
+}
+
+// Instagram情報更新用の関数
+export async function updateInstagramSession(
+  userId: string,
+  data?: {
+    id: string;
+    username: string;
+    profilePictureUrl: string | null;
+    accessToken: string;
+  }
+): Promise<InstagramData | null> {
+  try {
+    if (data) {
+      // 直接データが提供された場合
+      return {
+        id: data.id,
+        name: data.username,
+        profile_picture_url: data.profilePictureUrl || undefined
+      };
+    }
+
+    // データが提供されない場合はDBから取得
+    const igAccount = await prisma.iGAccount.findFirst({
+      where: { userId },
+      select: { 
+        id: true,
+        username: true,
+        profilePictureUrl: true
+      }
+    });
+    
+    if (!igAccount?.id) {
+      return null;
+    }
+
+    return {
+      id: igAccount.id,
+      name: igAccount.username,
+      profile_picture_url: igAccount.profilePictureUrl || undefined
+    };
+  } catch (error) {
+    console.error('Error updating Instagram session:', error);
+    return null;
+  }
 }
 
 export const authOptions: NextAuthOptions = {
@@ -70,13 +117,6 @@ export const authOptions: NextAuthOptions = {
   ],
   callbacks: {
     async signIn({ user, account }) {
-      // デバッグログ
-      console.log("SignIn callback called with:", { 
-        user: user || "undefined", 
-        account: account || "undefined" 
-      });
-      
-      // 安全なアクセスのためのnullチェック
       if (!account) {
         console.error("Account object is missing in signIn callback");
         return false;
@@ -98,7 +138,6 @@ export const authOptions: NextAuthOptions = {
             });
           }
         }
-        
         return true;
       } catch (error) {
         console.error("Error in signIn callback:", error);
@@ -118,23 +157,10 @@ export const authOptions: NextAuthOptions = {
         session.user.id = token.id as string;
         
         try {
-          const igAccount = await prisma.iGAccount.findFirst({
-            where: { userId: token.id as string },
-            select: { 
-              id: true,
-              username: true,
-              profilePictureUrl: true
-            }
-          });
-          
-          session.user.instagram = {
-            connected: !!igAccount,
-            id: igAccount?.id || undefined,
-            name: igAccount?.username || undefined,
-            profile_picture_url: igAccount?.profilePictureUrl || undefined
-          };
+          session.user.instagram = await updateInstagramSession(token.id as string);
         } catch (error) {
-          // エラーは無視
+          console.error('Error fetching Instagram account:', error);
+          session.user.instagram = null;
         }
       }
       

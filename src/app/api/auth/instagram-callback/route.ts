@@ -213,22 +213,16 @@ export async function GET(request: Request) {
       }
     });
 
-    // プロフィール画像URLのデバッグログ
-    await prisma.executionLog.create({
-      data: {
-        errorMessage: `Instagram Profile Picture URL:
-        Username: ${userData.username}
-        Profile Picture URL: ${userData.profile_picture_url || 'Not available'}`
-      }
-    });
-
-    // 成功時にリダイレクト
+    // デバッグログ
     await prisma.executionLog.create({
       data: {
         errorMessage: `Instagram認証成功: ユーザーID: ${userData.id}, ユーザー名: ${userData.username}`
       }
     });
-    return NextResponse.redirect(`${process.env.NEXT_PUBLIC_NEXTAUTH_URL}/connect?success=true&message=${encodeURIComponent('Instagramアカウントの連携が完了しました')}`)
+
+    // 成功時にリダイレクト
+    return NextResponse.redirect(`${process.env.NEXT_PUBLIC_NEXTAUTH_URL}/connect?success=true&message=${encodeURIComponent('Instagramアカウントの連携が完了しました')}`);
+
   } catch (error) {
     await prisma.executionLog.create({
       data: {

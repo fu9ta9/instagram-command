@@ -1,6 +1,12 @@
 import { DefaultSession } from 'next-auth';
 import NextAuth from 'next-auth';
 
+interface InstagramData {
+  id: string;
+  name: string;
+  profile_picture_url?: string;
+}
+
 declare module 'next-auth' {
   interface Session {
     user: {
@@ -8,11 +14,10 @@ declare module 'next-auth' {
       email: string;
       name: string;
       instagram?: {
-        connected: boolean;
-        name?: string;
-        id?: string;
+        id: string;
+        name: string;
         profile_picture_url?: string;
-      };
+      } | null;
     } & DefaultSession['user']
   }
 }

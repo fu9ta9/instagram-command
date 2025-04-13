@@ -11,21 +11,8 @@ export default function DashboardClient() {
   useEffect(() => {
     if (status === 'authenticated' && session?.user?.id) {
       fetchMembershipType();
-      fetchConnectionStatus();
     }
   }, [status, session?.user?.id]);
-
-  const fetchConnectionStatus = async () => {
-    try {
-      const response = await fetch('/api/connections/status');
-      if (response.ok) {
-        const data = await response.json();
-        // setConnectionStatus(data);
-      }
-    } catch (error) {
-      console.error('連携状態の取得に失敗:', error);
-    }
-  };
 
   const fetchMembershipType = async () => {
     try {
@@ -42,7 +29,14 @@ export default function DashboardClient() {
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-2xl font-bold mb-4">ダッシュボード</h1>
-      {/* ダッシュボードの内容 */}
+      {session?.user?.instagram && (
+        <div className="mb-4">
+          <p>Instagram連携状態: {session.user.instagram.id ? '連携中' : '未連携'}</p>
+          {session.user.instagram.id && (
+            <p>アカウント名: {session.user.instagram.name}</p>
+          )}
+        </div>
+      )}
     </div>
   );
 }

@@ -6,7 +6,6 @@ import { AuthProvider } from '@/components/AuthProvider'
 import { Sidebar } from '@/components/Sidebar'
 import { cn } from '@/lib/utils'
 import { SidebarProvider } from '@/contexts/SidebarContext'
-import { InstagramProvider } from '@/contexts/InstagramContext'
 import { MainContent } from '@/components/MainContent'
 
 const inter = Inter({ subsets: ['latin'] })
@@ -20,7 +19,6 @@ export default function RootLayout({
     <html lang="ja" suppressHydrationWarning>
       <body className={cn(inter.className, "bg-gray-50")}>
         <AuthProvider>
-          <InstagramProvider>
             <SidebarProvider>
               <div className="flex min-h-screen bg-gray-50">
                 <Sidebar />
@@ -32,7 +30,6 @@ export default function RootLayout({
                 </MainContent>
               </div>
             </SidebarProvider>
-          </InstagramProvider>
         </AuthProvider>
       </body>
     </html>
