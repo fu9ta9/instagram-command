@@ -39,7 +39,7 @@ const ReplyList: React.FC<ReplyListProps> = ({ replies, onEdit, onDelete }) => {
             const response = await fetch(`/api/instagram/posts/${reply.postId}/media`);
             if (response.ok) {
               const data = await response.json();
-              newMediaUrls[reply.postId] = data.media_url || data.thumbnail_url;
+              newMediaUrls[reply.postId] = data.thumbnail_url || data.media_url;
             }
           } catch (error) {
             console.error(`Failed to fetch media for post ${reply.postId}:`, error);
