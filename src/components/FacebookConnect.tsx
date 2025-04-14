@@ -46,7 +46,7 @@ export default function FacebookConnect({ isReconnect = false }: FacebookConnect
         className="mb-4"
         disabled={isLoading}
       >
-        {isLoading ? 'ログイン中...' : isReconnect ? 'Instagram再連携' : 'Facebook/Instagram連携'}
+        {isLoading ? 'ログイン中...' : isReconnect ? 'Instagram再連携' : 'Instagram連携'}
       </Button>
     </div>
   );
