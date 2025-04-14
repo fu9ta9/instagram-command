@@ -122,6 +122,7 @@ async function findMatchingReply(webhookData: any) {
         buttons: true,
         igAccount: {
           select: {
+            instagramId: true,
             accessToken: true
           }
         }
@@ -210,35 +211,31 @@ function createMessageData(commenterId: string, replyText: string, buttons: Arra
   }
 }
 
-async function sendReplyToComment(webhookData: any, reply: any) {
+interface IGAccount {
+  instagramId: string;
+  accessToken: string;
+}
+
+async function sendReplyToComment(
+  webhookData: any,
+  reply: {
+    reply: string;
+    buttons?: any[];
+    igAccount?: IGAccount;
+  }
+) {
   const commentData = webhookData.entry[0].changes[0].value
   const commenterId = commentData.from.id
-  const mediaId = commentData.media.id
 
   try {
-    if (!reply.igAccount?.accessToken) {
-      throw new Error('アクセストークンが見つかりません')
+    // igAccountの存在確認と型ガード
+    if (!reply.igAccount?.instagramId || !reply.igAccount?.accessToken) {
+      throw new Error('Instagram アカウント情報が不足しています')
     }
 
-    // Facebook Graph APIからページ情報を取得
-    const pageResponse = await fetch(
-      `https://graph.instagram.com/v22.0/me/accounts?fields=id,access_token&access_token=${reply.igAccount.accessToken}`
-    )
-
-    if (!pageResponse.ok) {
-      throw new Error('ページ情報取得に失敗しました')
-    }
-
-    const pageData = await pageResponse.json()
-    
-    if (!pageData.data?.[0]?.id || !pageData.data?.[0]?.access_token) {
-      throw new Error('ページ情報が見つかりません')
-    }
-
-    // const pageId = pageData.data[0].id
-    const pageId = "17841447969868460"
-    // const pageAccessToken = pageData.data[0].access_token
-    const pageAccessToken = "IGQWRQZAkk4LTI4Vl9IRENwdlhwUGxaRlNnei1EUG4zR2xXWS1yaVVya0dTWnp5VmhLQnpoT1BjUVVMcFlKclBqcUNRZATZAhSDhSXzFYN1hmS3ZA3UjBsQkhwdWQxM3U2RVdJdDNjVjJpNEkzT1ozLVRLU045QmJJMTQZD"
+    // igAccountのデータを使用
+    const instagramId = reply.igAccount.instagramId
+    const accessToken = reply.igAccount.accessToken
 
     // メッセージデータを作成
     const messageData = createMessageData(commenterId, reply.reply, reply.buttons || [])
@@ -252,7 +249,7 @@ async function sendReplyToComment(webhookData: any, reply: any) {
 
     // Instagram APIで返信を送信
     const response = await fetch(
-      `https://graph.instagram.com/v22.0/${pageId}/messages?access_token=${pageAccessToken}`,
+      `https://graph.instagram.com/v22.0/${instagramId}/messages?access_token=${accessToken}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
