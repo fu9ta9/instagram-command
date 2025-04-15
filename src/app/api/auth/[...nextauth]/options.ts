@@ -31,7 +31,6 @@ export async function updateInstagramSession(
     id: string;
     username: string;
     profilePictureUrl: string | null;
-    accessToken: string;
   }
 ): Promise<InstagramData | null> {
   try {
