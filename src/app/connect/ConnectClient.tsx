@@ -14,7 +14,7 @@ interface InstagramInfo {
 
 export default function ConnectClient() {
   const [instagramInfo, setInstagramInfo] = useState<InstagramInfo>({});
-  const { data: session, status } = useSession();
+  const { data: session, status, update } = useSession();
   const [isLoading, setIsLoading] = useState(true)
   const [isConnecting, setIsConnecting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -45,6 +45,7 @@ export default function ConnectClient() {
     const error = searchParams.get('error');
     const success = searchParams.get('success');
     const message = searchParams.get('message');
+    const instagram = searchParams.get('instagram');
 
     // URLパラメータをクリアするための関数
     const clearUrlParams = () => {
@@ -60,9 +61,23 @@ export default function ConnectClient() {
       return;
     }
 
-    // 成功メッセージの表示のみ行い、追加のAPIコールは行わない
-    if (success) {
-      setSuccess(message || 'Instagramとの連携が完了しました！');
+    // 成功メッセージの表示とセッション更新
+    if (success && instagram) {
+      try {
+        const instagramData = JSON.parse(decodeURIComponent(instagram));
+        // セッション情報を更新
+        update({
+          instagram: {
+            id: instagramData.id,
+            name: instagramData.username,
+            profile_picture_url: instagramData.profile_picture_url
+          }
+        });
+        setSuccess(message || 'Instagramとの連携が完了しました！');
+      } catch (error) {
+        console.error('Instagram data parse error:', error);
+        setError('セッション更新中にエラーが発生しました');
+      }
       clearUrlParams();
       return;
     }

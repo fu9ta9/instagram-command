@@ -213,26 +213,16 @@ export async function GET(request: Request) {
       }
     });
 
-    // デバッグログ
-    await prisma.executionLog.create({
-      data: {
-        errorMessage: `Instagram認証成功: ユーザーID: ${userData.id}, ユーザー名: ${userData.username}`
-      }
-    });
-
+    const instagramSessionData = {
+      id: userData.id,
+      username: userData.username,
+      profile_picture_url: userData.profile_picture_url || undefined
+    };
+    
     // セッションを更新するためのレスポンスを作成
     const response = NextResponse.redirect(
-      `${process.env.NEXT_PUBLIC_NEXTAUTH_URL}/connect?success=true&message=${encodeURIComponent('Instagramアカウントの連携が完了しました')}`
+      `${process.env.NEXT_PUBLIC_NEXTAUTH_URL}/connect?success=true&message=${encodeURIComponent('Instagramアカウントの連携が完了しました')}&instagram=${encodeURIComponent(JSON.stringify(instagramSessionData))}`
     );
-
-    // セッショントークンを無効化して新しいセッションを強制的に取得させる
-    const cookieName = `${process.env.NODE_ENV === 'production' ? '__Secure-' : ''}next-auth.session-token`;
-    response.cookies.set(cookieName, '', {
-      expires: new Date(0),
-      path: '/',
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax'
-    });
 
     return response;
 
