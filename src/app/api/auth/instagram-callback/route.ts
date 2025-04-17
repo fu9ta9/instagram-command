@@ -12,26 +12,6 @@ export async function GET(request: Request) {
 
   // デバッグログ: 環境変数とリダイレクトURI
   const redirectUri = `${process.env.NEXT_PUBLIC_NEXTAUTH_URL}/instagram-callback`;
-  await prisma.executionLog.create({
-    data: {
-      errorMessage: `Instagram Callback Debug:
-      NEXT_PUBLIC_NEXTAUTH_URL: ${process.env.NEXT_PUBLIC_NEXTAUTH_URL}
-      Redirect URI: ${redirectUri}
-      Request URL: ${request.url}`
-    }
-  });
-
-  // デバッグログ: リクエストパラメータ
-  await prisma.executionLog.create({
-    data: {
-      errorMessage: `Instagram Callback Request:
-      URL: ${request.url}
-      Code: ${code}
-      Error: ${error}
-      Error Reason: ${errorReason}
-      Error Description: ${errorDescription}`
-    }
-  });
 
   // エラーパラメータがある場合はエラーを返す
   if (error) {
@@ -63,15 +43,6 @@ export async function GET(request: Request) {
       code: code
     });
 
-    // デバッグログ: トークンリクエスト
-    await prisma.executionLog.create({
-      data: {
-        errorMessage: `Instagram Token Request:
-        URL: ${tokenUrl}
-        Params: ${tokenParams.toString()}`
-      }
-    });
-
     const tokenResponse = await fetch(tokenUrl, {
       method: 'POST',
       body: tokenParams,
@@ -81,15 +52,6 @@ export async function GET(request: Request) {
     })
 
     const tokenData = await tokenResponse.json()
-    
-    // デバッグログ: トークンレスポンス
-    await prisma.executionLog.create({
-      data: {
-        errorMessage: `Instagram Token Response:
-        Status: ${tokenResponse.status}
-        Data: ${JSON.stringify(tokenData)}`
-      }
-    });
     
     // トークン取得エラーチェック
     if (!tokenResponse.ok || tokenData.error) {
@@ -113,30 +75,12 @@ export async function GET(request: Request) {
     // 長期アクセストークンを取得
     const longLivedTokenUrl = `https://graph.instagram.com/access_token?grant_type=ig_exchange_token&client_secret=${process.env.INSTAGRAM_APP_SECRET}&access_token=${encodeURIComponent(tokenData.access_token)}`;
 
-    // デバッグログ: 長期トークンリクエスト
-    await prisma.executionLog.create({
-      data: {
-        errorMessage: `Instagram Long-lived Token Request:
-        URL: ${longLivedTokenUrl}
-        Initial Token: ${tokenData.access_token}`
-      }
-    });
-
     const longLivedTokenResponse = await fetch(longLivedTokenUrl, {
       headers: {
         'Accept': 'application/json'
       }
     });
     const longLivedTokenData = await longLivedTokenResponse.json()
-    
-    // デバッグログ: 長期トークンレスポンス
-    await prisma.executionLog.create({
-      data: {
-        errorMessage: `Instagram Long-lived Token Response:
-        Status: ${longLivedTokenResponse.status}
-        Data: ${JSON.stringify(longLivedTokenData)}`
-      }
-    });
     
     // 長期トークン取得エラーチェック
     if (longLivedTokenData.error) {
@@ -151,25 +95,8 @@ export async function GET(request: Request) {
     // ユーザー情報を取得
     const userUrl = `https://graph.instagram.com/me?fields=id,username,account_type,profile_picture_url&access_token=${longLivedTokenData.access_token}`;
 
-    // デバッグログ: ユーザー情報リクエスト
-    await prisma.executionLog.create({
-      data: {
-        errorMessage: `Instagram User Info Request:
-        URL: ${userUrl}`
-      }
-    });
-
     const userResponse = await fetch(userUrl);
     const userData = await userResponse.json();
-    
-    // デバッグログ: ユーザー情報レスポンス
-    await prisma.executionLog.create({
-      data: {
-        errorMessage: `Instagram User Info Response:
-        Status: ${userResponse.status}
-        Data: ${JSON.stringify(userData)}`
-      }
-    });
     
     // ユーザー情報取得エラーチェック
     if (userData.error) {
