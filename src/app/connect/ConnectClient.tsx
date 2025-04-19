@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import FacebookConnect from '@/components/FacebookConnect'
 import { useSession } from 'next-auth/react'
 import { Loader2 } from 'lucide-react'
-import { useSearchParams } from 'next/navigation'
+import { useSearchParams, useRouter } from 'next/navigation'
 
 interface InstagramInfo {
   id?: string;
@@ -24,6 +24,8 @@ export default function ConnectClient() {
   const searchParams = useSearchParams()
   const hasInitialFetch = useRef(false)
   const [isUpdatingSession, setIsUpdatingSession] = useState(false)
+  const router = useRouter()
+  const isProcessingParams = useRef(false)
 
   // セッションからInstagramの情報を更新
   useEffect(() => {
@@ -48,7 +50,7 @@ export default function ConnectClient() {
 
   // Instagram認証コールバックの処理
   useEffect(() => {
-    if (!searchParams || isUpdatingSession) return;
+    if (!searchParams || isUpdatingSession || isProcessingParams.current) return;
 
     console.log('3. コールバック処理useEffect実行', {
       hasSearchParams: !!searchParams,
@@ -66,19 +68,18 @@ export default function ConnectClient() {
     const message = searchParams.get('message');
     const instagram = searchParams.get('instagram');
 
-    // URLパラメータをクリアするための関数
-    const clearUrlParams = () => {
-      console.log('3-1. URLパラメータをクリア');
-      const url = new URL(window.location.href);
-      url.search = '';
-      window.history.replaceState({}, '', url.toString());
-    };
+    // パラメータが存在する場合のみ処理を実行
+    if (error || success || code) {
+      isProcessingParams.current = true;
+    } else {
+      return;
+    }
 
     // エラーメッセージの表示のみ行い、追加のAPIコールは行わない
     if (error) {
       console.log('3-2. エラー処理');
       setError(message || 'Instagramとの連携に失敗しました');
-      clearUrlParams();
+      router.replace('/connect');
       return;
     }
 
@@ -94,11 +95,12 @@ export default function ConnectClient() {
           profile_picture_url: instagramData.profile_picture_url
         });
         setSuccess(message || 'Instagramとの連携が完了しました！');
+        router.replace('/connect');
       } catch (error) {
         console.error('3-6. Instagram情報パースエラー:', error);
         setError('Instagram情報の処理中にエラーが発生しました');
+        router.replace('/connect');
       }
-      clearUrlParams();
       return;
     }
 
@@ -116,10 +118,8 @@ export default function ConnectClient() {
             const redirectUrl = response.headers.get('Location');
             if (redirectUrl) {
               const url = new URL(redirectUrl);
-              window.history.replaceState({}, '', url.pathname + url.search);
-              if (url.searchParams.get('success')) {
-                setSuccess('Instagramとの連携が完了しました！');
-              }
+              // URLパラメータを保持したまま履歴を置き換え
+              router.replace(url.pathname + url.search);
             }
           } else {
             throw new Error('API request failed');
@@ -128,13 +128,14 @@ export default function ConnectClient() {
         .catch(error => {
           console.error('3-10. Instagram連携エラー:', error);
           setError('Instagramとの連携中にエラーが発生しました');
+          router.replace('/connect');
         })
         .finally(() => {
           console.log('3-11. API呼び出し処理完了');
           setIsConnecting(false);
         });
     }
-  }, [searchParams, isUpdatingSession]);
+  }, [searchParams, isUpdatingSession, router]);
 
   const handleConnect = async () => {
     setIsConnecting(true)
