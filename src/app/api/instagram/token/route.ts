@@ -1,27 +1,11 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { authOptions } from '../[...nextauth]/options';
+import { authOptions } from '../../auth/[...nextauth]/options';
 import { getServerSession } from 'next-auth';
 
-export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url)
-  const code = searchParams.get('code')
-  const error = searchParams.get('error')
-  const errorReason = searchParams.get('error_reason')
-  const errorDescription = searchParams.get('error_description')
-
-  // デバッグログ: 環境変数とリダイレクトURI
+export async function POST(request: Request) {
+  const { code } = await request.json();
   const redirectUri = `${process.env.NEXT_PUBLIC_NEXTAUTH_URL}/instagram-callback`;
-
-  // エラーパラメータがある場合はエラーを返す
-  if (error) {
-    await prisma.executionLog.create({
-      data: {
-        errorMessage: `Instagram認証エラー: ${error}, ${errorReason}, ${errorDescription}`
-      }
-    });
-    return NextResponse.redirect(`${process.env.NEXT_PUBLIC_NEXTAUTH_URL}/connect?error=instagram_auth_failed&message=${encodeURIComponent(errorDescription || '認証に失敗しました')}`)
-  }
 
   if (!code) {
     await prisma.executionLog.create({
@@ -29,7 +13,10 @@ export async function GET(request: Request) {
         errorMessage: 'Instagram認証エラー: 認証コードなし'
       }
     });
-    return NextResponse.redirect(`${process.env.NEXT_PUBLIC_NEXTAUTH_URL}/connect?error=no_code&message=${encodeURIComponent('認証コードが提供されていません')}`)
+    return NextResponse.json(
+      { error: 'no_code', message: '認証コードが提供されていません' },
+      { status: 400 }
+    );
   }
 
   try {
@@ -49,9 +36,9 @@ export async function GET(request: Request) {
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded'
       }
-    })
+    });
 
-    const tokenData = await tokenResponse.json()
+    const tokenData = await tokenResponse.json();
     
     // トークン取得エラーチェック
     if (!tokenResponse.ok || tokenData.error) {
@@ -60,7 +47,10 @@ export async function GET(request: Request) {
           errorMessage: `Instagramトークン取得エラー: ${JSON.stringify(tokenData)}`
         }
       });
-      return NextResponse.redirect(`${process.env.NEXT_PUBLIC_NEXTAUTH_URL}/connect?error=token_error&message=${encodeURIComponent(tokenData.error_message || 'トークンの取得に失敗しました')}`)
+      return NextResponse.json(
+        { error: 'token_error', message: tokenData.error_message || 'トークンの取得に失敗しました' },
+        { status: 400 }
+      );
     }
 
     if (!tokenData.access_token) {
@@ -69,7 +59,10 @@ export async function GET(request: Request) {
           errorMessage: `Instagramトークン取得エラー: アクセストークンが存在しません - ${JSON.stringify(tokenData)}`
         }
       });
-      return NextResponse.redirect(`${process.env.NEXT_PUBLIC_NEXTAUTH_URL}/connect?error=token_error&message=${encodeURIComponent('アクセストークンの取得に失敗しました')}`)
+      return NextResponse.json(
+        { error: 'token_error', message: 'アクセストークンの取得に失敗しました' },
+        { status: 400 }
+      );
     }
 
     // 長期アクセストークンを取得
@@ -80,7 +73,7 @@ export async function GET(request: Request) {
         'Accept': 'application/json'
       }
     });
-    const longLivedTokenData = await longLivedTokenResponse.json()
+    const longLivedTokenData = await longLivedTokenResponse.json();
     
     // 長期トークン取得エラーチェック
     if (longLivedTokenData.error) {
@@ -89,7 +82,10 @@ export async function GET(request: Request) {
           errorMessage: `Instagram長期トークン取得エラー: ${JSON.stringify(longLivedTokenData)}`
         }
       });
-      return NextResponse.redirect(`${process.env.NEXT_PUBLIC_NEXTAUTH_URL}/connect?error=long_token_error&message=${encodeURIComponent(longLivedTokenData.error_message || '長期トークンの取得に失敗しました')}`)
+      return NextResponse.json(
+        { error: 'long_token_error', message: longLivedTokenData.error_message || '長期トークンの取得に失敗しました' },
+        { status: 400 }
+      );
     }
 
     // ユーザー情報を取得
@@ -105,7 +101,10 @@ export async function GET(request: Request) {
           errorMessage: `Instagramユーザー情報取得エラー: ${JSON.stringify(userData)}`
         }
       });
-      return NextResponse.redirect(`${process.env.NEXT_PUBLIC_NEXTAUTH_URL}/connect?error=user_info_error&message=${encodeURIComponent(userData.error_message || 'ユーザー情報の取得に失敗しました')}`)
+      return NextResponse.json(
+        { error: 'user_info_error', message: userData.error_message || 'ユーザー情報の取得に失敗しました' },
+        { status: 400 }
+      );
     }
 
     const session = await getServerSession(authOptions);
@@ -115,7 +114,10 @@ export async function GET(request: Request) {
           errorMessage: 'Instagram認証エラー: 未認証 - ユーザーセッションが見つかりません'
         }
       });
-      return NextResponse.redirect(`${process.env.NEXT_PUBLIC_NEXTAUTH_URL}/connect?error=unauthorized&message=${encodeURIComponent('認証が必要です')}`)
+      return NextResponse.json(
+        { error: 'unauthorized', message: '認証が必要です' },
+        { status: 401 }
+      );
     }
 
     // アカウント情報をDBに保存/更新
@@ -146,12 +148,11 @@ export async function GET(request: Request) {
       profile_picture_url: userData.profile_picture_url || undefined
     };
     
-    // セッションを更新するためのレスポンスを作成
-    const response = NextResponse.redirect(
-      `${process.env.NEXT_PUBLIC_NEXTAUTH_URL}/connect?success=true&message=${encodeURIComponent('Instagramアカウントの連携が完了しました')}&instagram=${encodeURIComponent(JSON.stringify(instagramSessionData))}`
-    );
-
-    return response;
+    return NextResponse.json({
+      success: true,
+      message: 'Instagramアカウントの連携が完了しました',
+      instagram: instagramSessionData
+    });
 
   } catch (error) {
     await prisma.executionLog.create({
@@ -159,6 +160,9 @@ export async function GET(request: Request) {
         errorMessage: `Instagram認証エラー: 予期せぬエラー - ${error instanceof Error ? error.message : String(error)}`
       }
     });
-    return NextResponse.redirect(`${process.env.NEXT_PUBLIC_NEXTAUTH_URL}/connect?error=unknown&message=${encodeURIComponent('予期せぬエラーが発生しました')}`)
+    return NextResponse.json(
+      { error: 'unknown', message: '予期せぬエラーが発生しました' },
+      { status: 500 }
+    );
   }
 } 

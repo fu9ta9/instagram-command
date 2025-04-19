@@ -25,24 +25,27 @@ export default function InstagramCallback() {
       return;
     }
 
-    fetch(`/api/auth/instagram-callback?code=${code}`, {
-      redirect: 'manual'
+    // 新しいAPIエンドポイントを呼び出し
+    fetch('/api/instagram/token', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ code })
     })
       .then(async response => {
-        if (response.type === 'opaqueredirect') {
-          const redirectUrl = response.headers.get('Location');
-          if (redirectUrl) {
-            router.push(redirectUrl);
-          } else {
-            router.push('/connect');
-          }
-          return;
+        const data = await response.json();
+        
+        if (!response.ok) {
+          throw new Error(data.message || '認証処理中にエラーが発生しました');
         }
-        router.push('/connect?error=unknown&message=予期せぬエラーが発生しました');
+
+        // 成功時は/connectページにリダイレクト（instagramデータを含める）
+        router.push(`/connect?success=true&message=${encodeURIComponent(data.message)}&instagram=${encodeURIComponent(JSON.stringify(data.instagram))}`);
       })
       .catch(error => {
         console.error('Error:', error);
-        router.push(`/connect?error=api_error&message=${encodeURIComponent('認証処理中にエラーが発生しました')}`);
+        router.push(`/connect?error=api_error&message=${encodeURIComponent(error.message || '認証処理中にエラーが発生しました')}`);
       });
   }, [router]);
 
