@@ -54,11 +54,6 @@ export async function GET(
     }
 
     const data = await response.json();
-    await prisma.executionLog.create({
-      data: {
-        errorMessage: `Instagram Media取得成功: PostID ${params.postId}`
-      }
-    });
 
     return NextResponse.json(data);
   } catch (error) {
