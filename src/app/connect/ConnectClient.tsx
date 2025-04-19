@@ -13,32 +13,24 @@ interface InstagramInfo {
 }
 
 export default function ConnectClient() {
-  console.log('1. ConnectClient コンポーネントがレンダリング');
-  
-  const [instagramInfo, setInstagramInfo] = useState<InstagramInfo>({});
   const { data: session, status } = useSession();
-  const [isLoading, setIsLoading] = useState(true)
+  const [instagramInfo, setInstagramInfo] = useState<InstagramInfo>({});
+  const [isLoading, setIsLoading] = useState(status === 'loading')
   const [isConnecting, setIsConnecting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
   const searchParams = useSearchParams()
-  const hasInitialFetch = useRef(false)
-  const [isUpdatingSession, setIsUpdatingSession] = useState(false)
-  const router = useRouter()
   const isProcessingParams = useRef(false)
+  const router = useRouter()
 
   // セッションからInstagramの情報を更新
   useEffect(() => {
-    console.log('2. セッション更新useEffect実行', { 
-      hasInstagram: !!session?.user?.instagram,
-      status,
-      isUpdatingSession
-    });
+    if (status === 'loading') {
+      setIsLoading(true);
+      return;
+    }
 
-    if (status === 'loading') return;
-
-    if (session?.user?.instagram && !isUpdatingSession) {
-      console.log('2-1. Instagramセッション情報を設定');
+    if (session?.user?.instagram) {
       setInstagramInfo({
         id: session.user.instagram.id,
         name: session.user.instagram.name,
@@ -46,21 +38,11 @@ export default function ConnectClient() {
       });
     }
     setIsLoading(false);
-  }, [session, status, isUpdatingSession]);
+  }, [session, status]);
 
   // Instagram認証コールバックの処理
   useEffect(() => {
-    if (!searchParams || isUpdatingSession || isProcessingParams.current) return;
-
-    console.log('3. コールバック処理useEffect実行', {
-      hasSearchParams: !!searchParams,
-      params: {
-        code: searchParams?.get('code'),
-        error: searchParams?.get('error'),
-        success: searchParams?.get('success'),
-        instagram: searchParams?.get('instagram'),
-      }
-    });
+    if (!searchParams || isProcessingParams.current || status === 'loading') return;
 
     const code = searchParams.get('code');
     const error = searchParams.get('error');
@@ -77,7 +59,6 @@ export default function ConnectClient() {
 
     // エラーメッセージの表示のみ行い、追加のAPIコールは行わない
     if (error) {
-      console.log('3-2. エラー処理');
       setError(message || 'Instagramとの連携に失敗しました');
       router.replace('/connect');
       return;
@@ -87,8 +68,6 @@ export default function ConnectClient() {
     if (success && instagram) {
       try {
         const instagramData = JSON.parse(decodeURIComponent(instagram));
-        console.log('3-4. Instagram データをパース', instagramData);
-        
         setInstagramInfo({
           id: instagramData.id,
           name: instagramData.username,
@@ -97,7 +76,7 @@ export default function ConnectClient() {
         setSuccess(message || 'Instagramとの連携が完了しました！');
         router.replace('/connect');
       } catch (error) {
-        console.error('3-6. Instagram情報パースエラー:', error);
+        console.error('Instagram情報パースエラー:', error);
         setError('Instagram情報の処理中にエラーが発生しました');
         router.replace('/connect');
       }
@@ -106,19 +85,16 @@ export default function ConnectClient() {
 
     // codeがある場合のみAPIコールを実行
     if (code) {
-      console.log('3-8. 認証コードによるAPI呼び出し開始');
       setIsConnecting(true);
       
       fetch(`/api/auth/instagram-callback?code=${code}`, {
         redirect: 'manual'
       })
         .then(async response => {
-          console.log('3-9. API呼び出し完了', { responseType: response.type });
           if (response.type === 'opaqueredirect') {
             const redirectUrl = response.headers.get('Location');
             if (redirectUrl) {
               const url = new URL(redirectUrl);
-              // URLパラメータを保持したまま履歴を置き換え
               router.replace(url.pathname + url.search);
             }
           } else {
@@ -126,16 +102,15 @@ export default function ConnectClient() {
           }
         })
         .catch(error => {
-          console.error('3-10. Instagram連携エラー:', error);
+          console.error('Instagram連携エラー:', error);
           setError('Instagramとの連携中にエラーが発生しました');
           router.replace('/connect');
         })
         .finally(() => {
-          console.log('3-11. API呼び出し処理完了');
           setIsConnecting(false);
         });
     }
-  }, [searchParams, isUpdatingSession, router]);
+  }, [searchParams, status, router]);
 
   const handleConnect = async () => {
     setIsConnecting(true)
@@ -161,21 +136,17 @@ export default function ConnectClient() {
     }
   }
 
-  if (isLoading || isUpdatingSession) {
-    console.log('4. ローディング表示');
+  if (isLoading) {
     return (
       <div className="container mx-auto p-4 min-h-[600px] flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="h-8 w-8 animate-spin text-blue-500 mx-auto mb-4" />
-          <p className="text-gray-600 dark:text-gray-300">
-            {isUpdatingSession ? 'セッション情報を更新中...' : 'ローディング中...'}
-          </p>
+          <p className="text-gray-600 dark:text-gray-300">ローディング中...</p>
         </div>
       </div>
     )
   }
 
-  console.log('5. メイン画面表示', { instagramInfo, error, success });
   return (
     <main className="flex-1 overflow-auto">
       <div className="container mx-auto p-4">
