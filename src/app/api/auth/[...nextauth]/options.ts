@@ -155,11 +155,15 @@ export const authOptions: NextAuthOptions = {
       if (session?.user) {
         session.user.id = token.id as string;
         
-        try {
-          session.user.instagram = await updateInstagramSession(token.id as string);
-        } catch (error) {
-          console.error('Error fetching Instagram account:', error);
-          session.user.instagram = null;
+        // Instagram情報が存在しない場合のみ更新を試みる
+        if (!session.user.instagram) {
+          try {
+            // 同期的にInstagram情報を取得
+            session.user.instagram = await updateInstagramSession(token.id as string);
+          } catch (error) {
+            console.error('Error fetching Instagram account:', error);
+            session.user.instagram = null;
+          }
         }
       }
       
