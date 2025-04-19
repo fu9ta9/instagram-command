@@ -2,9 +2,9 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import FacebookConnect from '@/components/FacebookConnect'
-import { useSession } from 'next-auth/react'
 import { Loader2 } from 'lucide-react'
 import { useSearchParams, useRouter } from 'next/navigation'
+import { useSession } from 'next-auth/react'
 
 interface InstagramInfo {
   id?: string;

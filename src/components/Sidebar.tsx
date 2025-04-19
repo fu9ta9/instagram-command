@@ -5,13 +5,16 @@ import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { ChevronLeft, ChevronRight, Instagram, MessageSquareMore, CreditCard, Search } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { useSession } from 'next-auth/react'
 import { useSidebar } from '@/contexts/SidebarContext'
+import { Session } from 'next-auth'
 
-export function Sidebar() {
+type SidebarProps = {
+  session: Session | null
+}
+
+export function Sidebar({ session }: SidebarProps) {
   const { isCollapsed, toggleSidebar } = useSidebar()
   const pathname = usePathname()
-  const { data: session } = useSession()
 
   const sidebarItems = [
     {

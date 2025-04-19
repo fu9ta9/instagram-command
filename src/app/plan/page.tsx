@@ -1,19 +1,23 @@
-import PlanClient from './PlanClient'
 import AppLayout from '@/components/layouts/AppLayout'
-import { getServerSession } from 'next-auth/next'
-import { authOptions } from '../api/auth/[...nextauth]/options'
+import { getSession } from '@/lib/session'
 import { redirect } from 'next/navigation'
+import PlanClient from './PlanClient'
 
 export default async function PlanPage() {
-  const session = await getServerSession(authOptions)
+  try {
+    const session = await getSession()
 
-  if (!session?.user) {
+    if (!session?.user) {
+      redirect('/auth/signin')
+    }
+
+    return (
+      <AppLayout>
+        <PlanClient />
+      </AppLayout>
+    )
+  } catch (error) {
+    console.error('Error in PlanPage:', error)
     redirect('/auth/signin')
   }
-
-  return (
-    <AppLayout>
-      <PlanClient />
-    </AppLayout>
-  )
 } 
