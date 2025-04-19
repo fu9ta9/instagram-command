@@ -63,21 +63,33 @@ export default function ConnectClient() {
 
     // 成功メッセージの表示とセッション更新
     if (success && instagram) {
-      try {
-        const instagramData = JSON.parse(decodeURIComponent(instagram));
-        // セッション情報を更新
-        update({
-          instagram: {
+      const updateSession = async () => {
+        try {
+          const instagramData = JSON.parse(decodeURIComponent(instagram));
+          // セッション情報を更新
+          await update({
+            ...session,
+            user: {
+              ...session?.user,
+              instagram: {
+                id: instagramData.id,
+                name: instagramData.username,
+                profile_picture_url: instagramData.profile_picture_url
+              }
+            }
+          });
+          setInstagramInfo({
             id: instagramData.id,
             name: instagramData.username,
             profile_picture_url: instagramData.profile_picture_url
-          }
-        });
-        setSuccess(message || 'Instagramとの連携が完了しました！');
-      } catch (error) {
-        console.error('Instagram data parse error:', error);
-        setError('セッション更新中にエラーが発生しました');
-      }
+          });
+          setSuccess(message || 'Instagramとの連携が完了しました！');
+        } catch (error) {
+          console.error('Instagram data parse error:', error);
+          setError('セッション更新中にエラーが発生しました');
+        }
+      };
+      updateSession();
       clearUrlParams();
       return;
     }
@@ -114,7 +126,7 @@ export default function ConnectClient() {
           setIsConnecting(false);
         });
     }
-  }, [searchParams]);
+  }, [searchParams, session, update]);
 
   const handleConnect = async () => {
     setIsConnecting(true)
