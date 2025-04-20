@@ -28,7 +28,7 @@ export default function LoginPage() {
 
   const handleGoogleLogin = () => {
     signIn('google', { 
-      callbackUrl: '/dashboard',
+      callbackUrl: '/connect',
       redirect: true
     })
   }
@@ -47,7 +47,7 @@ export default function LoginPage() {
       if (result?.error) {
         setError(result.error)
       } else if (result?.ok) {
-        router.push('/dashboard')
+        router.push('/connect')
       }
     } catch (e) {
       setError('ログイン中にエラーが発生しました')

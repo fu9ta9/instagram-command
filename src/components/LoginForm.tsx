@@ -32,7 +32,7 @@ export default function LoginForm() {
     })
     setIsLoading(false)
     if (result?.ok) {
-      router.push('/dashboard')
+      router.push('/connect')
     } else {
       // エラーハンドリング
       alert('ログインに失敗しました')

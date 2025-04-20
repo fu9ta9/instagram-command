@@ -13,7 +13,7 @@ export default function FacebookConnectPage() {
     setIsLoading(true);
     try {
       const result = await signIn('facebook', { 
-        callbackUrl: '/dashboard',
+        callbackUrl: '/connect',
         redirect: false,
       });
     } catch (error) {

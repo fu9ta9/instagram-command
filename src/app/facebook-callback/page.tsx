@@ -20,7 +20,7 @@ export default function FacebookCallback() {
       fetch(`/api/auth/callback/facebook?access_token=${accessToken}&expires_in=${expiresIn}&data_access_expiration_time=${dataAccessExpirationTime}`)
         .then(response => {
           if (response.ok) {
-            router.push('/dashboard');
+            router.push('/connect');
           }
         })
         .catch(error => {
