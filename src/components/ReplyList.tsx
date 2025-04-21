@@ -31,23 +31,23 @@ const ReplyList: React.FC<ReplyListProps> = ({ replies, onEdit, onDelete }) => {
   // 投稿のメディアURLを取得
   useEffect(() => {
     const fetchMediaUrls = async () => {
-      const newMediaUrls: Record<string, string> = {};
-      
-      for (const reply of replies) {
-        if (reply.postId) {
-          try {
-            const response = await fetch(`/api/instagram/posts/${reply.postId}/media`);
-            if (response.ok) {
-              const data = await response.json();
-              newMediaUrls[reply.postId] = data.thumbnail_url || data.media_url;
-            }
-          } catch (error) {
-            console.error(`Failed to fetch media for post ${reply.postId}:`, error);
+      const uniquePostIds = replies
+        .filter(reply => reply.postId)
+        .map(reply => reply.postId)
+        .filter((id, index, self) => self.indexOf(id) === index)
+        .join(',');
+
+      if (uniquePostIds) {
+        try {
+          const response = await fetch(`/api/instagram/posts/media?post_ids=${uniquePostIds}`);
+          if (response.ok) {
+            const mediaUrls = await response.json();
+            setMediaUrls(mediaUrls);
           }
+        } catch (error) {
+          console.error('Failed to fetch media URLs:', error);
         }
       }
-      
-      setMediaUrls(newMediaUrls);
     };
 
     fetchMediaUrls();
