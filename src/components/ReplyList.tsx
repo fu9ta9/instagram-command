@@ -159,7 +159,10 @@ const ReplyList: React.FC<ReplyListProps> = ({ replies, onEdit, onDelete }) => {
                   )}
                 </div>
                 <div>
-                  <h3 className="font-semibold text-lg">{reply.keyword}</h3>
+                  <h3 className="text-base">
+                    <span className="text-gray-500">キーワード：</span>
+                    <span className="text-gray-900">{reply.keyword}</span>
+                  </h3>
                 </div>
               </div>
               <div className="flex gap-3">
