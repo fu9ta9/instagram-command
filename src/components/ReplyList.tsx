@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Reply, ReplyInput, MATCH_TYPE } from '@/types/reply';
 import { Button } from "@/components/ui/button";
 import ReplyRegistrationModal from './ReplyRegistrationModal';
-import { Pencil, Trash2 } from 'lucide-react';
+import { Pencil, Trash2, ImageIcon } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -13,6 +13,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface ReplyListProps {
   replies: Reply[];
@@ -21,31 +22,43 @@ interface ReplyListProps {
 }
 
 const ReplyList: React.FC<ReplyListProps> = ({ replies, onEdit, onDelete }) => {
-  // 投稿IDとメディアURLのマッピング
   const [mediaUrls, setMediaUrls] = useState<Record<string, string>>({});
+  const [loadingImages, setLoadingImages] = useState<Record<string, boolean>>({});
   const [editingReply, setEditingReply] = useState<Reply | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [replyToDelete, setReplyToDelete] = useState<string | null>(null);
 
-  // 投稿のメディアURLを取得
   useEffect(() => {
     const fetchMediaUrls = async () => {
       const uniquePostIds = replies
         .filter(reply => reply.postId)
         .map(reply => reply.postId)
-        .filter((id, index, self) => self.indexOf(id) === index)
-        .join(',');
+        .filter((id, index, self) => self.indexOf(id) === index);
 
-      if (uniquePostIds) {
+      // 初期状態でローディング状態を設定
+      const initialLoadingState = uniquePostIds.reduce((acc, id) => {
+        if (id) acc[id] = true;
+        return acc;
+      }, {} as Record<string, boolean>);
+      setLoadingImages(initialLoadingState);
+
+      if (uniquePostIds.length > 0) {
         try {
-          const response = await fetch(`/api/instagram/posts/media?post_ids=${uniquePostIds}`);
+          const response = await fetch(`/api/instagram/posts/media?post_ids=${uniquePostIds.join(',')}`);
           if (response.ok) {
             const mediaUrls = await response.json();
             setMediaUrls(mediaUrls);
+            // ローディング状態を解除
+            const completedLoadingState = uniquePostIds.reduce((acc, id) => {
+              if (id) acc[id] = false;
+              return acc;
+            }, {} as Record<string, boolean>);
+            setLoadingImages(completedLoadingState);
           }
         } catch (error) {
           console.error('Failed to fetch media URLs:', error);
+          setLoadingImages({});
         }
       }
     };
@@ -54,7 +67,8 @@ const ReplyList: React.FC<ReplyListProps> = ({ replies, onEdit, onDelete }) => {
   }, [replies]);
 
   const handleEdit = (reply: Reply) => {
-    onEdit(reply);
+    setEditingReply(reply);
+    setIsEditModalOpen(true);
   };
 
   const handleDeleteClick = (id: string) => {
@@ -71,14 +85,12 @@ const ReplyList: React.FC<ReplyListProps> = ({ replies, onEdit, onDelete }) => {
   };
 
   const handleEditSubmit = async (data: any) => {
-    console.log('handleEditSubmit', data);
     if (editingReply) {
       try {
-        // データを適切な形式に変換
         const updateData: ReplyInput = {
           keyword: data.keyword,
           reply: data.reply,
-          replyType: 2, // デフォルト値
+          replyType: 2,
           matchType: data.matchType,
           postId: data.postId,
           buttons: data.buttons?.map((button: any, index: number) => ({
@@ -88,7 +100,6 @@ const ReplyList: React.FC<ReplyListProps> = ({ replies, onEdit, onDelete }) => {
           })) || []
         };
 
-        // PUT APIを呼び出して更新
         const response = await fetch(`/api/replies/${editingReply.id}`, {
           method: 'PUT',
           headers: {
@@ -99,38 +110,15 @@ const ReplyList: React.FC<ReplyListProps> = ({ replies, onEdit, onDelete }) => {
 
         if (!response.ok) {
           const errorData = await response.json();
-          
-          // 409エラー（重複）の場合
           if (response.status === 409) {
             alert('同じキーワードと投稿IDの組み合わせが既に登録されています');
-            return; // 処理を中断
+            return;
           }
-          
           throw new Error(errorData.details || errorData.error || '更新に失敗しました');
         }
 
         const updatedReply = await response.json();
-        
-        // 投稿IDが変更された場合、新しい投稿の画像URLを取得
-        if (updatedReply.postId !== editingReply.postId) {
-          try {
-            const mediaResponse = await fetch(`/api/instagram/posts/${updatedReply.postId}/media`);
-            if (mediaResponse.ok) {
-              const mediaData = await mediaResponse.json();
-              setMediaUrls(prev => ({
-                ...prev,
-                [updatedReply.postId]: mediaData.media_url || mediaData.thumbnail_url
-              }));
-            }
-          } catch (error) {
-            console.error('Error fetching new media URL:', error);
-          }
-        }
-        
-        // 親コンポーネントの更新関数を呼び出し
         onEdit(updatedReply);
-        
-        // モーダルを閉じる
         setIsEditModalOpen(false);
         setEditingReply(null);
       } catch (error) {
@@ -144,50 +132,52 @@ const ReplyList: React.FC<ReplyListProps> = ({ replies, onEdit, onDelete }) => {
     <>
       <div className="space-y-4">
         {replies.map((reply) => (
-          <div key={reply.id} className="border rounded-lg p-4 shadow-sm">
-            <div className="flex justify-between items-start">
-              <div className="flex gap-4">
-                {/* 投稿画像の表示 */}
-                {reply.postId && mediaUrls[reply.postId] && (
-                  <div className="w-20 h-20 relative">
-                    <img
-                      src={mediaUrls[reply.postId]}
-                      alt="Instagram post"
-                      className="object-cover w-full h-full rounded"
-                    />
-                  </div>
-                )}
-                <div>
-                  <h3 className="font-semibold">キーワード: {reply.keyword}</h3>
-                  <p className="text-gray-600 mt-1">返信: {reply.reply}</p>
-                  {reply.buttons && reply.buttons.length > 0 && (
-                    <div className="mt-2">
-                      <p className="text-sm text-gray-500">ボタン:</p>
-                      {reply.buttons.map((button, index) => (
-                        <div key={index} className="text-sm text-gray-600">
-                          {button.title} - {button.url}
-                        </div>
-                      ))}
-                    </div>
+          <div key={reply.id} className="border rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow">
+            <div className="flex justify-between items-center">
+              <div className="flex items-center gap-4">
+                {/* サムネイル画像の表示 */}
+                <div className="w-16 h-16 relative rounded overflow-hidden bg-gray-100">
+                  {reply.postId && (
+                    loadingImages[reply.postId as string] ? (
+                      <Skeleton className="w-full h-full" />
+                    ) : mediaUrls[reply.postId] ? (
+                      <img
+                        src={mediaUrls[reply.postId]}
+                        alt="Instagram post"
+                        className="object-cover w-full h-full"
+                        onLoad={() => {
+                          if (reply.postId) {
+                            setLoadingImages(prev => ({ ...prev, [reply.postId as string]: false }));
+                          }
+                        }}
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <ImageIcon className="w-8 h-8 text-gray-400" />
+                      </div>
+                    )
                   )}
                 </div>
+                <div>
+                  <h3 className="font-semibold text-lg">{reply.keyword}</h3>
+                </div>
               </div>
-              <div className="flex space-x-2">
+              <div className="flex gap-3">
                 <Button
                   onClick={() => handleEdit(reply)}
                   variant="outline"
-                  size="icon"
-                  className="h-8 w-8 hover:border-blue-500 hover:text-blue-500 transition-colors"
+                  size="default"
+                  className="w-12 h-12 hover:border-blue-500 hover:text-blue-500 transition-colors"
                 >
-                  <Pencil className="h-4 w-4" />
+                  <Pencil className="h-5 w-5" />
                 </Button>
                 <Button
                   onClick={() => handleDeleteClick(reply.id.toString())}
                   variant="outline"
-                  size="icon"
-                  className="h-8 w-8 hover:border-red-500 hover:text-red-500 transition-colors"
+                  size="default"
+                  className="w-12 h-12 hover:border-red-500 hover:text-red-500 transition-colors"
                 >
-                  <Trash2 className="h-4 w-4" />
+                  <Trash2 className="h-5 w-5" />
                 </Button>
               </div>
             </div>
