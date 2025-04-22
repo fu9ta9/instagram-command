@@ -74,7 +74,7 @@ export default function ConnectClient() {
           profile_picture_url: instagramData.profile_picture_url
         });
         setSuccess(message || 'Instagramとの連携が完了しました！');
-        router.replace('/connect');
+        router.push('/connect');
       } catch (error) {
         console.error('Instagram情報パースエラー:', error);
         setError('Instagram情報の処理中にエラーが発生しました');
