@@ -133,55 +133,99 @@ const ReplyList: React.FC<ReplyListProps> = ({ replies, onEdit, onDelete }) => {
       <div className="space-y-4">
         {replies.map((reply) => (
           <div key={reply.id} className="border rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow">
-            <div className="flex justify-between items-center">
-              <div className="flex items-center gap-4">
-                {/* サムネイル画像の表示 */}
-                <div className="w-16 h-16 relative rounded overflow-hidden bg-gray-100">
-                  {reply.postId && (
-                    loadingImages[reply.postId as string] ? (
-                      <Skeleton className="w-full h-full" />
-                    ) : mediaUrls[reply.postId] ? (
-                      <img
-                        src={mediaUrls[reply.postId]}
-                        alt="Instagram post"
-                        className="object-cover w-full h-full"
-                        onLoad={() => {
-                          if (reply.postId) {
-                            setLoadingImages(prev => ({ ...prev, [reply.postId as string]: false }));
-                          }
-                        }}
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <ImageIcon className="w-8 h-8 text-gray-400" />
-                      </div>
-                    )
-                  )}
-                </div>
-                <div>
-                  <h3 className="text-base">
-                    <span className="text-gray-500">キーワード：</span>
-                    <span className="text-gray-900">{reply.keyword}</span>
-                  </h3>
+            <div className="flex flex-col gap-4">
+              {/* SP表示用 */}
+              <div className="flex items-center justify-between sm:hidden">
+                <h3 className="text-base truncate flex-1">
+                  <span className="text-gray-500">キーワード：</span>
+                  <span className="text-gray-900">{reply.keyword}</span>
+                </h3>
+                <div className="flex gap-2 ml-4 flex-shrink-0">
+                  <Button
+                    onClick={() => handleEdit(reply)}
+                    variant="outline"
+                    size="icon"
+                    className="hover:border-blue-500 hover:text-blue-500 transition-colors"
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    onClick={() => handleDeleteClick(reply.id.toString())}
+                    variant="outline"
+                    size="icon"
+                    className="hover:border-red-500 hover:text-red-500 transition-colors"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
                 </div>
               </div>
-              <div className="flex gap-3">
-                <Button
-                  onClick={() => handleEdit(reply)}
-                  variant="outline"
-                  size="default"
-                  className="w-12 h-12 hover:border-blue-500 hover:text-blue-500 transition-colors"
-                >
-                  <Pencil className="h-5 w-5" />
-                </Button>
-                <Button
-                  onClick={() => handleDeleteClick(reply.id.toString())}
-                  variant="outline"
-                  size="default"
-                  className="w-12 h-12 hover:border-red-500 hover:text-red-500 transition-colors"
-                >
-                  <Trash2 className="h-5 w-5" />
-                </Button>
+
+              {/* PC表示用 */}
+              <div className="hidden sm:flex sm:justify-between sm:items-start">
+                <div className="flex gap-4">
+                  <div className="w-16 h-16 flex-shrink-0 relative rounded overflow-hidden bg-gray-100">
+                    {reply.postId && (
+                      loadingImages[reply.postId as string] ? (
+                        <Skeleton className="w-full h-full" />
+                      ) : mediaUrls[reply.postId] ? (
+                        <img
+                          src={mediaUrls[reply.postId]}
+                          alt="Instagram post"
+                          className="object-cover w-full h-full"
+                          onLoad={() => {
+                            if (reply.postId) {
+                              setLoadingImages(prev => ({ ...prev, [reply.postId as string]: false }));
+                            }
+                          }}
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <ImageIcon className="w-8 h-8 text-gray-400" />
+                        </div>
+                      )
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <h3 className="text-base">
+                      <span className="text-gray-500">キーワード：</span>
+                      <span className="text-gray-900">{reply.keyword}</span>
+                    </h3>
+                    <p className="text-base mt-1">
+                      <span className="text-gray-500">返信文：</span>
+                      <span className="text-gray-900 line-clamp-2 pl-2">{reply.reply}</span>
+                    </p>
+                    {reply.buttons && reply.buttons.length > 0 && (
+                      <div className="mt-1">
+                        <span className="text-gray-500 text-base">ボタンURL：</span>
+                        <div className="mt-0.5 space-y-0.5">
+                          {reply.buttons.map((button, index) => (
+                            <div key={index} className="text-base text-blue-600 truncate pl-2">
+                              {button.url}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div className="flex gap-2 ml-4 flex-shrink-0">
+                  <Button
+                    onClick={() => handleEdit(reply)}
+                    variant="outline"
+                    size="icon"
+                    className="hover:border-blue-500 hover:text-blue-500 transition-colors"
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    onClick={() => handleDeleteClick(reply.id.toString())}
+                    variant="outline"
+                    size="icon"
+                    className="hover:border-red-500 hover:text-red-500 transition-colors"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             </div>
           </div>
