@@ -72,6 +72,7 @@ export function Sidebar({ session }: SidebarProps) {
             <li key={item.href}>
               <Link
                 href={item.href}
+                prefetch={false}
                 className={cn(
                   "flex items-center space-x-3 p-3 rounded-lg",
                   "transition-all duration-200 ease-in-out",
