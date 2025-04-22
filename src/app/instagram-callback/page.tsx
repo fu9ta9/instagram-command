@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useCallback } from 'react';
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { Loader2 } from 'lucide-react';
@@ -9,15 +9,14 @@ export default function InstagramCallback() {
   const router = useRouter();
   const { update: updateSession } = useSession();
 
-  const handleInstagramCallback = useCallback(async () => {
-    console.log('🔄 Instagram callback process started');
-    const search = window.location.search.substring(1);
-    const params = new URLSearchParams(search);
-    
+  useEffect(() => {
+    // URLパラメータを一度だけ取得
+    const params = new URLSearchParams(window.location.search);
     const code = params.get('code');
     const error = params.get('error');
     const errorDescription = params.get('error_description');
 
+    // エラーハンドリング
     if (error) {
       console.error('❌ Instagram auth error:', error, errorDescription);
       router.push(`/connect?error=instagram_auth_failed&message=${encodeURIComponent(errorDescription || '認証に失敗しました')}`);
@@ -30,43 +29,36 @@ export default function InstagramCallback() {
       return;
     }
 
-    try {
-      console.log('📡 Sending request to Instagram callback API');
-      const response = await fetch(`/api/auth/instagram-callback?code=${code}`, {
-        redirect: 'manual'
-      });
+    // API呼び出しとセッション更新
+    const handleCallback = async () => {
+      try {
+        console.log('📡 Sending request to Instagram callback API');
+        const response = await fetch(`/api/auth/instagram-callback?code=${code}`, {
+          redirect: 'manual'
+        });
 
-      if (response.type === 'opaqueredirect') {
-        console.log('✅ Instagram data saved to DB, updating session...');
-        try {
+        if (response.type === 'opaqueredirect') {
+          console.log('✅ Instagram data saved to DB, updating session...');
           await updateSession();
           console.log('✅ Session updated successfully');
-        } catch (sessionError) {
-          console.error('❌ Failed to update session:', sessionError);
-        }
-        
-        const redirectUrl = response.headers.get('Location');
-        if (redirectUrl) {
-          console.log('➡️ Redirecting to:', redirectUrl);
-          router.push(redirectUrl);
-        } else {
-          console.log('➡️ Redirecting to /connect');
-          router.push('/connect');
-        }
-        return;
-      }
-      console.error('❌ Unexpected response type:', response.type);
-      router.push('/connect?error=unknown&message=予期せぬエラーが発生しました');
-    } catch (error) {
-      console.error('❌ API request failed:', error);
-      router.push(`/connect?error=api_error&message=${encodeURIComponent('認証処理中にエラーが発生しました')}`);
-    }
-  }, [router, updateSession]);
 
-  useEffect(() => {
-    console.log('🎬 Instagram callback component mounted');
-    handleInstagramCallback();
-  }, [handleInstagramCallback]);
+          const redirectUrl = response.headers.get('Location');
+          if (redirectUrl) {
+            router.push(redirectUrl);
+          } else {
+            router.push('/connect');
+          }
+          return;
+        }
+        router.push('/connect?error=unknown&message=予期せぬエラーが発生しました');
+      } catch (error) {
+        console.error('❌ API request failed:', error);
+        router.push(`/connect?error=api_error&message=${encodeURIComponent('認証処理中にエラーが発生しました')}`);
+      }
+    };
+
+    handleCallback();
+  }, []); // 依存配列を空にして初期表示時のみ実行
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-4">
