@@ -14,7 +14,9 @@ interface InstagramInfo {
 
 export default function ConnectClient() {
   const { data: session, status } = useSession();
+  const [instagramInfo, setInstagramInfo] = useState<InstagramInfo>({});
   const [isLoading, setIsLoading] = useState(status === 'loading')
+  const [isConnecting, setIsConnecting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
   const searchParams = useSearchParams()
@@ -27,6 +29,14 @@ export default function ConnectClient() {
       setIsLoading(true);
       return;
     }
+
+    if (session?.user?.instagram) {
+      setInstagramInfo({
+        id: session.user.instagram.id,
+        name: session.user.instagram.name,
+        profile_picture_url: session.user.instagram.profile_picture_url,
+      });
+    }
     setIsLoading(false);
   }, [session, status]);
 
@@ -38,6 +48,7 @@ export default function ConnectClient() {
     const error = searchParams.get('error');
     const success = searchParams.get('success');
     const message = searchParams.get('message');
+    const instagram = searchParams.get('instagram');
 
     // パラメータが存在する場合のみ処理を実行
     if (error || success || code) {
@@ -54,8 +65,14 @@ export default function ConnectClient() {
     }
 
     // 成功メッセージの表示とInstagram情報の更新
-    if (success) {
+    if (success && instagram) {
       try {
+        const instagramData = JSON.parse(decodeURIComponent(instagram));
+        setInstagramInfo({
+          id: instagramData.id,
+          name: instagramData.username,
+          profile_picture_url: instagramData.profile_picture_url
+        });
         setSuccess(message || 'Instagramとの連携が完了しました！');
         router.replace('/connect');
       } catch (error) {
@@ -68,6 +85,8 @@ export default function ConnectClient() {
 
     // codeがある場合のみAPIコールを実行
     if (code) {
+      setIsConnecting(true);
+      
       fetch(`/api/auth/instagram-callback?code=${code}`, {
         redirect: 'manual'
       })
@@ -87,8 +106,35 @@ export default function ConnectClient() {
           setError('Instagramとの連携中にエラーが発生しました');
           router.replace('/connect');
         })
+        .finally(() => {
+          setIsConnecting(false);
+        });
     }
   }, [searchParams, status, router]);
+
+  const handleConnect = async () => {
+    setIsConnecting(true)
+    setError(null)
+    
+    try {
+      const response = await fetch('/api/instagram/connect', {
+        method: 'POST'
+      })
+      
+      const data = await response.json()
+      
+      if (!response.ok) {
+        throw new Error(data.message || 'Instagram連携に失敗しました')
+      }
+      
+      setSuccess('Instagramとの連携が完了しました！')
+    } catch (error) {
+      console.error('Instagram連携エラー:', error);
+      setError('Instagramとの連携に失敗しました')
+    } finally {
+      setIsConnecting(false)
+    }
+  }
 
   if (isLoading) {
     return (
@@ -121,7 +167,7 @@ export default function ConnectClient() {
             </div>
           )}
 
-          {session?.user?.instagram ? (
+          {instagramInfo.id ? (
             <div className="space-y-4">
               <div className="inline-flex items-center bg-green-100 dark:bg-green-900/30 border border-green-400 dark:border-green-700 text-green-700 dark:text-green-400 px-4 py-2 rounded">
                 <span className="mr-2">Instagram連携済み</span>
@@ -130,16 +176,16 @@ export default function ConnectClient() {
                 </svg>
               </div>
               <div className="flex items-center space-x-4 px-4 py-2 bg-gray-50 dark:bg-gray-800 rounded">
-                {session?.user?.instagram?.profile_picture_url && (
+                {instagramInfo.profile_picture_url && (
                   <img 
-                    src={session?.user?.instagram?.profile_picture_url} 
+                    src={instagramInfo.profile_picture_url} 
                     alt="Profile" 
                     className="w-12 h-12 rounded-full object-cover"
                   />
                 )}
                 <div className="text-sm text-gray-600 dark:text-gray-300">
-                  <div className="font-medium dark:text-gray-200">{session?.user?.instagram?.name}</div>
-                  <div className="text-gray-500 dark:text-gray-400">ID: {session?.user?.instagram?.id}</div>
+                  <div className="font-medium dark:text-gray-200">{instagramInfo.name}</div>
+                  <div className="text-gray-500 dark:text-gray-400">ID: {instagramInfo.id}</div>
                 </div>
               </div>
               <div className="mt-4">
