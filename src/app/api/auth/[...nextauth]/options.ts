@@ -165,11 +165,34 @@ export const authOptions: NextAuthOptions = {
         // ログイン時とアップデート時のみInstagram情報を取得
         if (trigger === 'signIn' || trigger === 'update') {
           try {
+            await prisma.executionLog.create({
+              data: {
+                errorMessage: `セッション更新開始 - トリガー: ${trigger}, ユーザーID: ${token.id}`
+              }
+            });
+
             session.user.instagram = await updateInstagramSession(token.id as string);
+
+            await prisma.executionLog.create({
+              data: {
+                errorMessage: `セッション更新完了 - Instagram情報: ${JSON.stringify(session.user.instagram)}`
+              }
+            });
           } catch (error) {
             console.error('Error fetching Instagram account:', error);
+            await prisma.executionLog.create({
+              data: {
+                errorMessage: `セッション更新エラー - ${error instanceof Error ? error.message : 'Unknown error'}`
+              }
+            });
             session.user.instagram = null;
           }
+        } else {
+          await prisma.executionLog.create({
+            data: {
+              errorMessage: `セッション更新スキップ - トリガー: ${trigger}`
+            }
+          });
         }
       }
       
