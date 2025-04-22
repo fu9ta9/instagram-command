@@ -24,6 +24,9 @@ interface CustomSession extends Session {
   } & Session['user']
 }
 
+// セッショントリガーの型定義
+type SessionTrigger = "signIn" | "signUp" | "signOut" | "update" | undefined;
+
 // Instagram情報更新用の関数
 export async function updateInstagramSession(
   userId: string,
@@ -151,14 +154,17 @@ export const authOptions: NextAuthOptions = {
       return token;
     },
     
-    async session({ session, token }) {
+    async session({ session, token, trigger }: { 
+      session: Session | null; 
+      token: any; 
+      trigger: SessionTrigger 
+    }) {
       if (session?.user) {
         session.user.id = token.id as string;
         
-        // Instagram情報が存在しない場合のみ更新を試みる
-        if (!session.user.instagram) {
+        // ログイン時とアップデート時のみInstagram情報を取得
+        if (trigger === 'signIn' || trigger === 'update') {
           try {
-            // 同期的にInstagram情報を取得
             session.user.instagram = await updateInstagramSession(token.id as string);
           } catch (error) {
             console.error('Error fetching Instagram account:', error);

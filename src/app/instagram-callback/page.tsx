@@ -2,10 +2,12 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import { Loader2 } from 'lucide-react';
 
 export default function InstagramCallback() {
   const router = useRouter();
+  const { update: updateSession } = useSession();
 
   useEffect(() => {
     const search = window.location.search.substring(1);
@@ -30,6 +32,9 @@ export default function InstagramCallback() {
     })
       .then(async response => {
         if (response.type === 'opaqueredirect') {
+          // Instagram情報がDBに保存された後、セッションを更新
+          await updateSession();
+          
           const redirectUrl = response.headers.get('Location');
           if (redirectUrl) {
             router.push(redirectUrl);
@@ -44,7 +49,7 @@ export default function InstagramCallback() {
         console.error('Error:', error);
         router.push(`/connect?error=api_error&message=${encodeURIComponent('認証処理中にエラーが発生しました')}`);
       });
-  }, [router]);
+  }, [router, updateSession]);
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-4">
