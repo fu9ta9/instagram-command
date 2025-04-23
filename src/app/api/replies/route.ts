@@ -6,17 +6,25 @@ import { authOptions } from '../auth/[...nextauth]/options'
 export async function POST(request: Request) {
   try {
     const session = await getServerSession(authOptions)
-    if (!session?.user?.id || !session.user.instagram) {
+    if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    // IGAccountを取得
+    const igAccount = await prisma.iGAccount.findFirst({
+      where: { userId: session.user.id }
+    });
+
+    if (!igAccount) {
+      return NextResponse.json({ error: 'Instagram account not found' }, { status: 404 });
+    }
+
     const data = await request.json()
-    const igAccountId = session.user.instagram.id;
 
     // 既存の返信を確認（同じキーワードと投稿IDの組み合わせ）
     const existingReply = await prisma.reply.findFirst({
       where: {
-        igAccountId,
+        igAccountId: igAccount.id,
         keyword: data.keyword,
         postId: data.postId
       }
@@ -36,7 +44,7 @@ export async function POST(request: Request) {
       replyType: data.replyType || 2,
       matchType: data.matchType === 'exact' ? 1 : 2,
       postId: data.postId,
-      igAccountId,
+      igAccountId: igAccount.id,
       buttons: {
         create: data.buttons?.map((button: any, index: number) => ({
           title: button.title,
@@ -66,13 +74,22 @@ export async function POST(request: Request) {
 export async function GET() {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user?.id || !session.user.instagram) {
+    if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // IGAccountを取得
+    const igAccount = await prisma.iGAccount.findFirst({
+      where: { userId: session.user.id }
+    });
+
+    if (!igAccount) {
+      return NextResponse.json({ error: 'Instagram account not found' }, { status: 404 });
     }
 
     const replies = await prisma.reply.findMany({
       where: {
-        igAccountId: session.user.instagram.id
+        igAccountId: igAccount.id
       },
       include: {
         buttons: {
