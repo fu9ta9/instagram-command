@@ -12,7 +12,12 @@ export async function POST(request: Request) {
 
     // IGAccountを取得
     const igAccount = await prisma.iGAccount.findFirst({
-      where: { userId: session.user.id }
+      where: { 
+        userId: session.user.id 
+      },
+      select: {
+        id: true
+      }
     });
 
     if (!igAccount) {
@@ -80,7 +85,12 @@ export async function GET() {
 
     // IGAccountを取得
     const igAccount = await prisma.iGAccount.findFirst({
-      where: { userId: session.user.id }
+      where: { 
+        userId: session.user.id 
+      },
+      select: {
+        id: true
+      }
     });
 
     if (!igAccount) {
