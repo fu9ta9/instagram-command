@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import FacebookConnect from '@/components/FacebookConnect'
 import { Loader2 } from 'lucide-react'
 import { useSearchParams, useRouter } from 'next/navigation'
@@ -15,34 +15,45 @@ interface InstagramInfo {
 export default function ConnectClient() {
   const { data: session, status } = useSession();
   const [instagramInfo, setInstagramInfo] = useState<InstagramInfo>({});
-  const [isLoading, setIsLoading] = useState(status === 'loading')
-  const [isConnecting, setIsConnecting] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [success, setSuccess] = useState<string | null>(null)
-  const searchParams = useSearchParams()
-  const isProcessingParams = useRef(false)
-  const router = useRouter()
+  const [isLoading, setIsLoading] = useState(true);
+  const [isConnecting, setIsConnecting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+  const searchParams = useSearchParams();
+  const isProcessingParams = useRef(false);
+  const router = useRouter();
 
-  // セッションからInstagramの情報を更新
+  // DBからInstagram情報を取得
   useEffect(() => {
-    if (status === 'loading') {
-      setIsLoading(true);
-      return;
-    }
+    const fetchInstagramInfo = async () => {
+      if (status === 'loading' || !session?.user?.id) {
+        return;
+      }
 
-    if (session?.user?.instagram) {
-      setInstagramInfo({
-        id: session.user.instagram.id,
-        name: session.user.instagram.name,
-        profile_picture_url: session.user.instagram.profile_picture_url,
-      });
-    }
-    setIsLoading(false);
-  }, [session, status]);
+      try {
+        const response = await fetch(`/api/instagram/account?userId=${session.user.id}`);
+        const data = await response.json();
+        
+        if (response.ok && data.account) {
+          setInstagramInfo({
+            id: data.account.id,
+            name: data.account.username,
+            profile_picture_url: data.account.profilePictureUrl,
+          });
+        }
+      } catch (error) {
+        console.error('Instagram情報取得エラー:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchInstagramInfo();
+  }, [session?.user?.id, status]);
 
   // Instagram認証コールバックの処理
   useEffect(() => {
-    if (!searchParams || isProcessingParams.current || status === 'loading') return;
+    if (!searchParams || isProcessingParams.current || status === 'loading' || !session?.user?.id) return;
 
     const code = searchParams.get('code');
     const error = searchParams.get('error');
@@ -57,14 +68,12 @@ export default function ConnectClient() {
       return;
     }
 
-    // エラーメッセージの表示のみ行い、追加のAPIコールは行わない
     if (error) {
       setError(message || 'Instagramとの連携に失敗しました');
       router.replace('/connect');
       return;
     }
 
-    // 成功メッセージの表示とInstagram情報の更新
     if (success && instagram) {
       try {
         const instagramData = JSON.parse(decodeURIComponent(instagram));
@@ -83,7 +92,6 @@ export default function ConnectClient() {
       return;
     }
 
-    // codeがある場合のみAPIコールを実行
     if (code) {
       setIsConnecting(true);
       
@@ -110,7 +118,7 @@ export default function ConnectClient() {
           setIsConnecting(false);
         });
     }
-  }, [searchParams, status, router]);
+  }, [searchParams, status, session?.user?.id, router]);
 
   const handleConnect = async () => {
     setIsConnecting(true)
