@@ -21,9 +21,13 @@ export async function GET(request: Request) {
     }
 
     // アクセストークンのみを取得
-    const account = await prisma.iGAccount.findUnique({
-      where: { id: session.user.instagram?.id },
-      select: { accessToken: true }
+    const account = await prisma.iGAccount.findFirst({
+      where: { 
+        userId: session.user.id 
+      },
+      select: { 
+        accessToken: true 
+      }
     });
 
     if (!account?.accessToken) {
