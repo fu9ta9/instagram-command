@@ -9,26 +9,23 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useMobile } from "@/hooks/use-mobile"
+import { useSearchStore, InstagramAccount, InstagramPost, SortOption, LimitOption } from '@/store/searchStore'
 
-// Instagram投稿の型定義
-interface InstagramPost {
-  id: string
-  imageUrl: string
-  permalink: string
-  likes: number
-  comments: number
-  date: string
-}
+// ローカルストレージのキー
+const RECENT_ACCOUNTS_KEY = "instagram-recent-accounts"
 
-// Instagramアカウントの型定義
-interface InstagramAccount {
-  id: string
-  username: string
-  name?: string
-  avatar?: string
-  followersCount?: number
-  mediaCount?: number
-}
+// ソートオプションの定義
+const SORT_OPTIONS = [
+  { value: 'recent', label: '最新順' },
+  { value: 'likes', label: 'いいね数順' },
+  { value: 'comments', label: 'コメント数順' },
+] as const
+
+// 表示件数オプションの定義
+const LIMIT_OPTIONS = [
+  { value: '25', label: '25件' },
+  { value: 'all', label: 'すべて' },
+] as const
 
 // API レスポンスの型定義
 interface InstagramApiResponse {
@@ -50,39 +47,34 @@ interface InstagramApiResponse {
   }
 }
 
-type SortOption = "recent" | "likes" | "comments"
-type LimitOption = "25" | "all"
-
-// ローカルストレージのキー
-const RECENT_ACCOUNTS_KEY = "instagram-recent-accounts"
-
-// ソートオプションの定義
-const SORT_OPTIONS = [
-  { value: 'recent', label: '最新順' },
-  { value: 'likes', label: 'いいね数順' },
-  { value: 'comments', label: 'コメント数順' },
-] as const
-
-// 表示件数オプションの定義
-const LIMIT_OPTIONS = [
-  { value: '25', label: '25件' },
-  { value: 'all', label: 'すべて' },
-] as const
-
 export default function InstagramPostAnalyzer() {
   const isMobile = useMobile()
-  const [searchInput, setSearchInput] = useState("")
-  const [selectedAccount, setSelectedAccount] = useState<InstagramAccount | null>(null)
+
+  // Zustandストアから状態とsetterを取得
+  const {
+    account, posts, sortBy, limit,
+    setAccount, setPosts, setSortBy, setLimit, clearAll
+  } = useSearchStore()
+
+  // ローカル状態（検索入力やローディングなど）
+  const [searchInput, setSearchInput] = useState(account?.username || "")
   const [recentAccounts, setRecentAccounts] = useState<InstagramAccount[]>([])
   const [isSearching, setIsSearching] = useState(false)
-  const [sortBy, setSortBy] = useState<SortOption>("recent")
-  const [limit, setLimit] = useState<LimitOption>("25")
-  const [posts, setPosts] = useState<InstagramPost[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [isLoadingAll, setIsLoadingAll] = useState(false)
   const [showRecentAccounts, setShowRecentAccounts] = useState(false)
-  const [allPostsData, setAllPostsData] = useState<InstagramPost[]>([])
+  const [allPostsData, setAllPostsData] = useState<InstagramPost[]>(posts)
   const [isProcessing, setIsProcessing] = useState(false)
+
+  // Zustandストアのpostsが変わったらallPostsDataも同期
+  useEffect(() => {
+    setAllPostsData(posts)
+  }, [posts])
+
+  // Zustandストアのaccountが変わったら検索入力も同期
+  useEffect(() => {
+    if (account?.username) setSearchInput(account.username)
+  }, [account])
 
   // 最近検索したアカウントをローカルストレージから読み込む
   useEffect(() => {
@@ -101,7 +93,7 @@ export default function InstagramPostAnalyzer() {
   const handleSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value
     setSearchInput(value)
-
+    
     // 入力があれば最近のアカウントを表示
     setShowRecentAccounts(value.length > 0 && recentAccounts.length > 0)
   }
@@ -111,18 +103,18 @@ export default function InstagramPostAnalyzer() {
     try {
       // URLを構築 - 通常の投稿取得（25件まで）
       const url = `/api/instagram/search/posts?accountId=${accountId}&sortBy=${sortBy}&limit=25`;
-
+      
       // fetch APIを使用
       const response = await fetch(url);
-
+      
       // JSONデータを解析
       const data = await response.json();
-
+      
       // エラーチェック
       if (!response.ok) {
         throw new Error(data.message || `API error: ${response.status}`);
       }
-
+      
       return data;
     } catch (error) {
       throw error;
@@ -133,21 +125,21 @@ export default function InstagramPostAnalyzer() {
   const fetchAllPosts = useCallback(async (accountId: string): Promise<InstagramApiResponse> => {
     try {
       setIsLoadingAll(true);
-
+      
       // URLを構築 - すべての投稿取得
       const url = `/api/instagram/search/all-posts?accountId=${accountId}&sortBy=${sortBy}`;
-
+      
       // fetch APIを使用
       const response = await fetch(url);
-
+      
       // JSONデータを解析
       const data = await response.json();
-
+      
       // エラーチェック
       if (!response.ok) {
         throw new Error(data.message || `API error: ${response.status}`);
       }
-
+      
       return data;
     } catch (error) {
       throw error;
@@ -169,18 +161,14 @@ export default function InstagramPostAnalyzer() {
       id: searchInput.trim(),
       username: searchInput.trim()
     }
-
-    setSelectedAccount(newAccount)
+    setAccount(newAccount)
 
     try {
       // 通常の投稿取得（25件まで）
       const result = await fetchPosts(newAccount.id)
-
-      // 結果を設定
       const fetchedPosts = result.posts || []
       setPosts(fetchedPosts)
-      setAllPostsData(fetchedPosts) // 初期状態では同じ
-
+      setAllPostsData(fetchedPosts)
       // アカウント情報を更新（APIからの追加情報があれば）
       if (result.meta) {
         const meta = result.meta
@@ -190,12 +178,8 @@ export default function InstagramPostAnalyzer() {
         }
         newAccount.followersCount = meta.followers_count
         newAccount.mediaCount = meta.media_count
-
-        // 選択中のアカウント情報を更新
-        setSelectedAccount({ ...newAccount })
+        setAccount({ ...newAccount })
       }
-
-      // 最近のアカウントに追加
       saveRecentAccount(newAccount)
     } catch (error) {
       setPosts([])
@@ -223,17 +207,12 @@ export default function InstagramPostAnalyzer() {
 
   // 並び替えが変更されたときの処理
   const handleSortChange = async (newSortBy: SortOption) => {
-    if (!selectedAccount || isProcessing) return
-
+    if (!account || isProcessing) return
     setIsProcessing(true)
     setSortBy(newSortBy)
-
     try {
-      // 現在の表示データを並び替え
       const sortedPosts = sortPosts(posts, newSortBy)
       setPosts(sortedPosts)
-
-      // バックグラウンドで全データも並び替え
       const sortedAllPosts = sortPosts(allPostsData, newSortBy)
       setAllPostsData(sortedAllPosts)
     } finally {
@@ -243,23 +222,18 @@ export default function InstagramPostAnalyzer() {
 
   // 表示件数が変更されたときの処理
   const handleLimitChange = async (newLimit: LimitOption) => {
-    if (!selectedAccount || isProcessing) return
-
+    if (!account || isProcessing) return
     setIsProcessing(true)
     setLimit(newLimit)
-
     try {
       if (newLimit === "all" && allPostsData.length <= 25) {
-        // すべての投稿をまだ取得していない場合は取得
-        const result = await fetchAllPosts(selectedAccount.id)
+        const result = await fetchAllPosts(account.id)
         const allPosts = result.posts || []
         setAllPostsData(allPosts)
         setPosts(allPosts)
       } else if (newLimit === "all") {
-        // すでに取得済みの場合は表示を切り替え
         setPosts(allPostsData)
       } else {
-        // 25件表示：常に最新日付順で25件抽出し、現在のsortByで並び替え
         const latest25 = [...allPostsData]
           .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
           .slice(0, 25)
@@ -293,20 +267,20 @@ export default function InstagramPostAnalyzer() {
   const selectRecentAccount = (account: InstagramAccount) => {
     setSearchInput(account.username)
     setShowRecentAccounts(false)
-
+    
     // 選択されたアカウントで検索を実行
-    setSelectedAccount(account)
+    setAccount(account)
     setIsLoading(true)
     setPosts([])
     setAllPostsData([])
-
+    
     // 投稿を取得
     fetchPosts(account.id)
       .then(result => {
         const fetchedPosts = result.posts || []
         setPosts(fetchedPosts)
         setAllPostsData(fetchedPosts)
-
+        
         // アカウント情報を更新（APIからの追加情報があれば）
         if (result.meta) {
           const meta = result.meta
@@ -316,9 +290,9 @@ export default function InstagramPostAnalyzer() {
           }
           account.followersCount = meta.followers_count
           account.mediaCount = meta.media_count
-
+          
           // 選択中のアカウント情報を更新
-          setSelectedAccount({ ...account })
+          setAccount({ ...account })
         }
       })
       .catch(error => {
@@ -335,11 +309,11 @@ export default function InstagramPostAnalyzer() {
   const saveRecentAccount = (account: InstagramAccount) => {
     // 既存のアカウントリストから同じIDのアカウントを除外
     const filteredAccounts = recentAccounts.filter(a => a.id !== account.id)
-
+    
     // 新しいアカウントを先頭に追加
     const updatedAccounts = [account, ...filteredAccounts].slice(0, 5) // 最大5件まで保存
     setRecentAccounts(updatedAccounts)
-
+    
     // ローカルストレージに保存
     localStorage.setItem(RECENT_ACCOUNTS_KEY, JSON.stringify(updatedAccounts))
   }
@@ -366,8 +340,8 @@ export default function InstagramPostAnalyzer() {
               </button>
             )}
           </div>
-          <Button
-            onClick={handleSearch}
+          <Button 
+            onClick={handleSearch} 
             disabled={isLoading || !searchInput.trim()}
             className="w-20 min-w-[5rem] px-2" // 幅を固定
           >
@@ -385,7 +359,7 @@ export default function InstagramPostAnalyzer() {
             )}
           </Button>
         </div>
-
+        
         {/* 最近検索したアカウント */}
         {showRecentAccounts && (
           <div className="absolute z-10 mt-1 w-full bg-white rounded-md shadow-lg border">
@@ -399,8 +373,8 @@ export default function InstagramPostAnalyzer() {
                 >
                   <div className="flex-shrink-0">
                     {account.avatar ? (
-                      <img
-                        src={account.avatar}
+                      <img 
+                        src={account.avatar} 
                         alt={account.username}
                         className="w-8 h-8 rounded-full object-cover"
                       />
@@ -426,15 +400,15 @@ export default function InstagramPostAnalyzer() {
       {/* プロフィール情報とフィルター */}
       <div className="space-y-4">
         {/* プロフィール情報 */}
-        {selectedAccount && (
+        {account && (
           <div className="bg-white p-4 rounded-lg border">
             <div className="flex flex-col sm:flex-row items-center gap-4">
               {/* プロフィール画像 */}
               <div className="flex-shrink-0">
-                {selectedAccount.avatar ? (
-                  <img
-                    src={selectedAccount.avatar}
-                    alt={selectedAccount.username}
+                {account.avatar ? (
+                  <img 
+                    src={account.avatar} 
+                    alt={account.username}
                     className="w-16 h-16 rounded-full object-cover"
                   />
                 ) : (
@@ -443,30 +417,30 @@ export default function InstagramPostAnalyzer() {
                   </div>
                 )}
               </div>
-
+              
               {/* アカウント情報 */}
               <div className="flex-1 text-center sm:text-left">
-                <h2 className="text-xl font-bold">@{selectedAccount.username}</h2>
-                {selectedAccount.name && selectedAccount.name !== selectedAccount.username && (
-                  <p className="text-gray-600">{selectedAccount.name}</p>
+                <h2 className="text-xl font-bold">@{account.username}</h2>
+                {account.name && account.name !== account.username && (
+                  <p className="text-gray-600">{account.name}</p>
                 )}
-
+                
                 {/* フォロワー数と投稿数 */}
                 <div className="flex flex-wrap justify-center sm:justify-start gap-4 mt-2">
-                  {selectedAccount.followersCount !== undefined && (
+                  {account.followersCount !== undefined && (
                     <div className="flex items-center gap-1">
                       <Users className="h-4 w-4 text-gray-500" />
                       <span className="text-sm">
-                        <span className="font-semibold">{formatNumber(selectedAccount.followersCount)}</span> フォロワー
+                        <span className="font-semibold">{formatNumber(account.followersCount)}</span> フォロワー
                       </span>
                     </div>
                   )}
-
-                  {selectedAccount.mediaCount !== undefined && (
+                  
+                  {account.mediaCount !== undefined && (
                     <div className="flex items-center gap-1">
                       <MessageCircle className="h-4 w-4 text-gray-500" />
                       <span className="text-sm">
-                        <span className="font-semibold">{formatNumber(selectedAccount.mediaCount)}</span> 投稿
+                        <span className="font-semibold">{formatNumber(account.mediaCount)}</span> 投稿
                       </span>
                     </div>
                   )}
@@ -477,7 +451,7 @@ export default function InstagramPostAnalyzer() {
         )}
 
         {/* フィルターオプション */}
-        {selectedAccount && (
+        {account && (
           <div className="flex flex-wrap gap-2 items-center justify-start mb-4">
             <div className="flex gap-2 items-center">
               <span className="text-sm font-medium">並び替え:</span>
@@ -492,7 +466,7 @@ export default function InstagramPostAnalyzer() {
                   {option.label}
                 </Button>
               ))}
-            </div>
+              </div>
             <div className="flex gap-2 items-center ml-auto">
               <span className="text-sm font-medium">件数:</span>
               {LIMIT_OPTIONS.map((option) => (
@@ -529,8 +503,8 @@ export default function InstagramPostAnalyzer() {
       ) : posts.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
           {posts.map((post) => (
-            <Card
-              key={post.id}
+            <Card 
+              key={post.id} 
               className="overflow-hidden cursor-pointer hover:shadow-md transition-shadow"
               onClick={() => handlePostClick(post.permalink)}
             >
@@ -559,7 +533,7 @@ export default function InstagramPostAnalyzer() {
             </Card>
           ))}
         </div>
-      ) : selectedAccount ? (
+      ) : account ? (
         <div className="flex flex-col items-center justify-center py-12 text-center">
           <div className="w-24 h-24 mb-4 text-gray-300">
             <img src="/placeholder.svg?height=96&width=96" alt="投稿が見つかりません" className="w-full h-full" />
