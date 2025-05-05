@@ -34,7 +34,7 @@ export function MobileNavbar() {
 
   return (
     <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 shadow-lg">
-      <div className="flex justify-around items-center h-16">
+      <div className="flex justify-around items-center h-12">
         {navItems.map((item) => (
           <Link
             key={item.href}
@@ -48,7 +48,7 @@ export function MobileNavbar() {
             )}
           >
             {item.icon}
-            <span className="text-xs mt-1">{item.label}</span>
+            <span className="text-xs mt-0.5">{item.label}</span>
           </Link>
         ))}
       </div>

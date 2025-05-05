@@ -136,10 +136,10 @@ const ReplyList: React.FC<ReplyListProps> = ({ replies, onEdit, onDelete }) => {
             <div className="flex flex-col gap-4">
               {/* SP表示用 */}
               <div className="flex items-center justify-between sm:hidden">
-                <h3 className="text-base truncate flex-1 min-w-0">
-                  <span className="text-gray-500">キーワード：</span>
-                  <span className="text-gray-900 break-words max-w-full">{reply.keyword}</span>
-                </h3>
+                <div className="flex-1 min-w-0">
+                  <span className="block text-xs text-gray-500">キーワード：</span>
+                  <span className="block text-sm text-gray-900 break-words max-w-full">{reply.keyword}</span>
+                </div>
                 <div className="flex gap-2 ml-4 flex-shrink-0">
                   <Button
                     onClick={() => handleEdit(reply)}

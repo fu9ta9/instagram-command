@@ -226,21 +226,21 @@ export default function InstagramPostAnalyzer() {
     setIsProcessing(true)
     setLimit(newLimit)
     try {
-      if (newLimit === "all" && allPostsData.length <= 25) {
+    if (newLimit === "all" && allPostsData.length <= 25) {
         const result = await fetchAllPosts(account.id)
         const allPosts = result.posts || []
         setAllPostsData(allPosts)
         setPosts(allPosts)
-      } else if (newLimit === "all") {
-        setPosts(allPostsData)
-      } else {
+    } else if (newLimit === "all") {
+      setPosts(allPostsData)
+    } else {
         const latest25 = [...allPostsData]
           .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
           .slice(0, 25)
         const sorted = sortPosts(latest25, sortBy)
         setPosts(sorted)
       }
-    } catch (error) {
+      } catch (error) {
       // エラー時は何もしない
     } finally {
       setIsProcessing(false)
@@ -402,48 +402,41 @@ export default function InstagramPostAnalyzer() {
         {/* プロフィール情報 */}
         {account && (
           <div className="bg-white p-4 rounded-lg border">
-            <div className="flex flex-col sm:flex-row items-center gap-4">
-              {/* プロフィール画像 */}
+            {/* モバイル：横並び、PC：従来 */}
+            <div className="flex items-center gap-4 sm:flex-row flex-row">
               <div className="flex-shrink-0">
                 {account.avatar ? (
                   <img 
                     src={account.avatar} 
                     alt={account.username}
-                    className="w-16 h-16 rounded-full object-cover"
+                    className="w-14 h-14 sm:w-16 sm:h-16 rounded-full object-cover"
                   />
                 ) : (
-                  <div className="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center">
-                    <User className="h-8 w-8 text-gray-400" />
+                  <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-gray-200 flex items-center justify-center">
+                    <User className="h-7 w-7 sm:h-8 sm:w-8 text-gray-400" />
                   </div>
                 )}
               </div>
-              
-              {/* アカウント情報 */}
-              <div className="flex-1 text-center sm:text-left">
-                <h2 className="text-xl font-bold truncate whitespace-nowrap ...">@{account.username}</h2>
-                {account.name && account.name !== account.username && (
-                  <p className="text-gray-600">{account.name}</p>
-                )}
-                
-                {/* フォロワー数と投稿数 */}
-                <div className="flex flex-wrap justify-center sm:justify-start gap-4 mt-2">
-                  {account.followersCount !== undefined && (
-                    <div className="flex items-center gap-1">
-                      <Users className="h-4 w-4 text-gray-500" />
-                      <span className="text-sm">
-                        <span className="font-semibold">{formatNumber(account.followersCount)}</span> フォロワー
-                      </span>
-                    </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex flex-col items-start sm:items-start">
+                  <span className="text-base font-bold truncate max-w-full">@{account.username}</span>
+                  {account.name && account.name !== account.username && (
+                    <span className="text-sm text-gray-600 truncate max-w-full">{account.name}</span>
                   )}
-                  
-                  {account.mediaCount !== undefined && (
-                    <div className="flex items-center gap-1">
-                      <MessageCircle className="h-4 w-4 text-gray-500" />
-                      <span className="text-sm">
-                        <span className="font-semibold">{formatNumber(account.mediaCount)}</span> 投稿
+                  <div className="flex gap-3 mt-1">
+                    {account.followersCount !== undefined && (
+                      <span className="flex items-center gap-1 text-xs text-gray-500">
+                        <Users className="h-4 w-4" />
+                        <span className="font-semibold text-gray-800">{formatNumber(account.followersCount)}</span>フォロワー
                       </span>
-                    </div>
-                  )}
+                    )}
+                    {account.mediaCount !== undefined && (
+                      <span className="flex items-center gap-1 text-xs text-gray-500">
+                        <MessageCircle className="h-4 w-4" />
+                        <span className="font-semibold text-gray-800">{formatNumber(account.mediaCount)}</span>投稿
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
@@ -452,44 +445,66 @@ export default function InstagramPostAnalyzer() {
 
         {/* フィルターオプション */}
         {account && (
-          <div className="flex flex-wrap gap-2 items-center justify-start mb-4">
-            <div className="flex gap-2 items-center">
-              <span className="text-sm font-medium">並び替え:</span>
-              {SORT_OPTIONS.map((option) => (
-                <Button
-                  key={option.value}
-                  variant={sortBy === option.value ? "default" : "outline"}
-                  onClick={() => handleSortChange(option.value as SortOption)}
-                  disabled={isProcessing || isLoading}
-                  className="min-w-[100px]"
-                >
-                  {option.label}
-                </Button>
-              ))}
+          <>
+            <div className="flex flex-wrap gap-2 items-center justify-start mb-4">
+              {/* 並び替えボタン（ラベル削除、楕円形、SP用ラベル変更） */}
+              <div className="flex gap-1 items-center">
+                {['recent', 'likes', 'comments'].map((key, idx) => (
+                  <Button
+                    key={key}
+                    variant={sortBy === key ? "default" : "outline"}
+                    onClick={() => handleSortChange(key as SortOption)}
+                    disabled={isProcessing || isLoading}
+                    className="rounded-full px-3 py-0.5 text-xs h-7 min-w-0"
+                  >
+                    {key === 'recent' ? '最新順' : key === 'likes' ? 'いいね順' : 'コメント順'}
+                  </Button>
+                ))}
               </div>
-            <div className="flex gap-2 items-center ml-auto">
-              <span className="text-sm font-medium">件数:</span>
-              {LIMIT_OPTIONS.map((option) => (
-                <Button
-                  key={option.value}
-                  variant={limit === option.value ? "default" : "outline"}
-                  onClick={() => handleLimitChange(option.value as LimitOption)}
-                  disabled={isProcessing || isLoading}
-                  className="min-w-[80px]"
-                >
-                  {option.label}
-                </Button>
-              ))}
+              {/* 件数ディスクロージャー（SPのみ） */}
+              <div className="relative ml-auto">
+                {isMobile ? (
+                  <Select value={limit} onValueChange={v => handleLimitChange(v as LimitOption)}>
+                    <SelectTrigger className="rounded-full px-3 py-0.5 text-xs h-7 min-w-0 w-auto border border-gray-300 focus:ring-2 focus:ring-blue-500">
+                      <SelectValue placeholder="25件">
+                        {limit === '25' ? '25件' : limit === 'all' ? 'すべて' : ''}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent align="end" className="min-w-[6rem] bg-white">
+                      <SelectItem value="25">25件</SelectItem>
+                      <SelectItem value="all">すべて</SelectItem>
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  LIMIT_OPTIONS.map((option) => (
+                    <Button
+                      key={option.value}
+                      variant={limit === option.value ? "default" : "outline"}
+                      onClick={() => handleLimitChange(option.value as LimitOption)}
+                      disabled={isProcessing || isLoading}
+                      className="rounded-full px-3 py-0.5 text-xs h-7 min-w-0 ml-2"
+                    >
+                      {option.label}
+                    </Button>
+                  ))
+                )}
+              </div>
             </div>
-          </div>
+            {isProcessing && (
+              <div className="flex items-center gap-2 mb-2 justify-center">
+                <Loader2 className="h-5 w-5 animate-spin text-blue-500" />
+                <span className="text-sm text-blue-600">ソート中...</span>
+              </div>
+            )}
+          </>
         )}
       </div>
 
       {/* 投稿グリッド */}
       {isLoading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-3 gap-2" style={{gridTemplateColumns: 'repeat(3, minmax(0, 120px))', justifyContent: 'center'}}>
           {Array.from({ length: 6 }).map((_, i) => (
-            <Card key={i} className="overflow-hidden">
+            <Card key={i} className="overflow-hidden max-w-[120px]">
               <Skeleton className="h-[300px] w-full" />
               <CardContent className="p-3">
                 <div className="flex justify-between">
@@ -501,35 +516,39 @@ export default function InstagramPostAnalyzer() {
           ))}
         </div>
       ) : posts.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-3 gap-2 sm:gap-4">
           {posts.map((post) => (
             <Card 
               key={post.id} 
-              className="overflow-hidden cursor-pointer hover:shadow-md transition-shadow"
+              className="overflow-hidden cursor-pointer hover:shadow-md transition-shadow max-w-[120px] sm:max-w-[220px] p-0"
               onClick={() => handlePostClick(post.permalink)}
             >
-              <div className="aspect-square relative">
+              <div className="aspect-square relative w-full">
                 <img
                   src={post.imageUrl}
                   alt=""
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-cover sm:rounded-t-lg"
                 />
-                <div className="absolute top-2 right-2 bg-white bg-opacity-70 rounded-full p-1">
-                  <ExternalLink className="h-4 w-4 text-gray-700" />
+                {/* PCモード：左上に日付 */}
+                <div className="absolute top-2 left-2 hidden sm:block bg-white bg-opacity-80 rounded px-2 py-0.5 text-xs text-gray-700 font-medium">
+                  {post.date ? new Date(post.date).toLocaleDateString('ja-JP', { year: '2-digit', month: '2-digit', day: '2-digit' }) : ''}
+                </div>
+                {/* 外部リンクアイコン（PCは小さめ） */}
+                <div className="absolute top-1 right-1 bg-white bg-opacity-70 rounded-full p-1 sm:p-1">
+                  <ExternalLink className="h-2 w-2 sm:h-3 sm:w-3 text-gray-700" />
+                </div>
+                {/* サムネイル画像の下にいいね数・コメント数を表示 */}
+                <div className="w-full flex justify-between items-center px-1 py-1 bg-white/70 backdrop-blur-sm sm:px-3 sm:py-2">
+                  <div className="flex items-center gap-1 sm:gap-2">
+                    <Heart className="h-4 w-4 sm:h-5 sm:w-5 text-red-500" />
+                    <span className="text-xs sm:text-sm font-semibold text-gray-800">{formatNumber(post.likes)}</span>
+                  </div>
+                  <div className="flex items-center gap-1 sm:gap-2">
+                    <MessageCircle className="h-4 w-4 sm:h-5 sm:w-5 text-blue-500" />
+                    <span className="text-xs sm:text-sm font-semibold text-gray-800">{formatNumber(post.comments)}</span>
+                  </div>
                 </div>
               </div>
-              <CardContent className="p-3">
-                <div className="flex justify-between text-sm">
-                  <div className="flex items-center gap-1">
-                    <Heart className="h-4 w-4 text-red-500" />
-                    <span>{post.likes.toLocaleString()}</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <MessageCircle className="h-4 w-4 text-blue-500" />
-                    <span>{post.comments.toLocaleString()}</span>
-                  </div>
-                </div>
-              </CardContent>
             </Card>
           ))}
         </div>
