@@ -520,14 +520,15 @@ export default function InstagramPostAnalyzer() {
           {posts.map((post) => (
             <Card 
               key={post.id} 
-              className="overflow-hidden cursor-pointer hover:shadow-md transition-shadow max-w-[120px] sm:max-w-[220px] p-0"
+              className="overflow-hidden cursor-pointer hover:shadow-md transition-shadow p-0"
               onClick={() => handlePostClick(post.permalink)}
             >
               <div className="aspect-square relative w-full">
                 <img
                   src={post.imageUrl}
                   alt=""
-                  className="w-full h-full object-cover sm:rounded-t-lg"
+                  className="h-full object-cover sm:rounded-t-lg w-[120px] sm:w-[180px]"
+                  style={{ display: 'block' }}
                 />
                 {/* PCモード：左上に日付 */}
                 <div className="absolute top-2 left-2 hidden sm:block bg-white bg-opacity-80 rounded px-2 py-0.5 text-xs text-gray-700 font-medium">
@@ -538,7 +539,7 @@ export default function InstagramPostAnalyzer() {
                   <ExternalLink className="h-2 w-2 sm:h-3 sm:w-3 text-gray-700" />
                 </div>
                 {/* サムネイル画像の下にいいね数・コメント数を表示 */}
-                <div className="w-full flex justify-between items-center px-1 py-1 bg-white/70 backdrop-blur-sm sm:px-3 sm:py-2">
+                <div className="w-full flex justify-between items-center px-1 py-1 bg-transparent sm:px-3 sm:py-2">
                   <div className="flex items-center gap-1 sm:gap-2">
                     <Heart className="h-4 w-4 sm:h-5 sm:w-5 text-red-500" />
                     <span className="text-xs sm:text-sm font-semibold text-gray-800">{formatNumber(post.likes)}</span>
