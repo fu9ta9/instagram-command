@@ -136,9 +136,9 @@ const ReplyList: React.FC<ReplyListProps> = ({ replies, onEdit, onDelete }) => {
             <div className="flex flex-col gap-4">
               {/* SP表示用 */}
               <div className="flex items-center justify-between sm:hidden">
-                <h3 className="text-base truncate flex-1">
+                <h3 className="text-base truncate flex-1 min-w-0">
                   <span className="text-gray-500">キーワード：</span>
-                  <span className="text-gray-900">{reply.keyword}</span>
+                  <span className="text-gray-900 break-words max-w-full">{reply.keyword}</span>
                 </h3>
                 <div className="flex gap-2 ml-4 flex-shrink-0">
                   <Button
@@ -188,18 +188,18 @@ const ReplyList: React.FC<ReplyListProps> = ({ replies, onEdit, onDelete }) => {
                   <div className="min-w-0 flex-1">
                     <h3 className="text-base">
                       <span className="text-gray-500">キーワード：</span>
-                      <span className="text-gray-900">{reply.keyword}</span>
+                      <span className="text-gray-900 break-words max-w-full">{reply.keyword}</span>
                     </h3>
-                    <p className="text-base mt-1">
+                    <p className="text-base mt-1 break-words max-w-full">
                       <span className="text-gray-500">返信文：</span>
-                      <span className="text-gray-900 line-clamp-2 pl-2">{reply.reply}</span>
+                      <span className="text-gray-900 line-clamp-2 pl-2 break-words max-w-full">{reply.reply}</span>
                     </p>
                     {reply.buttons && reply.buttons.length > 0 && (
                       <div className="mt-1">
                         <span className="text-gray-500 text-base">ボタンURL：</span>
                         <div className="mt-0.5 space-y-0.5">
                           {reply.buttons.map((button, index) => (
-                            <div key={index} className="text-base text-blue-600 truncate pl-2">
+                            <div key={index} className="text-base text-blue-600 truncate pl-2 break-all max-w-full">
                               {button.url}
                             </div>
                           ))}

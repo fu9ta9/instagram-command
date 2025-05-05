@@ -9,7 +9,7 @@ export function MainContent({ children }: { children: React.ReactNode }) {
   return (
     <div className={cn(
       "flex-1 flex flex-col transition-[margin] duration-300",
-      "bg-gray-50 text-gray-900",
+      "bg-gray-50 text-gray-900 w-full min-w-0 max-w-full overflow-x-hidden",
       "ml-0 md:ml-[var(--sidebar-width)]",
       {
         "md:ml-16": isCollapsed,

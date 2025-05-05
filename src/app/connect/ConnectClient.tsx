@@ -146,7 +146,7 @@ export default function ConnectClient() {
 
   if (isLoading) {
     return (
-      <div className="container mx-auto p-4 min-h-[600px] flex items-center justify-center">
+      <div className="w-full min-w-0 max-w-full p-4 min-h-[600px] flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="h-8 w-8 animate-spin text-blue-500 mx-auto mb-4" />
           <p className="text-gray-600 dark:text-gray-300">ローディング中...</p>
@@ -156,9 +156,9 @@ export default function ConnectClient() {
   }
 
   return (
-    <main className="flex-1 overflow-auto">
-      <div className="container mx-auto p-4">
-        <div className="bg-white dark:bg-gray-900 p-6 rounded-lg shadow-md border border-gray-200 dark:border-gray-800">
+    <main className="flex-1 w-full min-w-0 max-w-full overflow-x-hidden overflow-auto">
+      <div className="w-full min-w-0 max-w-full overflow-x-hidden p-4">
+        <div className="bg-white dark:bg-gray-900 p-4 md:p-6 rounded-lg shadow-md border border-gray-200 dark:border-gray-800">
           <h2 className="text-xl font-semibold mb-4 dark:text-gray-100">Instagram連携状態</h2>
           
           {/* エラーメッセージ */}

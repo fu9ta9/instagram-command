@@ -20,14 +20,17 @@ export default async function RootLayout({
 
   return (
     <html lang="ja" suppressHydrationWarning>
-      <body className={cn(inter.className, "bg-gray-50")}>
+      <head>
+        <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
+      </head>
+      <body className={cn(inter.className, "bg-gray-50 w-full min-w-0 max-w-full overflow-x-hidden")}>
         <AuthProvider>
           <SidebarProvider>
-            <div className="flex min-h-screen bg-gray-50">
+            <div className="flex min-h-screen bg-gray-50 w-full min-w-0 max-w-full overflow-x-hidden">
               <Sidebar session={session} />
               <MainContent>
                 <Header session={session} />
-                <main className="flex-1 p-6">
+                <main className="flex-1 w-full min-w-0 max-w-full overflow-x-hidden p-4 md:p-6">
                   {children}
                 </main>
               </MainContent>

@@ -24,9 +24,9 @@ export default function FacebookConnectPage() {
   };
 
   return (
-    <div className="container mx-auto p-4 max-w-md">
-      <h1 className="text-2xl font-bold mb-4">Instagram連携</h1>
-      <Button onClick={handleConnect} disabled={isLoading}>
+    <div className="w-full min-w-0">
+      <h1 className="text-2xl font-bold mb-4 break-words">Instagram連携</h1>
+      <Button onClick={handleConnect} disabled={isLoading} className="w-full min-w-0">
         {isLoading ? 'ログイン中...' : 'Facebookでログイン'}
       </Button>
     </div>

@@ -1,0 +1,58 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"type": "npm",
+			"script": "dev",
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"problemMatcher": [],
+			"label": "npm: dev",
+			"detail": "Next.js開発サーバーを起動"
+		},
+		{
+			"type": "shell",
+			"command": "docker compose up -d",
+			"label": "docker: up",
+			"detail": "Dockerコンテナを起動"
+		},
+		{
+			"type": "shell",
+			"command": "docker compose down",
+			"label": "docker: down",
+			"detail": "Dockerコンテナを停止"
+		},
+		{
+			"type": "shell",
+			"command": "docker compose down -v",
+			"label": "docker: down with volumes",
+			"detail": "Dockerコンテナとボリュームを削除"
+		},
+		{
+			"type": "npm",
+			"script": "prisma:migrate",
+			"problemMatcher": [],
+			"label": "prisma: migrate",
+			"detail": "Prismaマイグレーションを実行"
+		},
+		{
+			"type": "shell",
+			"command": "npm run prisma:migrate -- --name",
+			"args": [
+				"${input:migrationName}"
+			],
+			"label": "prisma: migrate with name",
+			"detail": "名前を指定してマイグレーションを実行"
+		}
+	],
+	"inputs": [
+		{
+			"id": "migrationName",
+			"type": "promptString",
+			"description": "マイグレーション名を入力してください",
+			"default": "init"
+		}
+	]
+}

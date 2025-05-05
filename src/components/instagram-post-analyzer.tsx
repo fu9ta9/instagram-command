@@ -319,7 +319,7 @@ export default function InstagramPostAnalyzer() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 overflow-x-hidden">
       {/* 検索バー */}
       <div className="relative">
         <div className="flex gap-2">
@@ -420,7 +420,7 @@ export default function InstagramPostAnalyzer() {
               
               {/* アカウント情報 */}
               <div className="flex-1 text-center sm:text-left">
-                <h2 className="text-xl font-bold">@{account.username}</h2>
+                <h2 className="text-xl font-bold truncate whitespace-nowrap ...">@{account.username}</h2>
                 {account.name && account.name !== account.username && (
                   <p className="text-gray-600">{account.name}</p>
                 )}
