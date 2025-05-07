@@ -244,8 +244,7 @@ export default function PlanClient() {
               <Button
                 className="w-full"
                 onClick={() => handleUpgrade(plan.membershipType)}
-                // disabled={isUpgrading}
-                disabled={true}
+                disabled={isUpgrading}
               >
                 {isUpgrading ? (
                   <Loader2 className="h-4 w-4 animate-spin mr-2" />

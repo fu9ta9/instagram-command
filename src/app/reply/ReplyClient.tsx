@@ -8,6 +8,8 @@ import { Button } from '@/components/ui/button'
 import { PlusIcon, Loader2 } from 'lucide-react'
 import { Reply, ReplyInput, ReplyFormData } from '@/types/reply'
 import { useReplyStore } from '@/store/replyStore'
+import { useRouter } from 'next/navigation'
+import { useMembership } from '@/hooks/useMembership'
 
 enum MATCH_TYPE {
   EXACT = 0,
@@ -17,11 +19,16 @@ enum MATCH_TYPE {
 
 export default function ReplyClient() {
   const { data: session } = useSession()
+  const router = useRouter()
   const {
     replies, isModalOpen, editingReply,
     setReplies, setIsModalOpen, setEditingReply, clearAll
   } = useReplyStore()
   const [isLoading, setIsLoading] = useState(true)
+  const {
+    membershipType,
+    isLoading: isMembershipLoading
+  } = useMembership()
 
   // 返信一覧を取得
   useEffect(() => {
@@ -138,10 +145,30 @@ export default function ReplyClient() {
   return (
     <div>
       <div className="flex justify-start mb-6">
-        <Button onClick={handleOpenModal} className="flex items-center gap-2">
-          <PlusIcon className="h-4 w-4" />
-          新規返信を登録
-        </Button>
+        {membershipType === 'FREE' ? (
+          <div className="flex flex-col gap-2 w-full">
+            <Button
+              onClick={() => router.push('/plan')}
+              className="flex items-center bg-blue-500 hover:bg-blue-600 text-white w-56"
+            >
+              会員をアップグレード
+            </Button>
+            {replies.length > 0 && (
+              <div className="mt-2 p-3 bg-yellow-100 border border-yellow-300 text-yellow-800 rounded text-sm w-full">
+                無料会員の場合、登録済みの返信文は自動返信されません。有料プランにアップグレードしてください。
+              </div>
+            )}
+          </div>
+        ) : (
+          <Button
+            onClick={handleOpenModal}
+            className="flex items-center gap-2"
+            disabled={isMembershipLoading}
+          >
+            <PlusIcon className="h-4 w-4" />
+            新規返信を登録
+          </Button>
+        )}
       </div>
 
       <ReplyList
