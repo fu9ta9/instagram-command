@@ -12,7 +12,7 @@ export default async function SearchPage() {
     }
 
     return (
-      <div className="container mx-auto py-6">
+      <div className="container mx-auto my-6">
         <AppLayout>
           <InstagramPostAnalyzer />
         </AppLayout>

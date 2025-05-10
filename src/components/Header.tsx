@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button"
 import { useSession, signOut } from "next-auth/react"
 import Link from "next/link"
 import { Session } from 'next-auth'
-import { ThemeToggle } from './ThemeToggle'
+import { LogIn, LogOut } from 'lucide-react'
 
 type HeaderProps = {
   session: Session | null
@@ -21,18 +21,21 @@ export default function Header({ session }: HeaderProps) {
         <div className="flex flex-1 items-center justify-between space-x-2 md:justify-end">
           <div className="w-full flex-1" />
           <nav className="flex items-center space-x-2">
-            <ThemeToggle />
             {session ? (
               <Button 
                 variant="ghost" 
                 onClick={handleLogout}
-                className="text-gray-700"
+                className="text-gray-700 flex items-center gap-1"
               >
+                <LogOut className="w-4 h-4" />
                 ログアウト
               </Button>
             ) : (
-              <Button variant="ghost" asChild className="text-gray-700">
-                <Link href="/login">ログイン</Link>
+              <Button variant="ghost" asChild className="text-gray-700 flex items-center gap-1">
+                <Link href="/login">
+                  <LogIn className="w-4 h-4" />
+                  ログイン
+                </Link>
               </Button>
             )}
           </nav>

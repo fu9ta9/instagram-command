@@ -319,7 +319,7 @@ export default function InstagramPostAnalyzer() {
   }
 
   return (
-    <div className="space-y-6 overflow-x-hidden">
+    <div className="space-y-6">
       {/* 検索バー */}
       <div className="relative">
         <div className="flex gap-2">
@@ -329,7 +329,7 @@ export default function InstagramPostAnalyzer() {
               placeholder="Instagramのユーザー名を入力"
               value={searchInput}
               onChange={handleSearchInputChange}
-              className="pr-10 w-full"
+              className="pr-10 mt-1 ml-1 w-full focus:ring-2 focus:ring-blue-500 focus:outline-none focus:ring-offset-2 bg-white"
             />
             {searchInput && (
               <button
@@ -343,14 +343,10 @@ export default function InstagramPostAnalyzer() {
           <Button 
             onClick={handleSearch} 
             disabled={isLoading || !searchInput.trim()}
-            className="w-20 min-w-[5rem] px-2" // 幅を固定
+            className="w-20 min-w-[5rem] px-2 mt-1 flex items-center justify-center"
           >
             {isLoading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                <span className="hidden sm:inline">検索中...</span>
-                <span className="sm:hidden">...</span>
-              </>
+              <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
               <>
                 <Search className="h-4 w-4 sm:mr-2" />
