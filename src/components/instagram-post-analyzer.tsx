@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { Search, Loader2, Heart, MessageCircle, History, User, Users, SlidersHorizontal, ExternalLink } from "lucide-react"
+import { Search, Loader2, Heart, MessageCircle, History, User, Users, SlidersHorizontal, ExternalLink, ImageOff } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
@@ -516,7 +516,7 @@ export default function InstagramPostAnalyzer() {
           ))}
         </div>
       ) : posts.length > 0 ? (
-        <div className="grid grid-cols-3 gap-2 sm:gap-4">
+        <div className="grid grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4">
           {posts.map((post) => (
             <Card 
               key={post.id} 
@@ -527,8 +527,13 @@ export default function InstagramPostAnalyzer() {
                 <img
                   src={post.imageUrl}
                   alt=""
-                  className="h-full object-cover sm:rounded-t-lg w-[120px] sm:w-[180px]"
+                  className="h-full object-cover sm:rounded-t-lg w-[120px] sm:w-[180px] lg:w-[300px]"
                   style={{ display: 'block' }}
+                  onError={e => {
+                    if (!e.currentTarget.src.includes('noimage.svg')) {
+                      e.currentTarget.src = '/noimage.svg';
+                    }
+                  }}
                 />
                 {/* PCモード：左上に日付 */}
                 <div className="absolute top-2 left-2 hidden sm:block bg-white bg-opacity-80 rounded px-2 py-0.5 text-xs text-gray-700 font-medium">

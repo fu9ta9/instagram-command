@@ -40,14 +40,11 @@ export default function FacebookConnect({ isReconnect = false }: FacebookConnect
   };
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow-md">
       <Button 
         onClick={handleConnect} 
-        className="mb-4"
         disabled={isLoading}
       >
         {isLoading ? 'ログイン中...' : isReconnect ? 'Instagram再連携' : 'Instagram連携'}
       </Button>
-    </div>
   );
 }

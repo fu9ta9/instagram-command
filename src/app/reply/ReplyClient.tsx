@@ -37,6 +37,11 @@ export default function ReplyClient() {
     }
   }, [session?.user?.id])
 
+  // ユーザー切り替え時に状態をリセット
+  useEffect(() => {
+    clearAll()
+  }, [session?.user?.id])
+
   const fetchReplies = async () => {
     try {
       setIsLoading(true)
@@ -153,9 +158,13 @@ export default function ReplyClient() {
             >
               会員をアップグレード
             </Button>
-            {replies.length > 0 && (
+            {replies.length > 0 ? (
               <div className="mt-2 p-3 bg-yellow-100 border border-yellow-300 text-yellow-800 rounded text-sm w-full">
                 無料会員の場合、登録済みの返信文は自動返信されません。有料プランにアップグレードしてください。
+              </div>
+            ) : (
+              <div className="mt-2 p-3 bg-blue-50 border border-blue-200 text-blue-800 rounded text-sm w-full">
+                自動返信は有料会員の機能です。有料プランにアップグレードしてください。
               </div>
             )}
           </div>
