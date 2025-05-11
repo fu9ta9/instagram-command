@@ -319,9 +319,9 @@ const InstagramPostList: React.FC<InstagramPostListProps> = ({
                   className="absolute inset-0 w-full h-full object-cover"
                   loading="lazy"
                 />
-                {/* 日付を楕円形で右上に表示 */}
-                <div className="absolute top-2 right-2 bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded-full">
-                  {format(new Date(post.timestamp), 'MM/dd', { locale: ja })}
+                {/* 日付をPCのみ左上に表示（analyzerと同じスタイル） */}
+                <div className="absolute top-2 left-2 hidden sm:block bg-white bg-opacity-80 rounded px-2 py-0.5 text-xs text-gray-700 font-medium">
+                  {format(new Date(post.timestamp), 'yy/MM/dd', { locale: ja })}
                 </div>
                 
                 {selectedPostId === post.id && (
@@ -362,9 +362,10 @@ const InstagramPostList: React.FC<InstagramPostListProps> = ({
       {/* 次へボタンをスライドイン表示 */}
       <div 
         id="next-button"
-        className={`sticky bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 transition-all duration-300 ${
-          showNextButton ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-full pointer-events-none'
-        }`}
+        className={`sticky bottom-0 left-0 right-0 bg-white border-t border-gray-200 transition-all duration-300
+          ${showNextButton ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-full pointer-events-none'}
+          p-4 pb-8 sm:pb-4
+        `}
       >
         <div className="flex justify-end max-w-full">
           <Button type="button" onClick={onNext} className="flex items-center">

@@ -14,7 +14,7 @@ import {
   PopoverContent, 
   PopoverTrigger 
 } from "@/components/ui/popover";
-import { History, Pencil, Trash2, ChevronRight } from 'lucide-react';
+import { History, Pencil, Trash2, ChevronRight, Eye, ArrowLeft } from 'lucide-react';
 
 // Zodスキーマの定義を修正
 const schema = z.object({
@@ -67,6 +67,9 @@ const KeywordRegistrationModal: React.FC<KeywordRegistrationModalProps> = ({ isO
   const [recentReplies, setRecentReplies] = useState<Reply[]>([]);
   const [isReplyHistoryOpen, setIsReplyHistoryOpen] = useState(false);
   const [isButtonHistoryOpen, setIsButtonHistoryOpen] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
+  // SP判定（Tailwindのsm:と同じ640px）
+  const isMobile = typeof window !== 'undefined' ? window.innerWidth < 640 : false;
 
   const { control, handleSubmit, setValue, watch, reset, formState: { errors, isValid } } = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -302,7 +305,8 @@ const KeywordRegistrationModal: React.FC<KeywordRegistrationModalProps> = ({ isO
   return (
     <Modal isOpen={isOpen} onClose={onClose}>
       <div className="p-6 max-w-4xl mx-auto">
-        <h1 className="text-2xl font-bold mb-6">{isEditing ? '返信を編集' : '新規返信登録'}</h1>
+        {/* タイトルはSP時非表示 */}
+        <h1 className="text-2xl font-bold mb-6 hidden sm:block">{isEditing ? '返信を編集' : '新規返信登録'}</h1>
         <div className="mb-4 bg-gray-200 h-2 rounded-full">
           <div 
             className="bg-blue-500 h-full rounded-full transition-all duration-300 ease-in-out"
@@ -317,6 +321,7 @@ const KeywordRegistrationModal: React.FC<KeywordRegistrationModalProps> = ({ isO
                 onSelectPost={handleSelectPost} 
                 initialSelectedPostId={initialData?.postId}
                 onNext={handleNext}
+                // サムネイル画像の日付はInstagramPostList内でabsolute left-1 top-1 text-xs bg-white/80 rounded px-1 py-0.5で左上小さく表示すること
               />
             </div>
           )}
@@ -359,60 +364,13 @@ const KeywordRegistrationModal: React.FC<KeywordRegistrationModalProps> = ({ isO
           {step === 3 && (
             <div>
               <div className="text-xl font-bold mb-4">返信文を入力</div>
-              <div className="flex space-x-4">
-                <div className="w-1/2 flex flex-col">
-                  <div className="font-semibold mb-2 flex justify-between items-center">
-                    <span>返信内容</span>
-                    <Popover open={isReplyHistoryOpen} onOpenChange={setIsReplyHistoryOpen}>
-                      <PopoverTrigger asChild>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          className="flex items-center gap-1"
-                        >
-                          <History className="h-4 w-4" />
-                          <span>過去の返信</span>
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-80 p-0">
-                        <div className="p-2 font-semibold border-b">過去の返信文</div>
-                        <div className="max-h-60 overflow-y-auto">
-                          {recentReplies.length > 0 ? (
-                            recentReplies.map((reply) => (
-                              <div 
-                                key={reply.id} 
-                                className="p-2 hover:bg-gray-100 cursor-pointer border-b text-sm"
-                                onClick={() => handleSelectRecentReply(reply)}
-                              >
-                                <div className="line-clamp-2">{reply.reply}</div>
-                              </div>
-                            ))
-                          ) : (
-                            <div className="p-4 text-center text-gray-500">
-                              過去の返信がありません
-                            </div>
-                          )}
-                        </div>
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-                  <Controller
-                    name="reply"
-                    control={control}
-                    render={({ field }) => (
-                      <Textarea 
-                        {...field} 
-                        placeholder="返信内容を入力してください" 
-                        className="flex-grow min-h-[150px]" 
-                      />
-                    )}
-                  />
-                  {errors.reply && <p className="text-red-500 text-sm mt-1">{errors.reply.message}</p>}
-                  
-                  <div className="mt-4">
+              <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
+                {/* 入力欄（SP時はプレビュー非表示時のみ） */}
+                {(!showPreview || !isMobile) && (
+                  <div className="flex-1 flex flex-col">
                     <div className="font-semibold mb-2 flex justify-between items-center">
-                      <span>ボタン</span>
-                      <Popover open={isButtonHistoryOpen} onOpenChange={setIsButtonHistoryOpen}>
+                      <span>返信内容</span>
+                      <Popover open={isReplyHistoryOpen} onOpenChange={setIsReplyHistoryOpen}>
                         <PopoverTrigger asChild>
                           <Button 
                             variant="outline" 
@@ -420,145 +378,222 @@ const KeywordRegistrationModal: React.FC<KeywordRegistrationModalProps> = ({ isO
                             className="flex items-center gap-1"
                           >
                             <History className="h-4 w-4" />
-                            <span>過去のボタン</span>
+                            <span>過去の返信</span>
                           </Button>
                         </PopoverTrigger>
                         <PopoverContent className="w-80 p-0">
-                          <div className="p-2 font-semibold border-b">過去のボタン</div>
+                          <div className="p-2 font-semibold border-b">過去の返信文</div>
                           <div className="max-h-60 overflow-y-auto">
-                            {recentReplies.filter(reply => reply.buttons && reply.buttons.length > 0).length > 0 ? (
-                              recentReplies.filter(reply => reply.buttons && reply.buttons.length > 0).map((reply) => (
+                            {recentReplies.length > 0 ? (
+                              recentReplies.map((reply) => (
                                 <div 
                                   key={reply.id} 
-                                  className="p-2 hover:bg-gray-100 cursor-pointer border-b"
+                                  className="p-2 hover:bg-gray-100 cursor-pointer border-b text-sm"
+                                  onClick={() => handleSelectRecentReply(reply)}
                                 >
-                                  <div className="font-medium text-sm mb-1">
-                                    {reply.keyword}の返信
-                                  </div>
-                                  <div className="flex flex-wrap gap-1">
-                                    {reply.buttons?.map((button, idx) => (
-                                      <div 
-                                        key={idx} 
-                                        className="text-xs bg-gray-100 p-1 rounded"
-                                        onClick={() => handleSelectButton({
-                                          title: button.title,
-                                          url: button.url
-                                        })}
-                                      >
-                                        {button.title}
-                                      </div>
-                                    ))}
-                                  </div>
-                                  <Button 
-                                    size="sm" 
-                                    variant="outline" 
-                                    className="mt-1 w-full text-xs"
-                                    onClick={() => handleSelectButtonSet(
-                                      reply.buttons?.map(b => ({
-                                        title: b.title,
-                                        url: b.url
-                                      })) || []
-                                    )}
-                                  >
-                                    このセットを使用
-                                  </Button>
+                                  <div className="line-clamp-2">{reply.reply}</div>
                                 </div>
                               ))
                             ) : (
                               <div className="p-4 text-center text-gray-500">
-                                過去のボタンがありません
+                                過去の返信がありません
                               </div>
                             )}
                           </div>
                         </PopoverContent>
                       </Popover>
                     </div>
-                    
-                    {buttons.map((button, index) => (
-                      <div key={index} className="flex items-center mb-2">
-                        <div className="flex-grow border p-2 rounded-lg text-sm">
-                          {button.title} - {button.url}
-                        </div>
-                        <div className="flex ml-2">
-                          <Button 
-                            type="button" 
-                            variant="outline" 
-                            size="icon"
-                            className="h-8 w-8 mr-1"
-                            onClick={() => handleEditButton(index)}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button 
-                            type="button" 
-                            variant="outline" 
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => setButtons(buttons.filter((_, i) => i !== index))}
-                          >
-                            <Trash2 className="h-4 w-4 text-red-500" />
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                    
-                    {isAddingButton ? (
-                      <div className="mt-2">
-                        <div className="flex mb-2">
-                          <Input 
-                            value={buttonTitle} 
-                            onChange={(e) => setButtonTitle(e.target.value)} 
-                            placeholder="ボタンのタイトル" 
-                            className="mr-2"
-                          />
-                          <Input 
-                            value={buttonUrl} 
-                            onChange={(e) => setButtonUrl(e.target.value)} 
-                            placeholder="URL" 
-                          />
-                        </div>
-                        <div className="flex justify-end space-x-2">
-                          <Button 
-                            type="button" 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => {
-                              setButtonTitle('');
-                              setButtonUrl('');
-                              setEditingButtonIndex(null);
-                              setIsAddingButton(false);
-                            }}
-                          >
-                            キャンセル
-                          </Button>
-                          <Button 
-                            type="button" 
-                            size="sm"
-                            onClick={handleAddButton}
-                            disabled={!buttonTitle || !buttonUrl}
-                          >
-                            {editingButtonIndex !== null ? '更新' : '追加'}
-                          </Button>
-                        </div>
-                      </div>
-                    ) : (
-                      <Button 
-                        type="button" 
-                        variant="outline" 
-                        className="w-full"
-                        onClick={() => setIsAddingButton(true)}
+                    <Controller
+                      name="reply"
+                      control={control}
+                      render={({ field }) => (
+                        <Textarea 
+                          {...field} 
+                          placeholder="返信内容を入力してください" 
+                          className="flex-grow min-h-[150px]" 
+                        />
+                      )}
+                    />
+                    {errors.reply && <p className="text-red-500 text-sm mt-1">{errors.reply.message}</p>}
+                    {/* プレビュートグル（SPのみ） */}
+                    {isMobile && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="mt-2 bg-blue-100 text-blue-700 hover:bg-blue-200 border-blue-200 flex items-center gap-1"
+                        onClick={() => setShowPreview(true)}
                       >
-                        ボタンを追加
+                        <Eye className="h-4 w-4" />
+                        プレビューを見る
                       </Button>
                     )}
+                    
+                    <div className="mt-4">
+                      <div className="font-semibold mb-2 flex justify-between items-center">
+                        <span>ボタン</span>
+                        <Popover open={isButtonHistoryOpen} onOpenChange={setIsButtonHistoryOpen}>
+                          <PopoverTrigger asChild>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              className="flex items-center gap-1"
+                            >
+                              <History className="h-4 w-4" />
+                              <span>過去のボタン</span>
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-80 p-0">
+                            <div className="p-2 font-semibold border-b">過去のボタン</div>
+                            <div className="max-h-60 overflow-y-auto">
+                              {recentReplies.filter(reply => reply.buttons && reply.buttons.length > 0).length > 0 ? (
+                                recentReplies.filter(reply => reply.buttons && reply.buttons.length > 0).map((reply) => (
+                                  <div 
+                                    key={reply.id} 
+                                    className="p-2 hover:bg-gray-100 cursor-pointer border-b"
+                                  >
+                                    <div className="font-medium text-sm mb-1">
+                                      {reply.keyword}の返信
+                                    </div>
+                                    <div className="flex flex-wrap gap-1">
+                                      {reply.buttons?.map((button, idx) => (
+                                        <div 
+                                          key={idx} 
+                                          className="text-xs bg-gray-100 p-1 rounded"
+                                          onClick={() => handleSelectButton({
+                                            title: button.title,
+                                            url: button.url
+                                          })}
+                                        >
+                                          {button.title}
+                                        </div>
+                                      ))}
+                                    </div>
+                                    <Button 
+                                      size="sm" 
+                                      variant="outline" 
+                                      className="mt-1 w-full text-xs"
+                                      onClick={() => handleSelectButtonSet(
+                                        reply.buttons?.map(b => ({
+                                          title: b.title,
+                                          url: b.url
+                                        })) || []
+                                      )}
+                                    >
+                                      このセットを使用
+                                    </Button>
+                                  </div>
+                                ))
+                              ) : (
+                                <div className="p-4 text-center text-gray-500">
+                                  過去のボタンがありません
+                                </div>
+                              )}
+                            </div>
+                          </PopoverContent>
+                        </Popover>
+                      </div>
+                      
+                      {buttons.map((button, index) => (
+                        <div key={index} className="flex items-center mb-2">
+                          <div className="flex-grow border p-2 rounded-lg text-sm">
+                            {button.title} - {button.url}
+                          </div>
+                          <div className="flex ml-2">
+                            <Button 
+                              type="button" 
+                              variant="outline" 
+                              size="icon"
+                              className="h-8 w-8 mr-1"
+                              onClick={() => handleEditButton(index)}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button 
+                              type="button" 
+                              variant="outline" 
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() => setButtons(buttons.filter((_, i) => i !== index))}
+                            >
+                              <Trash2 className="h-4 w-4 text-red-500" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                      
+                      {isAddingButton ? (
+                        <div className="mt-2">
+                          <div className="flex mb-2">
+                            <Input 
+                              value={buttonTitle} 
+                              onChange={(e) => setButtonTitle(e.target.value)} 
+                              placeholder="ボタンのタイトル" 
+                              className="mr-2"
+                            />
+                            <Input 
+                              value={buttonUrl} 
+                              onChange={(e) => setButtonUrl(e.target.value)} 
+                              placeholder="URL" 
+                            />
+                          </div>
+                          <div className="flex justify-end space-x-2">
+                            <Button 
+                              type="button" 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => {
+                                setButtonTitle('');
+                                setButtonUrl('');
+                                setEditingButtonIndex(null);
+                                setIsAddingButton(false);
+                              }}
+                            >
+                              キャンセル
+                            </Button>
+                            <Button 
+                              type="button" 
+                              size="sm"
+                              onClick={handleAddButton}
+                              disabled={!buttonTitle || !buttonUrl}
+                            >
+                              {editingButtonIndex !== null ? '更新' : '追加'}
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <Button 
+                          type="button" 
+                          variant="outline" 
+                          className="w-full"
+                          onClick={() => setIsAddingButton(true)}
+                        >
+                          ボタンを追加
+                        </Button>
+                      )}
+                    </div>
                   </div>
-                </div>
-                <div className="w-1/2 flex flex-col">
-                  <div className="font-semibold mb-2">プレビュー</div>
-                  <div className="flex-grow bg-gray-100 p-4 rounded-lg overflow-auto">
+                )}
+                {/* プレビュー（SP時はトグルで表示） */}
+                {(showPreview || !isMobile) && (
+                  <div className="flex-1 flex flex-col bg-gray-100 p-4 rounded-lg overflow-auto">
+                    <div className="font-semibold mb-2 flex justify-between items-center">
+                      <span>プレビュー</span>
+                      {isMobile && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="flex items-center gap-1"
+                          onClick={() => setShowPreview(false)}
+                        >
+                          <ArrowLeft className="h-4 w-4" />
+                          入力に戻る
+                        </Button>
+                      )}
+                    </div>
                     <div dangerouslySetInnerHTML={{ __html: renderPreview(replyContent || '') }} />
                   </div>
-                </div>
+                )}
               </div>
               <div className="mt-4 flex justify-between">
                 <Button type="button" onClick={handleBack} variant="outline">戻る</Button>
