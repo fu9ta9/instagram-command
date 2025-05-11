@@ -27,15 +27,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "認証が必要です" }, { status: 401 })
     }
 
-    // 既存のサブスクリプションをチェック
-    const existingSubscription = await prisma.userSubscription.findUnique({
-      where: { userId: session.user.id }
-    })
-
-    if (existingSubscription) {
-      return NextResponse.json({ error: "既にサブスクリプションが存在します" }, { status: 400 })
-    }
-
     try {
       // ログを追加
       await prisma.executionLog.create({

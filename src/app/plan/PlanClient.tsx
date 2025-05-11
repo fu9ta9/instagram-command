@@ -73,6 +73,15 @@ export default function PlanClient() {
 
   const fetchMembership = async () => {
     try {
+      // まずexpire-trialを呼び出して、必要ならFREEに戻す
+      if (session?.user?.id) {
+        await fetch('/api/membership/expire-trial', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: session.user.id }),
+        })
+      }
+      // その後、最新のmembership情報を取得
       const response = await fetch(`/api/membership/${session?.user?.id}`)
       if (response.ok) {
         const data = await response.json()
@@ -182,9 +191,9 @@ export default function PlanClient() {
         <div className="mb-6">
           {membership.status === 'CANCELING' ? (
             <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg mb-4">
-              <p className="text-yellow-800 font-medium">サブスクリプションは停止予定です</p>
+              <p className="text-yellow-800 font-medium">サブスクリプションは解約済みです</p>
               <p className="text-yellow-700">
-                {subscriptionEndDate}まで引き続きサービスをご利用いただけます。
+                {subscriptionEndDate}までは引き続き全ての有料機能をご利用いただけます。<br />
                 この日以降は自動的に無料プランに戻ります。
               </p>
             </div>

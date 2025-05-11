@@ -57,45 +57,13 @@ export async function POST(req: Request) {
     try {
         switch (event.type) {
             case "checkout.session.completed": {
-                const subscription = await stripe.subscriptions.retrieve(
-                    session.subscription
-                );
-
-                if (!session?.metadata?.userId) {
-                    throw new Error('User id is required');
-                }
-
-                await prisma.userSubscription.create({
-                    data: {
-                        userId: session.metadata.userId,
-                        stripeSubscriptionId: subscription.id,
-                        stripeCustomerId: subscription.customer as string,
-                        stripePriceId: subscription.items.data[0].price.id,
-                        stripeCurrentPeriodEnd: new Date(
-                            subscription.current_period_end * 1000
-                        ),
-                    },
-                });
-
-                await prisma.user.update({
-                    where: {
-                        id: session.metadata.userId,
-                    },
-                    data: {
-                        membershipType: 'PAID',
-                    },
-                });
-
+                // DB登録処理はcustomer.subscription.createdでのみ行う
                 break;
             }
 
             case "customer.subscription.created": {
                 const subscription = event.data.object as Stripe.Subscription;
-                
-                await logError(`New subscription created:
-                    Subscription ID: ${subscription.id}
-                    Customer: ${subscription.customer}
-                `);
+                await logError(`New subscription created:\n                    Subscription ID: ${subscription.id}\n                    Customer: ${subscription.customer}\n                `);
 
                 const userId = subscription.metadata.userId;
                 if (!userId) {
@@ -123,13 +91,8 @@ export async function POST(req: Request) {
                             status: 'ACTIVE'
                         }
                     });
-
-                    await tx.user.update({
-                        where: { id: userId },
-                        data: { membershipType: 'PAID' }
-                    });
+                    // membershipTypeの更新はここでは行わない
                 });
-
                 break;
             }
 
@@ -150,6 +113,19 @@ export async function POST(req: Request) {
                             ),
                         },
                     });
+
+                    // サブスクリプションがactiveの場合のみPAID化
+                    if (subscription.status === 'active') {
+                        const userSub = await prisma.userSubscription.findUnique({
+                            where: { stripeSubscriptionId: subscriptionId }
+                        });
+                        if (userSub) {
+                            await prisma.user.update({
+                                where: { id: userSub.userId },
+                                data: { membershipType: 'PAID' }
+                            });
+                        }
+                    }
                 }
                 break;
             }

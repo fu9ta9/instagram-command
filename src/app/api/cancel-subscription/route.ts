@@ -21,8 +21,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "アクティブなサブスクリプションが見つかりません" }, { status: 404 })
     }
 
-    // Stripeでサブスクリプションをキャンセル
-    await stripe.subscriptions.cancel(subscription.stripeSubscriptionId)
+    // サブスクリプションを「期間終了後にキャンセル」予約
+    await stripe.subscriptions.update(subscription.stripeSubscriptionId, {
+      cancel_at_period_end: true,
+    });
 
     // データベースのステータスを更新
     await prisma.userSubscription.update({
