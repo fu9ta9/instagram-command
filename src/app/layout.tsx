@@ -30,7 +30,7 @@ export default async function RootLayout({
               <Sidebar session={session} />
               <MainContent>
                 <Header session={session} />
-                <main className="flex-1 w-full min-w-0 max-w-full overflow-x-hidden p-4 md:p-6">
+                <main className="flex-1 w-full min-w-0 max-w-full p-4 md:p-6">
                   {children}
                 </main>
               </MainContent>

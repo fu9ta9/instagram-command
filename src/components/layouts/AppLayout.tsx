@@ -14,10 +14,6 @@ export default function AppLayout({ children }: AppLayoutProps) {
         {/* メインコンテンツエリア*/}
         <div className="flex-1 w-full max-w-full overflow-x-hidden">
           {children}
-        </div>
-        
-        {/* モバイル用フッターナビゲーション */}
-        <div className="md:hidden">
           <MobileNavbar />
         </div>
       </div>
