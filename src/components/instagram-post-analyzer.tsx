@@ -152,6 +152,12 @@ export default function InstagramPostAnalyzer() {
   const handleSearch = async () => {
     if (!searchInput.trim()) return
 
+    // 検索時に候補エリアを閉じる
+    setShowRecentAccounts(false)
+    // 検索時にソート・件数をリセット
+    setSortBy('recent')
+    setLimit('25')
+
     setIsLoading(true)
     setPosts([])
     setAllPostsData([])
