@@ -271,6 +271,10 @@ export default function InstagramPostAnalyzer() {
 
   // 最近検索したアカウントを選択
   const selectRecentAccount = (account: InstagramAccount) => {
+    // 検索条件をリセット
+    setSortBy('recent')
+    setLimit('25')
+
     setSearchInput(account.username)
     setShowRecentAccounts(false)
     
