@@ -3,6 +3,7 @@ import { getSession } from '@/lib/session'
 import { redirect } from 'next/navigation'
 import PlanClient from './PlanClient'
 
+export const dynamic = "force-dynamic";
 export default async function PlanPage() {
   try {
     const session = await getSession()

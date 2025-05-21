@@ -1,5 +1,5 @@
 "use client"
-import { useEffect } from "react"
+import { useEffect, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 
 const errorMessages: Record<string, string> = {
@@ -14,7 +14,7 @@ const errorMessages: Record<string, string> = {
   default: "認証エラーが発生しました。再度ログインしてください。"
 }
 
-export default function AuthErrorPage() {
+function ErrorContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const error = searchParams?.get("error") || "default"
@@ -40,5 +40,13 @@ export default function AuthErrorPage() {
         </button>
       </div>
     </div>
+  )
+}
+
+export default function AuthErrorPage() {
+  return (
+    <Suspense>
+      <ErrorContent />
+    </Suspense>
   )
 } 

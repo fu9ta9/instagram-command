@@ -3,6 +3,8 @@ import { getSession } from '@/lib/session'
 import { redirect } from 'next/navigation'
 import ReplyClient from './ReplyClient'
 
+export const dynamic = "force-dynamic";
+
 export default async function ReplyPage() {
   try {
     const session = await getSession()
