@@ -7,6 +7,7 @@ import { MessageSquare, Instagram, Bot, ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSession, signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 
 const HeroSection = () => {
   const { data: session } = useSession();
@@ -106,83 +107,23 @@ const HeroSection = () => {
         </div>
         
         <motion.div 
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
+          initial={{ opacity: 0, y: 40 }}
+          animate={{ opacity: 1, y: 0 }}
           transition={{ 
             duration: 0.8,
             delay: 0.3,
             type: "spring",
             stiffness: 100
           }}
-          className="mt-12 md:mt-0 md:w-1/2 relative"
+          className="mt-12 md:mt-0 md:w-1/2 relative flex justify-center items-center"
         >
-          <div className="relative z-10 bg-white dark:bg-gray-800 rounded-2xl shadow-xl overflow-hidden border border-gray-100 dark:border-gray-700">
-            <div className="bg-gray-50 dark:bg-gray-700 px-4 py-3 flex items-center">
-              <div className="flex space-x-1.5">
-                <div className="w-3 h-3 rounded-full bg-red-500"></div>
-                <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-                <div className="w-3 h-3 rounded-full bg-green-500"></div>
-              </div>
-              <div className="text-center flex-grow text-sm font-medium text-gray-600 dark:text-gray-300">
-                InstagramのDM
-              </div>
-            </div>
-            <div className="p-6">
-              <div className="flex flex-col space-y-4">
-                <div className="flex items-start">
-                  <div className="bg-blue-100 dark:bg-blue-900/30 p-3 rounded-full">
-                    <Instagram className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                  </div>
-                  <div className="ml-4 bg-gray-100 dark:bg-gray-700 p-3 rounded-2xl rounded-tl-none max-w-[80%]">
-                    <p className="text-sm text-gray-700 dark:text-gray-300">
-                      商品の海外発送は可能でしょうか？配送料金を教えていただけますか？
-                    </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                      @customer · 2分前
-                    </p>
-                  </div>
-                </div>
-                
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.6 }}
-                  className="flex items-start justify-end"
-                >
-                  <div className="mr-4 bg-blue-500 p-3 rounded-2xl rounded-tr-none max-w-[80%]">
-                    <p className="text-sm text-white">
-                      はい、海外発送も承っております！配送料金は地域によって異なりますが、通常7-14日程度でお届け可能です。具体的な料金をお知りになりたい場合は、お届け先の国名を教えていただけますでしょうか？
-                    </p>
-                    <div className="flex justify-between items-center mt-1">
-                      <p className="text-xs text-blue-100">
-                        @InstaChatBot · たった今
-                      </p>
-                      <Bot className="h-3 w-3 text-blue-100" />
-                    </div>
-                  </div>
-                  <div className="bg-blue-600 dark:bg-blue-500 p-3 rounded-full">
-                    <MessageSquare className="h-5 w-5 text-white" />
-                  </div>
-                </motion.div>
-                
-                <motion.div 
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.9 }}
-                  className="flex justify-center"
-                >
-                  <div className="bg-blue-50 dark:bg-blue-900/20 p-2 px-3 rounded-full text-xs text-blue-700 dark:text-blue-300 flex items-center">
-                    <Bot className="h-3 w-3 mr-1" />
-                    0.3秒で自動応答
-                  </div>
-                </motion.div>
-              </div>
-            </div>
-          </div>
-          
-          {/* Decorative elements */}
-          <div className="absolute top-[20%] right-[-5%] w-24 h-24 bg-yellow-200 dark:bg-yellow-500/20 rounded-full blur-xl opacity-70" />
-          <div className="absolute bottom-[10%] left-[10%] w-16 h-16 bg-purple-200 dark:bg-purple-500/20 rounded-full blur-xl opacity-70" />
+          <Image
+            src="/hero.webp"
+            alt="アプリのイメージ"
+            width={2400}
+            height={1600}
+            priority
+          />
         </motion.div>
       </div>
       
