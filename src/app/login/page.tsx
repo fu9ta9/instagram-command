@@ -31,9 +31,20 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="container mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-6 dark:text-gray-100">ログイン</h1>
-      <div className="mt-0 sm:mx-auto sm:w-full sm:max-w-md">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-blue-100 dark:from-gray-900 dark:to-gray-800 px-4">
+      <div className="w-full max-w-md bg-white dark:bg-gray-900 rounded-2xl shadow-xl p-8 flex flex-col items-center">
+        {/* ロゴやサービス名 */}
+        <div className="flex flex-col items-center mb-6">
+          <div className="w-14 h-14 rounded-full bg-blue-100 flex items-center justify-center mb-2">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8 text-blue-600">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6l4 2" />
+              <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5" fill="none" />
+            </svg>
+          </div>
+          <h1 className="text-2xl font-bold text-blue-700 dark:text-white">InstaCommand</h1>
+          <p className="text-gray-500 dark:text-gray-300 text-sm mt-1">Instagram運用をもっとスマートに</p>
+        </div>
+        {/* Googleログインボタンのみ */}
         <button
           type="button"
           className="gsi-material-button w-full flex items-center justify-center h-12 rounded-lg shadow-md bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-150"
