@@ -364,7 +364,7 @@ const InstagramPostList: React.FC<InstagramPostListProps> = ({
         id="next-button"
         className={`sticky bottom-0 left-0 right-0 bg-white border-t border-gray-200 transition-all duration-300
           ${showNextButton ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-full pointer-events-none'}
-          p-4 pb-8 sm:pb-4
+          p-4 sm:pb-4
         `}
       >
         <div className="flex justify-end max-w-full">

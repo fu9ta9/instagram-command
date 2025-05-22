@@ -10,7 +10,7 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, children }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="absolute inset-0 bg-black bg-opacity-75 flex justify-center items-center z-50">
+    <div className="fixed inset-0 bg-black bg-opacity-75 flex justify-center items-center z-[999] w-full h-full">
       <div
         className="
           bg-white rounded-lg
@@ -29,7 +29,7 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, children }) => {
           paddingTop: 'env(safe-area-inset-top, 16px)',
         }}
       >
-        <div className="p-4 border-b border-gray-200 flex justify-between items-center">
+        <div className="sticky top-0 z-10 p-4 border-b border-gray-200 dark:border-gray-800 flex justify-between items-center bg-white dark:bg-gray-900">
           <h2 className="text-xl font-semibold">自動返信登録</h2>
           <button onClick={onClose} className="text-2xl">&times;</button>
         </div>
