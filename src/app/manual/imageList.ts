@@ -5,7 +5,8 @@ export type ImageInfo = { src: string; alt: string };
 export type ManualImages = Record<string, { pc: ImageInfo[]; sp: ImageInfo[] }>;
 
 const SECTIONS = ["login", "connect", "search", "reply"];
-const MODES = ["pc", "sp"];
+const MODES = ["pc", "sp"] as const;
+type Mode = typeof MODES[number];
 
 export async function getManualImages(): Promise<ManualImages> {
   const baseDir = path.join(process.cwd(), 'public', 'manual-images');

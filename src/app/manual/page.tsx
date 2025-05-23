@@ -1,5 +1,6 @@
 import { getManualImages } from "./imageList";
 import ManualClientPage from "./ManualClientPage";
+import type { ManualImages } from "./imageList";
 
 // サーバーコンポーネントで画像リストを取得するAPI Routeを用意し、fetchで取得する形にします
 // ここではクライアント側のUI部分のみ先に実装します
