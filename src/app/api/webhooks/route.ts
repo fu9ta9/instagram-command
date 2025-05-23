@@ -98,24 +98,12 @@ async function findMatchingReply(webhookData: any) {
   const mediaId = commentData.media.id
 
   try {
-    // 返信を検索
-    const replies = await prisma.reply.findMany({
+    // SPECIFIC_POST優先、なければALL_POSTS
+    const reply = await prisma.reply.findFirst({
       where: {
-        AND: [
-          // 投稿タイプによる条件
-          {
-            OR: [
-              { replyType: 2 }, // ALL_POSTS
-              { AND: [{ replyType: 1 }, { postId: mediaId }] } // SPECIFIC_POST
-            ]
-          },
-          // キーワードの一致条件
-          {
-            OR: [
-              { AND: [{ matchType: 1 }, { keyword: commentText }] }, // 完全一致
-              { AND: [{ matchType: 2 }, { keyword: { in: commentText.split(' ') } }] } // 部分一致
-            ]
-          }
+        OR: [
+          { replyType: 1, postId: mediaId }, // 投稿指定
+          { replyType: 2 }                   // 全投稿共通
         ]
       },
       include: {
@@ -127,18 +115,29 @@ async function findMatchingReply(webhookData: any) {
           }
         }
       },
-      orderBy: { createdAt: 'desc' },
-      take: 1
+      orderBy: { replyType: 'asc' } // SPECIFIC_POST優先
     })
 
-    if (replies.length === 0) {
+    if (!reply) {
       await prisma.executionLog.create({
         data: { errorMessage: 'マッチする返信が見つかりませんでした' }
       })
       return null
     }
 
-    return replies[0]
+    // JSで判定
+    if (reply.matchType === 1 && reply.keyword === commentText) {
+      return reply // 完全一致
+    }
+    if (reply.matchType === 2 && commentText.includes(reply.keyword)) {
+      return reply // 部分一致
+    }
+
+    // どちらもマッチしなければログ
+    await prisma.executionLog.create({
+      data: { errorMessage: 'マッチする返信が見つかりませんでした' }
+    })
+    return null
   } catch (error) {
     await prisma.executionLog.create({
       data: {
