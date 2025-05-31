@@ -4,6 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "cp .env.local .env && next dev",
+    "dev:test": "APP_ENV=test next dev",
+    "test:e2e": "playwright test",
     "dev:docker": "cp .env.docker .env && next dev",
     "build": "prisma generate && next build",
     "start": "next start",
@@ -31,6 +33,7 @@
     "@stripe/react-stripe-js": "^2.8.0",
     "@stripe/stripe-js": "^4.5.0",
     "@vercel/analytics": "^1.5.0",
+    "@vercel/speed-insights": "^1.2.0",
     "axios": "^1.7.2",
     "bcryptjs": "^2.4.3",
     "chart.js": "^4.4.8",
@@ -53,6 +56,7 @@
     "zustand": "^5.0.4"
   },
   "devDependencies": {
+    "@playwright/test": "^1.52.0",
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "^20",
     "@types/react": "^18",
