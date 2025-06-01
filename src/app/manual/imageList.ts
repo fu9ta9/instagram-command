@@ -4,7 +4,7 @@ import path from 'path';
 export type ImageInfo = { src: string; alt: string };
 export type ManualImages = Record<string, { pc: ImageInfo[]; sp: ImageInfo[] }>;
 
-const SECTIONS = ["login", "connect", "search", "reply"];
+const SECTIONS = ["login", "connect", "plan", "search", "reply"];
 const MODES = ["pc", "sp"] as const;
 type Mode = typeof MODES[number];
 
@@ -13,6 +13,7 @@ export async function getManualImages(): Promise<ManualImages> {
   const result: ManualImages = {
     login: { pc: [], sp: [] },
     connect: { pc: [], sp: [] },
+    plan: { pc: [], sp: [] },
     search: { pc: [], sp: [] },
     reply: { pc: [], sp: [] },
   };
