@@ -15,9 +15,12 @@ const HeroSection = () => {
 
   const handleStartTrial = () => {
     if (session) {
-      router.push("/connect");
+      router.push("/plan");
     } else {
-      signIn('google', { callbackUrl: "/connect" });
+      signIn('google', { 
+        callbackUrl: "/plan",
+        redirect: true 
+      });
     }
   };
 
@@ -60,7 +63,10 @@ const HeroSection = () => {
             transition={{ duration: 0.5, delay: 0.2 }}
             className="flex items-center space-x-4"
           >
-            <Button variant="outline" className="hidden md:inline-flex" onClick={() => signIn('google', { callbackUrl: "/connect" })}>
+            <Button variant="outline" className="hidden md:inline-flex" onClick={() => signIn('google', { 
+              callbackUrl: "/connect",
+              redirect: true 
+            })}>
               ログイン
             </Button>
             <Button onClick={handleStartTrial}>無料で始める</Button>
