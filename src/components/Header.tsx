@@ -15,7 +15,7 @@ export default function Header({ session }: HeaderProps) {
       // NextAuthのセッションをクリア
       await signOut({ 
         callbackUrl: '/',
-        redirect: false  // 手動でリダイレクトを制御
+        redirect: true  // 手動でリダイレクトを制御
       })
   }
 
