@@ -11,8 +11,12 @@ type HeaderProps = {
 }
 
 export default function Header({ session }: HeaderProps) {
-  const handleLogout = () => {
-    signOut({ callbackUrl: '/' })
+  const handleLogout = async () => {
+      // NextAuthのセッションをクリア
+      await signOut({ 
+        callbackUrl: '/',
+        redirect: false  // 手動でリダイレクトを制御
+      })
   }
 
   return (
