@@ -31,7 +31,8 @@ export async function POST(request: Request) {
       where: {
         igAccountId: igAccount.id,
         keyword: data.keyword,
-        postId: data.postId
+        postId: data.postId,
+        replyType: data.replyType || 2
       }
     });
 
@@ -97,9 +98,23 @@ export async function GET() {
       return NextResponse.json({ error: 'Instagram account not found' }, { status: 404 });
     }
 
+    // クエリパラメータからtypeを取得
+    const { searchParams } = new URL(request.url)
+    const type = searchParams.get('type')
+    
+    // typeに応じてreplyTypeを設定
+    let replyTypeFilter = {}
+    if (type === 'post') {
+      replyTypeFilter = { replyType: 1 }
+    } else if (type === 'story') {
+      replyTypeFilter = { replyType: 2 }
+    }
+    // typeが指定されていない場合は全ての返信を取得
+
     const replies = await prisma.reply.findMany({
       where: {
-        igAccountId: igAccount.id
+        igAccountId: igAccount.id,
+        ...replyTypeFilter
       },
       include: {
         buttons: {
