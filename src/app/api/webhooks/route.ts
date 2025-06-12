@@ -47,24 +47,36 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: 'Echo message ignored' }, { status: 200 });
     }
 
-    if (!webhookData.entry?.[0]?.changes?.[0]?.value) {
-      throw new Error('Invalid webhook data format');
+    // DMメッセージかコメントかを判定
+    if (isDMMessage(webhookData)) {
+      // DMメッセージの処理
+      const reply = await findMatchingReplyForDM(webhookData);
+      if (!reply) {
+        return NextResponse.json({ message: 'No matching reply found for DM' }, { status: 200 });
+      }
+      
+      // DM返信を送信
+      await sendReplyToDM(webhookData, reply);
+      
+      return NextResponse.json({ message: 'DM reply sent successfully' }, { status: 200 });
+    } else if (isCommentMessage(webhookData)) {
+      // コメントの処理（既存のロジック）
+      const reply = await findMatchingReply(webhookData);
+      if (!reply) {
+        return NextResponse.json({ message: 'No matching reply found' }, { status: 200 });
+      }
+
+      // 返信を送信
+      await sendReplyToComment(webhookData, reply);
+
+      return NextResponse.json({ message: 'Comment reply sent successfully' }, { status: 200 });
     }
 
-    // コメントに対する返信を検索
-    const reply = await findMatchingReply(webhookData);
-    if (!reply) {
-      return NextResponse.json({ message: 'No matching reply found' }, { status: 200 });
-    }
-
-    // 返信を送信
-    await sendReplyToComment(webhookData, reply);
-
-    return NextResponse.json({ message: 'Success' }, { status: 200 });
+    return NextResponse.json({ message: 'Unknown webhook type' }, { status: 200 });
   } catch (error) {
     await prisma.executionLog.create({
       data: {
-        errorMessage: `Webhookエラー: ${error instanceof Error ? error.message : String(error)}`
+        errorMessage: `Webhook処理エラー: ${error instanceof Error ? error.message : String(error)}`
       }
     });
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
@@ -90,6 +102,130 @@ function isEchoMessage(webhookData: any): boolean {
     return true;
   }
   return false;
+}
+
+// DMメッセージかどうかを判定
+function isDMMessage(webhookData: any): boolean {
+  return webhookData.entry?.[0]?.messaging?.[0]?.message?.text !== undefined;
+}
+
+// コメントメッセージかどうかを判定
+function isCommentMessage(webhookData: any): boolean {
+  return webhookData.entry?.[0]?.changes?.[0]?.value?.text !== undefined;
+}
+
+// DMメッセージ用の返信検索
+async function findMatchingReplyForDM(webhookData: any) {
+  const messageData = webhookData.entry[0].messaging[0].message;
+  const messageText = messageData.text;
+  const recipientId = webhookData.entry[0].messaging[0].recipient.id;
+
+  try {
+    // ストーリー用の返信を検索（replyType: 2 = STORY）
+    const replies = await prisma.reply.findMany({
+      where: {
+        replyType: 2 // ストーリー用返信をDMに使用
+      },
+      include: {
+        buttons: true,
+        igAccount: {
+          select: {
+            instagramId: true,
+            accessToken: true
+          }
+        }
+      }
+    });
+
+    // キーワードマッチングを実行
+    for (const reply of replies) {
+      // アカウントIDが一致するかチェック
+      if (reply.igAccount?.instagramId !== recipientId) {
+        continue;
+      }
+
+      // キーワードマッチング
+      if (reply.matchType === 1 && reply.keyword === messageText) {
+        return reply; // 完全一致
+      }
+      if (reply.matchType === 2 && messageText.includes(reply.keyword)) {
+        return reply; // 部分一致
+      }
+    }
+
+    await prisma.executionLog.create({
+      data: { errorMessage: 'DM用マッチする返信が見つかりませんでした' }
+    });
+    return null;
+  } catch (error) {
+    await prisma.executionLog.create({
+      data: {
+        errorMessage: `DM返信検索エラー: ${error instanceof Error ? error.message : String(error)}`
+      }
+    });
+    throw error;
+  }
+}
+
+// DM返信送信関数
+async function sendReplyToDM(
+  webhookData: any,
+  reply: {
+    reply: string;
+    buttons?: any[];
+    igAccount?: IGAccount;
+  }
+) {
+  const senderId = webhookData.entry[0].messaging[0].sender.id;
+
+  try {
+    // igAccountの存在確認と型ガード
+    if (!reply.igAccount?.instagramId || !reply.igAccount?.accessToken) {
+      throw new Error('Instagram アカウント情報が不足しています');
+    }
+
+    // igAccountのデータを使用
+    const instagramId = reply.igAccount.instagramId;
+    const accessToken = reply.igAccount.accessToken;
+
+    // メッセージデータを作成
+    const messageData = createMessageData(senderId, reply.reply, reply.buttons || []);
+
+    // デバッグ用にメッセージデータをログに記録
+    await prisma.executionLog.create({
+      data: {
+        errorMessage: `DM送信データ: ${JSON.stringify(messageData)}`
+      }
+    });
+
+    // Instagram APIで返信を送信
+    const response = await fetch(
+      `https://graph.instagram.com/v22.0/${instagramId}/messages?access_token=${accessToken}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(messageData)
+      }
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(`DM返信送信に失敗: ${JSON.stringify(errorData)}`);
+    }
+
+    await prisma.executionLog.create({
+      data: {
+        errorMessage: `DM返信送信成功: UserID=${senderId}, Reply=${reply.reply}`
+      }
+    });
+  } catch (error) {
+    await prisma.executionLog.create({
+      data: {
+        errorMessage: `DM返信送信エラー: ${error instanceof Error ? error.message : String(error)}`
+      }
+    });
+    throw error;
+  }
 }
 
 async function findMatchingReply(webhookData: any) {
