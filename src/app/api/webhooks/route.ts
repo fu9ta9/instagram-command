@@ -140,9 +140,9 @@ async function findMatchingReplyForDM(webhookData: any) {
     // キーワードマッチングを実行
     for (const reply of replies) {
       // アカウントIDが一致するかチェック
-      if (reply.igAccount?.instagramId !== recipientId) {
-        continue;
-      }
+      // if (reply.igAccount?.instagramId !== recipientId) {
+      //   continue;
+      // }
 
       // キーワードマッチング
       if (reply.matchType === 1 && reply.keyword === messageText) {
