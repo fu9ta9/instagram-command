@@ -12,19 +12,9 @@ export async function GET(request: Request) {
 
     // 検証トークンの確認
     if (mode === 'subscribe' && token === process.env.NEXT_PUBLIC_WEBHOOK_VERIFY_TOKEN) {
-      await prisma.executionLog.create({
-        data: {
-          errorMessage: `Webhook検証成功: challenge=${challenge}`
-        }
-      });
       return new Response(challenge, { status: 200 });
     }
 
-    await prisma.executionLog.create({
-      data: {
-        errorMessage: `Webhook検証失敗: mode=${mode}, token=${token}`
-      }
-    });
     return new Response('Forbidden', { status: 403 });
   } catch (error) {
     await prisma.executionLog.create({
@@ -40,7 +30,6 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const webhookData = await request.json();
-    await logWebhookReceived(webhookData);
 
     // エコーメッセージのチェック
     if (isEchoMessage(webhookData)) {
@@ -83,25 +72,8 @@ export async function POST(request: Request) {
   }
 }
 
-// ヘルパー関数
-async function logWebhookReceived(webhookData: any) {
-  await prisma.executionLog.create({
-    data: {
-      errorMessage: `Webhookコメント受信: ${JSON.stringify(webhookData)}`
-    }
-  });
-}
-
 function isEchoMessage(webhookData: any): boolean {
-  if (webhookData.entry?.[0]?.messaging?.[0]?.message?.is_echo) {
-    prisma.executionLog.create({
-      data: {
-        errorMessage: 'エコーメッセージを検出したため処理を終了します'
-      }
-    });
-    return true;
-  }
-  return false;
+  return webhookData.entry?.[0]?.messaging?.[0]?.message?.is_echo === true;
 }
 
 // DMメッセージかどうかを判定
@@ -191,13 +163,6 @@ async function sendReplyToDM(
     // メッセージデータを作成
     const messageData = createMessageData(senderId, reply.reply, reply.buttons || []);
 
-    // デバッグ用にメッセージデータをログに記録
-    await prisma.executionLog.create({
-      data: {
-        errorMessage: `DM送信データ: ${JSON.stringify(messageData)}`
-      }
-    });
-
     // Instagram APIで返信を送信
     const response = await fetch(
       `https://graph.instagram.com/v22.0/${instagramId}/messages?access_token=${accessToken}`,
@@ -212,12 +177,6 @@ async function sendReplyToDM(
       const errorData = await response.json();
       throw new Error(`DM返信送信に失敗: ${JSON.stringify(errorData)}`);
     }
-
-    await prisma.executionLog.create({
-      data: {
-        errorMessage: `DM返信送信成功: UserID=${senderId}, Reply=${reply.reply}`
-      }
-    });
   } catch (error) {
     await prisma.executionLog.create({
       data: {
@@ -255,9 +214,6 @@ async function findMatchingReply(webhookData: any) {
     })
 
     if (!reply) {
-      await prisma.executionLog.create({
-        data: { errorMessage: 'マッチする返信が見つかりませんでした' }
-      })
       return null
     }
 
@@ -269,10 +225,6 @@ async function findMatchingReply(webhookData: any) {
       return reply // 部分一致
     }
 
-    // どちらもマッチしなければログ
-    await prisma.executionLog.create({
-      data: { errorMessage: 'マッチする返信が見つかりませんでした' }
-    })
     return null
   } catch (error) {
     await prisma.executionLog.create({
@@ -375,13 +327,6 @@ async function sendReplyToComment(
     // メッセージデータを作成
     const messageData = createMessageData(commenterId, reply.reply, reply.buttons || [])
 
-    // デバッグ用にメッセージデータをログに記録
-    await prisma.executionLog.create({
-      data: {
-        errorMessage: `送信するメッセージデータ: ${JSON.stringify(messageData)}`
-      }
-    });
-
     // Instagram APIで返信を送信
     const response = await fetch(
       `https://graph.instagram.com/v22.0/${instagramId}/messages?access_token=${accessToken}`,
@@ -396,12 +341,6 @@ async function sendReplyToComment(
       const errorData = await response.json()
       throw new Error(`返信送信に失敗: ${JSON.stringify(errorData)}`)
     }
-
-    await prisma.executionLog.create({
-      data: {
-        errorMessage: `自動返信送信成功: CommentID=${commenterId}, Reply=${reply.reply}`
-      }
-    })
   } catch (error) {
     await prisma.executionLog.create({
       data: {
