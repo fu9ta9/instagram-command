@@ -42,7 +42,6 @@ const ReplyList: React.FC<ReplyListProps> = ({ replies, onEdit, onDelete }) => {
         return acc;
       }, {} as Record<string, boolean>);
       setLoadingImages(initialLoadingState);
-
       if (uniquePostIds.length > 0) {
         try {
           const response = await fetch(`/api/instagram/posts/media?post_ids=${uniquePostIds.join(',')}`);
@@ -163,28 +162,31 @@ const ReplyList: React.FC<ReplyListProps> = ({ replies, onEdit, onDelete }) => {
               {/* PC表示用 */}
               <div className="hidden sm:flex sm:justify-between sm:items-start">
                 <div className="flex gap-4">
-                  <div className="w-16 h-16 flex-shrink-0 relative rounded overflow-hidden bg-gray-100">
-                    {reply.postId && (
-                      loadingImages[reply.postId as string] ? (
-                        <Skeleton className="w-full h-full" />
-                      ) : mediaUrls[reply.postId] ? (
-                        <img
-                          src={mediaUrls[reply.postId]}
-                          alt="Instagram post"
-                          className="object-cover w-full h-full"
-                          onLoad={() => {
-                            if (reply.postId) {
-                              setLoadingImages(prev => ({ ...prev, [reply.postId as string]: false }));
-                            }
-                          }}
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <ImageIcon className="w-8 h-8 text-gray-400" />
-                        </div>
-                      )
-                    )}
-                  </div>
+                  {/* ストーリー用の返信（replyType: 2）の場合はサムネイルを表示しない */}
+                  {reply.replyType !== 2 && (
+                    <div className="w-16 h-16 flex-shrink-0 relative rounded overflow-hidden bg-gray-100">
+                      {reply.postId && (
+                        loadingImages[reply.postId as string] ? (
+                          <Skeleton className="w-full h-full" />
+                        ) : mediaUrls[reply.postId] ? (
+                          <img
+                            src={mediaUrls[reply.postId]}
+                            alt="Instagram post"
+                            className="object-cover w-full h-full"
+                            onLoad={() => {
+                              if (reply.postId) {
+                                setLoadingImages(prev => ({ ...prev, [reply.postId as string]: false }));
+                              }
+                            }}
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <ImageIcon className="w-8 h-8 text-gray-400" />
+                          </div>
+                        )
+                      )}
+                    </div>
+                  )}
                   <div className="min-w-0 flex-1">
                     <h3 className="text-base">
                       <span className="text-gray-500">キーワード：</span>
@@ -247,6 +249,7 @@ const ReplyList: React.FC<ReplyListProps> = ({ replies, onEdit, onDelete }) => {
               }))
             }}
             isEditing={true}
+            isStoryMode={editingReply.replyType === 2}
           />
         )}
       </div>

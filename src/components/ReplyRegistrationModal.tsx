@@ -16,8 +16,19 @@ import {
 } from "@/components/ui/popover";
 import { History, Pencil, Trash2, ChevronRight, Eye, ArrowLeft } from 'lucide-react';
 
-// Zodスキーマの定義を修正
-const schema = z.object({
+// ストーリーモード用のスキーマ（投稿選択不要）
+const storySchema = z.object({
+  keyword: z.string().min(1, { message: "キーワードを入力してください" }),
+  matchType: z.number().refine(val => val === MATCH_TYPE.EXACT || val === MATCH_TYPE.PARTIAL),
+  reply: z.string().min(1, { message: "返信内容を入力してください" }),
+  buttons: z.array(z.object({
+    title: z.string(),
+    url: z.string()
+  })).optional()
+});
+
+// 投稿モード用のスキーマ（投稿選択必要）
+const postSchema = z.object({
   postId: z.string().min(1, { message: "投稿を選択してください" }),
   keyword: z.string().min(1, { message: "キーワードを入力してください" }),
   matchType: z.number().refine(val => val === MATCH_TYPE.EXACT || val === MATCH_TYPE.PARTIAL),
@@ -33,7 +44,7 @@ interface FormData {
   keyword: string;
   reply: string;
   matchType: MatchType;
-  postId: string;
+  postId?: string;
   buttons?: Array<{
     title: string;
     url: string;
@@ -46,6 +57,7 @@ interface KeywordRegistrationModalProps {
   onSubmit: (data: ReplyInput | Omit<Reply, 'id'>) => Promise<any>;
   initialData?: ReplyFormData;
   isEditing?: boolean;
+  isStoryMode?: boolean;
 }
 
 enum MatchType {
@@ -54,8 +66,20 @@ enum MatchType {
   REGEX = 2
 }
 
-const KeywordRegistrationModal: React.FC<KeywordRegistrationModalProps> = ({ isOpen, onClose, onSubmit, initialData, isEditing = false }) => {
-  const [step, setStep] = useState(1); // 常にステップ1から開始
+const KeywordRegistrationModal: React.FC<KeywordRegistrationModalProps> = ({ 
+  isOpen, 
+  onClose, 
+  onSubmit, 
+  initialData, 
+  isEditing = false, 
+  isStoryMode = false 
+}) => {
+  // ストーリーモードの場合は投稿選択をスキップしてステップ2から開始
+  const initialStep = isStoryMode ? 2 : 1;
+  // ストーリーモードの場合は全体のステップ数を2にする
+  const totalSteps = isStoryMode ? 2 : 3;
+  
+  const [step, setStep] = useState(initialStep);
   const [selectedPost, setSelectedPost] = useState<any>(null);
   const [isAddingButton, setIsAddingButton] = useState(false);
   const [buttonTitle, setButtonTitle] = useState('');
@@ -71,6 +95,9 @@ const KeywordRegistrationModal: React.FC<KeywordRegistrationModalProps> = ({ isO
   // SP判定（Tailwindのsm:と同じ640px）
   const isMobile = typeof window !== 'undefined' ? window.innerWidth < 640 : false;
 
+  // ストーリーモードに応じて適切なスキーマを選択
+  const schema = isStoryMode ? storySchema : postSchema;
+
   const { control, handleSubmit, setValue, watch, reset, formState: { errors, isValid } } = useForm<FormData>({
     resolver: zodResolver(schema),
     mode: 'onChange',
@@ -78,7 +105,7 @@ const KeywordRegistrationModal: React.FC<KeywordRegistrationModalProps> = ({ isO
       keyword: initialData?.keyword || '',
       reply: initialData?.reply || '',
       matchType: initialData?.matchType || MATCH_TYPE.PARTIAL,
-      postId: initialData?.postId || '',
+      postId: isStoryMode ? undefined : (initialData?.postId || ''),
       buttons: initialData?.buttons || []
     }
   });
@@ -126,31 +153,33 @@ const KeywordRegistrationModal: React.FC<KeywordRegistrationModalProps> = ({ isO
           keyword: initialData.keyword,
           reply: initialData.reply,
           matchType: matchType,
-          postId: initialData.postId || '',
+          postId: isStoryMode ? undefined : (initialData.postId || ''),
           buttons: initialData.buttons || []
         });
         
-        setSelectedPost({ 
-          id: initialData.postId,
-          thumbnail_url: null
-        });
+        if (!isStoryMode) {
+          setSelectedPost({ 
+            id: initialData.postId,
+            thumbnail_url: null
+          });
+        }
         setButtons(initialData.buttons || []);
-        setStep(1);
+        setStep(initialStep);
       } else {
         reset({
           keyword: '',
           reply: '',
           matchType: MATCH_TYPE.PARTIAL,
-          postId: '',
+          postId: isStoryMode ? undefined : '',
           buttons: []
         });
-        setStep(1);
+        setStep(initialStep);
         setSelectedPost(null);
         setButtons([]);
       }
       setEditingButtonIndex(null);
     }
-  }, [isOpen, reset, initialData]);
+  }, [isOpen, reset, initialData, isStoryMode, initialStep]);
 
   const handleSelectPost = (post: any) => {
     setSelectedPost(post);
@@ -158,11 +187,23 @@ const KeywordRegistrationModal: React.FC<KeywordRegistrationModalProps> = ({ isO
   };
 
   const handleNext = () => {
-    if (step < 3) setStep(step + 1);
+    if (isStoryMode) {
+      // ストーリーモードの場合: 2 -> 3
+      if (step === 2) setStep(3);
+    } else {
+      // 投稿モードの場合: 1 -> 2 -> 3
+      if (step < 3) setStep(step + 1);
+    }
   };
 
   const handleBack = () => {
-    if (step > 1) setStep(step - 1);
+    if (isStoryMode) {
+      // ストーリーモードの場合: 3 -> 2
+      if (step === 3) setStep(2);
+    } else {
+      // 投稿モードの場合: 3 -> 2 -> 1 または 2 -> 1
+      if (step > 1) setStep(step - 1);
+    }
   };
 
   // 過去の返信選択時の処理を修正
@@ -230,7 +271,7 @@ const KeywordRegistrationModal: React.FC<KeywordRegistrationModalProps> = ({ isO
         reply: data.reply,
         matchType: data.matchType,
         replyType: 1, // SPECIFIC_POST
-        postId: data.postId,
+        postId: isStoryMode ? undefined : data.postId,
         buttons: buttonData
       };
 
@@ -293,14 +334,16 @@ const KeywordRegistrationModal: React.FC<KeywordRegistrationModalProps> = ({ isO
       setValue('keyword', initialData.keyword, { shouldValidate: true });
       setValue('reply', initialData.reply, { shouldValidate: true });
       setValue('matchType', initialData.matchType, { shouldValidate: true });
-      setValue('postId', initialData.postId || '', { shouldValidate: true });
+      if (!isStoryMode) {
+        setValue('postId', initialData.postId || '', { shouldValidate: true });
+      }
       
       // ボタンデータも設定
       if (initialData.buttons) {
         setButtons(initialData.buttons);
       }
     }
-  }, [initialData, setValue]);
+  }, [initialData, setValue, isStoryMode]);
 
   return (
     <Modal isOpen={isOpen} onClose={onClose}>
@@ -310,11 +353,16 @@ const KeywordRegistrationModal: React.FC<KeywordRegistrationModalProps> = ({ isO
         <div className="mb-4 bg-gray-200 h-2 rounded-full">
           <div 
             className="bg-blue-500 h-full rounded-full transition-all duration-300 ease-in-out"
-            style={{ width: `${(step / 3) * 100}%` }}
+            style={{ 
+              width: `${isStoryMode 
+                ? (step === 2 ? 50 : 100)
+                : (step / totalSteps) * 100
+              }%` 
+            }}
           />
         </div>
         <form onSubmit={handleSubmit(handleFormSubmit)}>
-          {step === 1 && (
+          {!isStoryMode && step === 1 && (
             <div>
               <h2 className="text-xl font-bold mb-4">投稿を選択</h2>
               <InstagramPostList 
@@ -353,7 +401,10 @@ const KeywordRegistrationModal: React.FC<KeywordRegistrationModalProps> = ({ isO
                 />
               </div>
               <div className="mt-4 flex justify-between">
-                <Button type="button" onClick={handleBack} variant="outline">戻る</Button>
+                {!isStoryMode && (
+                  <Button type="button" onClick={handleBack} variant="outline">戻る</Button>
+                )}
+                {isStoryMode && <div></div>}
                 <Button type="button" onClick={handleNext} disabled={!keyword}>
                   次へ
                   <ChevronRight className="h-4 w-4 ml-1" />

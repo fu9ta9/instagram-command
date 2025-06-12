@@ -5,7 +5,7 @@ import { useSession } from 'next-auth/react'
 import ReplyList from '@/components/ReplyList'
 import ReplyRegistrationModal from '@/components/ReplyRegistrationModal'
 import { Button } from '@/components/ui/button'
-import { PlusIcon, Loader2 } from 'lucide-react'
+import { PlusIcon, Loader2, Grid3X3, PlayCircle } from 'lucide-react'
 import { Reply, ReplyInput, ReplyFormData } from '@/types/reply'
 import { useReplyStore } from '@/store/replyStore'
 import { useRouter } from 'next/navigation'
@@ -17,38 +17,67 @@ enum MATCH_TYPE {
   REGEX = 2
 }
 
+enum REPLY_TYPE {
+  POST = 1,
+  STORY = 2
+}
+
+type TabType = 'post' | 'story'
+
 export default function ReplyClient() {
-  const { data: session } = useSession()
+  const { data: session, status } = useSession()
   const router = useRouter()
   const {
     replies, isModalOpen, editingReply,
     setReplies, setIsModalOpen, setEditingReply, clearAll
   } = useReplyStore()
   const [isLoading, setIsLoading] = useState(true)
+  const [activeTab, setActiveTab] = useState<TabType>('post')
+  const [storyReplies, setStoryReplies] = useState<Reply[]>([])
   const {
     membershipType,
     isLoading: isMembershipLoading
   } = useMembership()
 
+  // 現在のタブに対応する返信一覧を取得
+  const currentReplies = activeTab === 'post' ? replies : storyReplies
+  const setCurrentReplies = activeTab === 'post' ? setReplies : setStoryReplies
+
   // 返信一覧を取得
   useEffect(() => {
-    if (session?.user?.id) {
+    const shouldFetch = status === 'authenticated' || (process.env.NODE_ENV === 'development')
+    if (shouldFetch) {
       fetchReplies()
+    } else if (status === 'loading') {
+      // セッション読み込み中は待機
+      return
+    } else {
+      // セッションなしまたはエラーの場合もローディング終了
+      setIsLoading(false)
     }
-  }, [session?.user?.id])
+  }, [session?.user?.id, status])
 
   // ユーザー切り替え時に状態をリセット
   useEffect(() => {
     clearAll()
+    setStoryReplies([])
   }, [session?.user?.id])
 
   const fetchReplies = async () => {
     try {
       setIsLoading(true)
-      const response = await fetch('/api/replies')
-      if (response.ok) {
-        const data = await response.json()
-        setReplies(data)
+      // 投稿用返信を取得
+      const postResponse = await fetch('/api/replies?type=post')
+      if (postResponse.ok) {
+        const postData = await postResponse.json()
+        setReplies(postData)
+      }
+
+      // ストーリー用返信を取得
+      const storyResponse = await fetch('/api/replies?type=story')
+      if (storyResponse.ok) {
+        const storyData = await storyResponse.json()
+        setStoryReplies(storyData)
       }
     } catch (error) {
       console.error('Error fetching replies:', error)
@@ -94,13 +123,20 @@ export default function ReplyClient() {
   const handleSaveReply = async (data: ReplyInput | Omit<Reply, "id">) => {
     try {
       setIsLoading(true);
+      
+      // 現在のタブに応じてreplyTypeを設定
+      const replyData = {
+        ...data,
+        replyType: activeTab === 'post' ? REPLY_TYPE.POST : REPLY_TYPE.STORY
+      }
+      
       if (editingReply) {
         const response = await fetch(`/api/replies/${editingReply.id}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify(data),
+          body: JSON.stringify(replyData),
         });
         if (!response.ok) {
           const errorData = await response.json();
@@ -110,14 +146,14 @@ export default function ReplyClient() {
           };
         }
         const updatedReply = await response.json();
-        setReplies(replies.map((r: Reply) => r.id === updatedReply.id ? updatedReply : r));
+        setCurrentReplies(currentReplies.map((r: Reply) => r.id === updatedReply.id ? updatedReply : r));
       } else {
         const response = await fetch('/api/replies', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify(data),
+          body: JSON.stringify(replyData),
         });
         if (!response.ok) {
           const errorData = await response.json();
@@ -127,7 +163,7 @@ export default function ReplyClient() {
           };
         }
         const newReply = await response.json();
-        setReplies([newReply, ...replies]);
+        setCurrentReplies([newReply, ...currentReplies]);
       }
       setIsModalOpen(false);
       setEditingReply(null);
@@ -149,6 +185,36 @@ export default function ReplyClient() {
 
   return (
     <div>
+      {/* タブナビゲーション */}
+      <div className="mb-6">
+        <div className="border-b border-gray-200 dark:border-gray-700">
+          <nav className="-mb-px flex space-x-8" aria-label="Tabs">
+            <button
+              onClick={() => setActiveTab('post')}
+              className={`whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
+                activeTab === 'post'
+                  ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
+              }`}
+            >
+              <Grid3X3 className="h-4 w-4" />
+              フィード/リール
+            </button>
+            <button
+              onClick={() => setActiveTab('story')}
+              className={`whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
+                activeTab === 'story'
+                  ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
+              }`}
+            >
+              <PlayCircle className="h-4 w-4" />
+              ストーリー
+            </button>
+          </nav>
+        </div>
+      </div>
+
       <div className="flex justify-start mb-6">
         {membershipType === 'FREE' ? (
           <div className="flex flex-col gap-2 w-full">
@@ -158,7 +224,7 @@ export default function ReplyClient() {
             >
               会員をアップグレード
             </Button>
-            {replies.length > 0 ? (
+            {currentReplies.length > 0 ? (
               <div className="mt-2 p-3 bg-yellow-100 border border-yellow-300 text-yellow-800 rounded text-sm w-full">
                 無料会員の場合、登録済みの返信文は自動返信されません。有料プランにアップグレードしてください。
               </div>
@@ -175,13 +241,13 @@ export default function ReplyClient() {
             disabled={isMembershipLoading}
           >
             <PlusIcon className="h-4 w-4" />
-            新規返信を登録
+            {activeTab === 'post' ? '新規返信を登録（フィード/リール用）' : '新規返信を登録（ストーリー用）'}
           </Button>
         )}
       </div>
 
       <ReplyList
-        replies={replies}
+        replies={currentReplies}
         onEdit={handleEdit}
         onDelete={handleDelete}
       />
@@ -192,6 +258,7 @@ export default function ReplyClient() {
         onSubmit={handleSaveReply}
         initialData={editingReply as ReplyFormData}
         isEditing={!!editingReply}
+        isStoryMode={activeTab === 'story'}
       />
     </div>
   )
