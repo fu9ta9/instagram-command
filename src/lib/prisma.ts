@@ -2,17 +2,18 @@ import { PrismaClient } from '@prisma/client'
 
 const prismaClientSingleton = () => {
   return new PrismaClient({
-    log: [
-      { emit: 'stdout', level: 'query' },
-      { emit: 'stdout', level: 'error' },
-      { emit: 'stdout', level: 'info' },
-      { emit: 'stdout', level: 'warn' },
-    ],
+    log: ['error'],
     datasources: {
       db: {
         url: process.env.DATABASE_URL
       }
-    }
+    },
+    // より保守的な接続プール設定
+    transactionOptions: {
+      maxWait: 20000, // 20秒
+      timeout: 20000, // 20秒
+    },
+    errorFormat: 'minimal',
   })
 }
 
