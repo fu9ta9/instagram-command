@@ -93,7 +93,7 @@ export async function GET(request: Request) {
     }
 
     // ユーザー情報を取得
-    const userUrl = `https://graph.instagram.com/me?fields=id,username,account_type,profile_picture_url&access_token=${longLivedTokenData.access_token}`;
+    const userUrl = `https://graph.instagram.com/me?fields=id,user_id,username,account_type,profile_picture_url&access_token=${longLivedTokenData.access_token}`;
 
     const userResponse = await fetch(userUrl);
     const userData = await userResponse.json();
@@ -126,6 +126,7 @@ export async function GET(request: Request) {
       create: {
         userId: session.user.id,
         instagramId: userData.id,
+        webhookId: userData.user_id,
         id: userData.id,
         username: userData.username,
         profilePictureUrl: userData.profile_picture_url || null,
@@ -136,7 +137,8 @@ export async function GET(request: Request) {
         accessToken: longLivedTokenData.access_token,
         profilePictureUrl: userData.profile_picture_url || null,
         expiresAt: longLivedTokenData.expires_in ? Math.floor(Date.now() / 1000) + parseInt(longLivedTokenData.expires_in) : null,
-        updatedAt: new Date()
+        updatedAt: new Date(),
+        webhookId: userData.user_id 
       }
     });
 

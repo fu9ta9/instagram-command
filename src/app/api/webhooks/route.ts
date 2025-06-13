@@ -88,35 +88,33 @@ function isCommentMessage(webhookData: any): boolean {
 
 // DMメッセージ用の返信検索
 async function findMatchingReplyForDM(webhookData: any) {
-  const messageData = webhookData.entry[0].messaging[0].message;
-  const messageText = messageData.text;
+  const messageText = webhookData.entry[0].messaging[0].message.text;
   const recipientId = webhookData.entry[0].messaging[0].recipient.id;
 
   try {
-    // ストーリー用の返信を検索（replyType: 2 = STORY）
+    // 1つのクエリでwebhookIdからIGAccountとその返信を取得
     const replies = await prisma.reply.findMany({
       where: {
-        replyType: 2 // ストーリー用返信をDMに使用
+        igAccount: {
+          webhookId: recipientId
+        },
+        OR: [
+          { replyType: 2 }, // ALL_POSTS
+          { replyType: 3 }  // STORY
+        ]
       },
       include: {
         buttons: true,
-        igAccount: {
-          select: {
-            instagramId: true,
-            accessToken: true
-          }
-        }
-      }
+        igAccount: true
+      },
+      orderBy: { replyType: 'asc' }
     });
 
-    // キーワードマッチングを実行
-    for (const reply of replies) {
-      // アカウントIDが一致するかチェック
-      // if (reply.igAccount?.instagramId !== recipientId) {
-      //   continue;
-      // }
+    // IGAccountが見つからない場合（repliesが空の場合）
+    if (replies.length === 0) return null;
 
-      // キーワードマッチング
+    // JSでキーワード一致判定
+    for (const reply of replies) {
       if (reply.matchType === 1 && reply.keyword === messageText) {
         return reply; // 完全一致
       }
@@ -125,9 +123,6 @@ async function findMatchingReplyForDM(webhookData: any) {
       }
     }
 
-    await prisma.executionLog.create({
-      data: { errorMessage: 'DM用マッチする返信が見つかりませんでした' }
-    });
     return null;
   } catch (error) {
     await prisma.executionLog.create({
