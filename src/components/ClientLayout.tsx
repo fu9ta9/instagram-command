@@ -9,7 +9,8 @@ import { MainContent } from "@/components/MainContent";
 export default function ClientLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { data: session } = useSession();
-  const hideLayout = pathname === "/" || pathname === "/login" || pathname === "/manual";
+  const hideLayout = pathname === "/" || pathname === "/login" || pathname === "/manual" || 
+                     pathname === "/terms-of-service" || pathname === "/privacy-policy" || pathname === "/legal";
 
   return (
     <SidebarProvider>

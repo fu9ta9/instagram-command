@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input"
 import { BarChart3, Users, MessageCircle } from "lucide-react"
 import HeroSection from "@/components/landing/HeroSection"
 import FeaturesSection from "@/components/landing/FeatureSection"
+import Footer from "@/components/Footer"
 
 export default function LandingPage() {
   return (
@@ -11,6 +12,7 @@ export default function LandingPage() {
       <HeroSection />
       <FeaturesSection />
       {/* 他のセクションも同様に追加 */}
+      <Footer />
     </main>
   )
 }
