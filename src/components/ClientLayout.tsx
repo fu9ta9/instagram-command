@@ -17,7 +17,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
         <main className="flex-1 w-full min-w-0 max-w-full">{children}</main>
       ) : (
         <div className="flex min-h-screen bg-gray-50 w-full min-w-0 max-w-full overflow-x-hidden">
-          <Sidebar session={session} />
+          <Sidebar />
           <MainContent>
             <Header session={session} />
             <main className="flex-1 w-full min-w-0 max-w-full p-4 md:p-6">
