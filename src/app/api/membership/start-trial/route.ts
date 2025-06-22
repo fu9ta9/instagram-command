@@ -1,14 +1,12 @@
-import { getServerSession } from 'next-auth/next'
-import { authOptions } from '../../auth/[...nextauth]/options'
 import { NextResponse } from 'next/server'
+import { getSessionWrapper } from '@/lib/session'
 import { prisma } from '@/lib/prisma'
 
-export async function POST(request: Request) {  // POSTメソッドを明示的にエクスポート
+export async function POST() {
   try {
-    const session = await getServerSession(authOptions)
-    
+    const session = await getSessionWrapper()
     if (!session?.user?.id) {
-      return new NextResponse("Unauthorized", { status: 401 })
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     // 既にトライアルを使用していないか確認
@@ -27,12 +25,6 @@ export async function POST(request: Request) {  // POSTメソッドを明示的�
       data: {
         membershipType: 'TRIAL',
         trialStartDate: new Date(),
-      }
-    })
-
-    await prisma.executionLog.create({
-      data: {
-        errorMessage: `Trial started for user: ${session.user.id}`
       }
     })
 

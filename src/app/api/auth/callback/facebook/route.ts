@@ -1,14 +1,14 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { headers } from 'next/headers';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '../../[...nextauth]/options';
+import { getSessionWrapper } from '@/lib/session';
+import { authOptions } from '@/app/api/auth/[...nextauth]/options';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request): Promise<Response> {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getSessionWrapper();
     const { searchParams } = new URL(request.url);
     const accessToken = searchParams.get('access_token');
     const expiresIn = searchParams.get('expires_in');

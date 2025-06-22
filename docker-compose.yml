@@ -1,24 +1,42 @@
 version: '3.8'
 services:
-  app:
-    build: .
-    ports:
-      - "3000:3000"
-      - "5555:5555"
+  db:
+    image: postgres:15
+    container_name: postgres_db
+    restart: always
     environment:
-      - DATABASE_URL=${DATABASE_URL}
-      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
-      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
-      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
-      - NEXTAUTH_URL=${NEXTAUTH_URL}
-      - FACEBOOK_CLIENT_ID=${FACEBOOK_CLIENT_ID}
-      - FACEBOOK_CLIENT_SECRET=${FACEBOOK_CLIENT_SECRET}
-      - NODE_ENV=development
-      - NEXTAUTH_DEBUG=true
-      - STRIPE_API_KEY=${STRIPE_API_KEY}
-      - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
-      - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
-    command: sh -c "echo $$DATABASE_URL && npx prisma generate && npx prisma db push && npm start"
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: instagram_bot
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # app:
+  #   build: .
+  #   ports:
+  #     - "3000:3000"
+  #     - "5555:5555"
+  #   environment:
+  #     - DATABASE_URL=${DATABASE_URL}
+  #     - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+  #     - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+  #     - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
+  #     - NEXTAUTH_URL=${NEXTAUTH_URL}
+  #     - FACEBOOK_CLIENT_ID=${FACEBOOK_CLIENT_ID}
+  #     - FACEBOOK_CLIENT_SECRET=${FACEBOOK_CLIENT_SECRET}
+  #     - NODE_ENV=development
+  #     - NEXTAUTH_DEBUG=true
+  #     - STRIPE_API_KEY=${STRIPE_API_KEY}
+  #     - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
+  #     - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+  #   command: sh -c "echo $DATABASE_URL && npx prisma generate && npx prisma db push && npm start"
 
 volumes:
   postgres_data:

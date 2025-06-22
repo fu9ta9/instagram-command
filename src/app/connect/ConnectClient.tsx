@@ -26,6 +26,7 @@ export default function ConnectClient() {
   // DBからInstagram情報を取得
   useEffect(() => {
     const fetchInstagramInfo = async () => {
+      // セッションが確定していない場合は処理をスキップ
       if (status === 'loading' || !session?.user?.id) {
         return;
       }
@@ -48,8 +49,14 @@ export default function ConnectClient() {
       }
     };
 
-    fetchInstagramInfo();
-  }, [session?.user?.id, status]);
+    // セッションが確定してからのみ実行
+    if (status !== 'loading' && session?.user?.id) {
+      fetchInstagramInfo();
+    } else if (status !== 'loading') {
+      // セッションがないが読み込み完了の場合
+      setIsLoading(false);
+    }
+  }, [session?.user?.id]); // statusを依存配列から削除して不要な再実行を防ぐ
 
   // Instagram認証コールバックの処理
   useEffect(() => {

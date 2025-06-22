@@ -1,17 +1,16 @@
+import { getSessionWrapper } from '@/lib/session'
 import { NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth/next'
-import { authOptions } from '../auth/[...nextauth]/options'
 import { prisma } from '@/lib/prisma'
 import { MembershipType } from '@prisma/client'
 
 export async function GET() {
-  const session = await getServerSession(authOptions)
-
-  if (!session || !session.user || !session.user.email) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-
   try {
+    const session = await getSessionWrapper()
+    
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const user = await prisma.user.findUnique({
       where: { email: session.user.email },
       select: { membershipType: true, trialStartDate: true }
@@ -36,9 +35,12 @@ export async function GET() {
       }
     }
 
-    return NextResponse.json({ membershipType: effectiveMembershipType })
+    return NextResponse.json({ 
+      message: 'Membership data retrieved successfully',
+      user: session.user,
+      membershipType: effectiveMembershipType
+    })
   } catch (error) {
-    console.error('Failed to check user membership:', error)
-    return NextResponse.json({ error: 'Failed to check user membership' }, { status: 500 })
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
   }
 }

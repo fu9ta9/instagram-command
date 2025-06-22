@@ -1,13 +1,12 @@
+import { getSessionWrapper } from '@/lib/session';
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '../../../../auth/[...nextauth]/options';
 import { prisma } from '@/lib/prisma';
 
 export async function GET(
   request: Request,
   { params }: { params: { postId: string } }
 ) {
-  const session = await getServerSession(authOptions);
+  const session = await getSessionWrapper();
 
   if (!session?.user?.id) {
     await prisma.executionLog.create({

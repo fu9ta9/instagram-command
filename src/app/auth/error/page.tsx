@@ -8,7 +8,7 @@ const errorMessages: Record<string, string> = {
   OAuthCreateAccount: "アカウント作成時にエラーが発生しました。",
   EmailCreateAccount: "メールアカウント作成時にエラーが発生しました。",
   Callback: "認証コールバックでエラーが発生しました。",
-  OAuthAccountNotLinked: "このメールアドレスは他の認証方法で登録されています。",
+  OAuthAccountNotLinked: "このメールアドレスは既にメールアドレス・パスワードで登録されています。同じメールアドレスでメールログインをお試しください。",
   EmailSignin: "メール認証に失敗しました。",
   CredentialsSignin: "メールアドレスまたはパスワードが正しくありません。",
   default: "認証エラーが発生しました。再度ログインしてください。"

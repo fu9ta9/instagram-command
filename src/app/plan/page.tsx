@@ -1,12 +1,12 @@
 import AppLayout from '@/components/layouts/AppLayout'
-import { getSession } from '@/lib/session'
+import { getSessionWrapper } from '@/lib/session'
 import { redirect } from 'next/navigation'
 import PlanClient from './PlanClient'
 
 export const dynamic = "force-dynamic";
 export default async function PlanPage() {
   try {
-    const session = await getSession()
+    const session = await getSessionWrapper()
 
     if (!session?.user) {
       redirect('/auth/signin')

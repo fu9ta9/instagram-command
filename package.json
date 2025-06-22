@@ -70,6 +70,6 @@
     "typescript": "^5"
   },
   "prisma": {
-    "seed": "ts-node prisma/seed.ts"
+    "seed": "ts-node --loader ts-node/esm prisma/seed.ts"
   }
 }

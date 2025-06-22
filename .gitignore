@@ -40,4 +40,11 @@ next-env.d.ts
 .env.docker
 .env.development.local
 .env.production.local
-.env.test.local
+.env.test
+
+# Playwright
+node_modules/
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/

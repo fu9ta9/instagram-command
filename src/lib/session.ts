@@ -15,16 +15,27 @@ export interface SessionUser {
   } | null
 }
 
+const isTest = process.env.APP_ENV === 'test';
+const testSession = {
+  user: {
+    id: 'cmblee9990001y54p16rihftt',
+    name: 'テストGoogleユーザー',
+    email: 'test-google@example.com',
+  },
+  expires: '2099-12-31T23:59:59.999Z'
+};
+
 // キャッシュを活用したセッション取得
-export const getSession = cache(async () => {
+export const getSessionWrapper = cache(async () => {
+  if (isTest) return testSession;
   const session = await getServerSession(authOptions)
   if (!session) return null
-  
   return session
 })
 
 // セッションユーザーの取得
 export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
-  const session = await getSession()
+  if (isTest) return testSession.user;
+  const session = await getSessionWrapper()
   return session?.user ?? null
 }) 

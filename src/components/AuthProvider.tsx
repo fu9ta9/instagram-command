@@ -1,10 +1,10 @@
 'use client'
 
-import { SessionProvider } from "next-auth/react"
+import SessionProvider from "@/components/SessionProvider"
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   return (
-    <SessionProvider refetchInterval={0} refetchOnWindowFocus={false}>
+    <SessionProvider>
       {children}
     </SessionProvider>
   )

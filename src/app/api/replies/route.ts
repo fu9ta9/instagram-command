@@ -1,11 +1,12 @@
 import { NextResponse, NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { getServerSession } from 'next-auth/next'
-import { authOptions } from '../auth/[...nextauth]/options'
+import { getSessionWrapper } from '@/lib/session'
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
+  
   try {
-    const session = await getServerSession(authOptions)
+    
+    const session = await getSessionWrapper()
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -79,9 +80,9 @@ export async function POST(request: Request) {
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getSessionWrapper()
     if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     // IGAccountを取得

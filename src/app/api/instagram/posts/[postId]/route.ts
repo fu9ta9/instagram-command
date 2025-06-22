@@ -1,6 +1,5 @@
+import { getSessionWrapper } from '@/lib/session';
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '../../../auth/[...nextauth]/options';
 import { prisma } from '@/lib/prisma';
 import { getInstagramAccessToken, getInstagramAccount } from '@/lib/instagram';
 
@@ -9,7 +8,7 @@ export async function GET(
   { params }: { params: { postId: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getSessionWrapper();
 
     if (!session?.user?.id) {
       await prisma.executionLog.create({

@@ -1,30 +1,29 @@
 import { stripe } from '@/lib/stripe'
-import { getServerSession } from 'next-auth'
+import { getSessionWrapper } from '@/lib/session'
 import { NextResponse } from 'next/server'
-import { authOptions } from '../auth/[...nextauth]/options'
 import { prisma } from '@/lib/prisma'
 
-export async function POST(req: Request) {
-  // 環境変数のチェックを追加
-  if (!process.env.STRIPE_API_KEY) {
-    await prisma.executionLog.create({
-      data: {
-        errorMessage: 'STRIPE_API_KEY is not defined'
-      }
-    })
-    return NextResponse.json({ 
-      error: "Stripe設定が見つかりません",
-      details: "環境変数が設定されていません"
-    }, { 
-      status: 500 
-    })
-  }
-
+export async function POST(request: Request) {
+  
   try {
-    const session = await getServerSession(authOptions)
-    
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "認証が必要です" }, { status: 401 })
+    const session = await getSessionWrapper();
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // 環境変数のチェックを追加
+    if (!process.env.STRIPE_API_KEY) {
+      await prisma.executionLog.create({
+        data: {
+          errorMessage: 'STRIPE_API_KEY is not defined'
+        }
+      })
+      return NextResponse.json({ 
+        error: "Stripe設定が見つかりません",
+        details: "環境変数が設定されていません"
+      }, { 
+        status: 500 
+      })
     }
 
     try {

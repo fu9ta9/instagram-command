@@ -6,13 +6,9 @@ import Link from 'next/link'
 import { ChevronLeft, ChevronRight, Instagram, MessageSquareMore, CreditCard, Search } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useSidebar } from '@/contexts/SidebarContext'
-import { Session } from 'next-auth'
 
-type SidebarProps = {
-  session: Session | null
-}
 
-export function Sidebar({ session }: SidebarProps) {
+export function Sidebar() {
   const { isCollapsed, toggleSidebar } = useSidebar()
   const pathname = usePathname()
 
@@ -21,32 +17,23 @@ export function Sidebar({ session }: SidebarProps) {
       href: '/connect',
       label: 'Instagram連携',
       icon: <Instagram className="h-5 w-5" />,
-      requiresAuth: true,
     },
     {
       href: '/search',
       label: 'アカウント検索',
       icon: <Search className="h-5 w-5" />,
-      requiresAuth: true,
     },
     {
       href: '/reply',
       label: 'DM自動返信設定',
       icon: <MessageSquareMore className="h-5 w-5" />,
-      requiresAuth: true,
     },
     {
       href: '/plan',
       label: 'プラン設定',
       icon: <CreditCard className="h-5 w-5" />,
-      requiresAuth: true,
     }
   ]
-
-  // 認証状態に基づいてフィルタリング
-  const filteredItems = sidebarItems.filter(item => 
-    !item.requiresAuth || (item.requiresAuth && session)
-  )
 
   return (
     <aside className={cn(
@@ -68,7 +55,7 @@ export function Sidebar({ session }: SidebarProps) {
 
       <nav className="flex-1 overflow-y-auto">
         <ul className="space-y-2 px-2">
-          {filteredItems.map((item) => (
+          {sidebarItems.map((item) => (
             <li key={item.href}>
               <Link
                 href={item.href}

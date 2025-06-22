@@ -1,23 +1,20 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { getServerSession } from 'next-auth/next'
-import { authOptions } from '../../auth/[...nextauth]/options'
+import { getSessionWrapper } from '@/lib/session'
 
 // 動的ルートとしてマーク
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    const session = await getServerSession(authOptions)
-    if (!session || !session.user || !session.user.id) {
+    const { searchParams } = new URL(request.url)
+    const limitParam = searchParams.get('limit')
+    const limit = limitParam ? parseInt(limitParam) : 10
+
+    const session = await getSessionWrapper()
+    if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-
-    console.log('Fetching recent replies for user:', session.user.id);
-
-    // Replyテーブルの構造を確認
-    // エラーメッセージによると、userIdフィールドは存在しない
-    // 代わりにigAccountIdを使用する必要があるかもしれません
 
     // まず、ユーザーのIGアカウントを取得
     const igAccounts = await prisma.iGAccount.findMany({
@@ -41,10 +38,9 @@ export async function GET() {
       orderBy: {
         createdAt: 'desc',
       },
-      take: 10,
+      take: limit,
     });
 
-    console.log(`Found ${replies.length} recent replies`);
     return NextResponse.json(replies)
   } catch (error) {
     console.error('Failed to fetch recent replies:', error)

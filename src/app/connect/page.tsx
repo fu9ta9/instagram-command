@@ -1,14 +1,13 @@
 import ConnectClient from './ConnectClient'
 import AppLayout from '@/components/layouts/AppLayout'
-import { getSession } from '@/lib/session'
+import { getSessionWrapper } from '@/lib/session'
 import { redirect } from 'next/navigation'
 
 export const dynamic = "force-dynamic";
 
 export default async function ConnectPage() {
   try {
-    const session = await getSession()
-
+    const session = await getSessionWrapper()
     if (!session?.user) {
       redirect('/auth/signin')
     }

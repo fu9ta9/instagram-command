@@ -11,6 +11,7 @@ model IGAccount {
   id                String  @id @default(cuid())
   userId            String
   instagramId       String  @unique              // Instagramのアカウント識別子
+  webhookId String? // ← ? を付けてオプショナルに
   username          String
   profilePictureUrl String?
   accessToken       String  @db.Text

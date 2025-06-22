@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { authOptions } from '../[...nextauth]/options';
-import { getServerSession } from 'next-auth';
+import { getSessionWrapper } from '@/lib/session'
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
@@ -108,14 +107,9 @@ export async function GET(request: Request) {
       return NextResponse.redirect(`${process.env.NEXT_PUBLIC_NEXTAUTH_URL}/connect?error=user_info_error&message=${encodeURIComponent(userData.error_message || 'ユーザー情報の取得に失敗しました')}`)
     }
 
-    const session = await getServerSession(authOptions);
+    const session = await getSessionWrapper();
     if (!session?.user?.id) {
-      await prisma.executionLog.create({
-        data: {
-          errorMessage: 'Instagram認証エラー: 未認証 - ユーザーセッションが見つかりません'
-        }
-      });
-      return NextResponse.redirect(`${process.env.NEXT_PUBLIC_NEXTAUTH_URL}/connect?error=unauthorized&message=${encodeURIComponent('認証が必要です')}`)
+      return NextResponse.redirect(`${process.env.NEXT_PUBLIC_NEXTAUTH_URL}/auth/signin?error=SessionRequired`);
     }
 
     // アカウント情報をDBに保存/更新

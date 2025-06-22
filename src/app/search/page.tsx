@@ -1,12 +1,12 @@
 import InstagramPostAnalyzer from "@/components/instagram-post-analyzer"
 import AppLayout from '@/components/layouts/AppLayout'
-import { getSession } from '@/lib/session'
+import { getSessionWrapper } from '@/lib/session'
 import { redirect } from 'next/navigation'
 
 export const dynamic = "force-dynamic";
 export default async function SearchPage() {
   try {
-    const session = await getSession()
+    const session = await getSessionWrapper()
 
     if (!session?.user) {
       redirect('/auth/signin')

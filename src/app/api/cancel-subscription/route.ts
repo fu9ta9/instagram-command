@@ -1,12 +1,11 @@
 import { stripe } from '@/lib/stripe'
-import { getServerSession } from 'next-auth'
+import { getSessionWrapper } from '@/lib/session'
 import { NextResponse } from 'next/server'
-import { authOptions } from '../auth/[...nextauth]/options'
 import { prisma } from '@/lib/prisma'
 
 export async function POST(req: Request) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await getSessionWrapper()
     
     if (!session?.user?.id) {
       return NextResponse.json({ error: "認証が必要です" }, { status: 401 })

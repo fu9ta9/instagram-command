@@ -1,12 +1,12 @@
 import AppLayout from '@/components/layouts/AppLayout'
-import { getSession } from '@/lib/session'
+import { getSessionWrapper } from '@/lib/session'
 import { redirect } from 'next/navigation'
 import DashboardClient from './DashboardClient'
 
 export const dynamic = "force-dynamic";
 export default async function DashboardPage() {
   try {
-    const session = await getSession()
+    const session = await getSessionWrapper()
 
     if (!session?.user) {
       redirect('/auth/signin')
