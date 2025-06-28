@@ -1,5 +1,5 @@
 'use client'
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Pagination, Navigation } from 'swiper/modules';
@@ -73,10 +73,61 @@ export default function ManualClientPage({ images }: { images: ManualImages }) {
   const [swiperIndexes, setSwiperIndexes] = useState<Record<string, number>>({
     login: 0, plan: 0, connect: 0, search: 0, reply: 0
   });
+  const [imageLoadingStates, setImageLoadingStates] = useState<Record<string, boolean>>({});
+  const [preloadedImages, setPreloadedImages] = useState<Set<string>>(new Set());
+  
   const section = SECTION_CONTENT[selected];
   const imgs = images[selected][mode];
-
   const swiperRef = useRef<any>(null);
+
+  // 画像の事前読み込み
+  useEffect(() => {
+    const preloadImages = async () => {
+      const currentImages = images[selected][mode];
+      const imagesToPreload = currentImages.slice(0, 3); // 最初の3枚を事前読み込み
+      
+      imagesToPreload.forEach((img) => {
+        if (!preloadedImages.has(img.src)) {
+          const imageElement = new window.Image();
+          imageElement.onload = () => {
+            setPreloadedImages(prev => new Set(prev).add(img.src));
+          };
+          imageElement.src = img.src;
+        }
+      });
+    };
+
+    preloadImages();
+  }, [selected, mode, images, preloadedImages]);
+
+  // 隣接するセクションの画像も事前読み込み
+  useEffect(() => {
+    const preloadAdjacentImages = () => {
+      const currentIndex = SECTIONS.findIndex(s => s.key === selected);
+      const adjacentSections = [
+        SECTIONS[currentIndex - 1]?.key,
+        SECTIONS[currentIndex + 1]?.key
+      ].filter(Boolean);
+
+      adjacentSections.forEach(sectionKey => {
+        if (sectionKey && images[sectionKey]) {
+          const adjacentImages = images[sectionKey][mode];
+          adjacentImages.slice(0, 2).forEach((img) => {
+            if (!preloadedImages.has(img.src)) {
+              const imageElement = new window.Image();
+              imageElement.onload = () => {
+                setPreloadedImages(prev => new Set(prev).add(img.src));
+              };
+              imageElement.src = img.src;
+            }
+          });
+        }
+      });
+    };
+
+    const timeoutId = setTimeout(preloadAdjacentImages, 500);
+    return () => clearTimeout(timeoutId);
+  }, [selected, mode, images, preloadedImages]);
 
   const handleSectionChange = (key: string) => {
     setSelected(key);
@@ -86,75 +137,124 @@ export default function ManualClientPage({ images }: { images: ManualImages }) {
     }
   };
 
+  const handleImageLoad = (src: string) => {
+    setImageLoadingStates(prev => ({ ...prev, [src]: false }));
+  };
+
+  const handleImageLoadStart = (src: string) => {
+    setImageLoadingStates(prev => ({ ...prev, [src]: true }));
+  };
+
   return (
-    <main className="flex flex-col sm:flex-row min-h-[60vh] max-w-4xl mx-auto bg-white dark:bg-gray-900 rounded-lg shadow sm:mt-8">
-      {/* サイド/トップナビ */}
-      <nav className="sm:w-48 flex sm:flex-col border-b sm:border-b-0 sm:border-r border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800">
-        {SECTIONS.map((section) => (
-          <button
-            key={section.key}
-            className={`flex-1 px-3 py-3 text-center sm:text-base text-xs font-medium transition-colors
-              ${selected === section.key ? "bg-white dark:bg-gray-900 text-blue-600 dark:text-blue-400" : "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"}
-              ${selected === section.key ? "border-b-2 sm:border-b-0 sm:border-l-4 border-blue-500" : ""}
-            `}
-            onClick={() => handleSectionChange(section.key)}
-          >
-            {section.label}
-          </button>
-        ))}
-      </nav>
-      {/* 内容 */}
-      <section className="flex-1 p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold">{section.title}</h2>
-          <div className="flex gap-2">
+    <main className="max-w-6xl mx-auto bg-white dark:bg-gray-900 rounded-lg shadow mt-8 overflow-hidden">
+      {/* ヘッダー部分 - PC/SP切り替えとセクション選択 */}
+      <div className="border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800">
+        {/* PC/SP切り替えボタン */}
+        <div className="flex justify-center py-4 border-b border-gray-200 dark:border-gray-700">
+          <div className="flex gap-2 bg-white dark:bg-gray-900 rounded-lg p-1 shadow-sm">
             <button
-              className={`px-3 py-1 rounded border text-sm ${mode === "pc" ? "bg-blue-600 text-white" : "bg-gray-100 dark:bg-gray-800"}`}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                mode === "pc" 
+                  ? "bg-blue-600 text-white shadow-sm" 
+                  : "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+              }`}
               onClick={() => setMode("pc")}
-            >PC画面</button>
+            >
+              PC画面
+            </button>
             <button
-              className={`px-3 py-1 rounded border text-sm ${mode === "sp" ? "bg-blue-600 text-white" : "bg-gray-100 dark:bg-gray-800"}`}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                mode === "sp" 
+                  ? "bg-blue-600 text-white shadow-sm" 
+                  : "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+              }`}
               onClick={() => setMode("sp")}
-            >SP画面</button>
+            >
+              スマホ画面
+            </button>
           </div>
         </div>
-        <ol className="list-decimal ml-5 space-y-1 mb-4">
-          {section.steps.map((step, i) => (
-            <li key={i}>{step}</li>
+        
+        {/* セクション選択タブ */}
+        <nav className="flex overflow-x-auto">
+          {SECTIONS.map((section, index) => (
+            <button
+              key={section.key}
+              className={`flex-shrink-0 px-6 py-4 text-sm font-medium transition-colors relative ${
+                selected === section.key 
+                  ? "text-blue-600 dark:text-blue-400 bg-white dark:bg-gray-900" 
+                  : "text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700"
+              }`}
+              onClick={() => handleSectionChange(section.key)}
+            >
+              {section.label}
+              {selected === section.key && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400" />
+              )}
+            </button>
           ))}
-        </ol>
+        </nav>
+      </div>
+
+      {/* コンテンツ部分 */}
+      <div className="p-6">
+        {/* セクションタイトル */}
+        <div className="mb-6">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">{section.title}</h2>
+          <div className="text-sm text-gray-500 dark:text-gray-400">
+            {mode === "pc" ? "PC画面での操作手順" : "スマホ画面での操作手順"}
+          </div>
+        </div>
+
+        {/* 手順説明 */}
+        <div className="mb-8">
+          <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3">操作手順</h3>
+          <ol className="list-decimal ml-5 space-y-2 text-gray-700 dark:text-gray-300">
+            {section.steps.map((step, i) => (
+              <li key={i} className="leading-relaxed">{step}</li>
+            ))}
+          </ol>
+        </div>
+
+        {/* 画像スライダー */}
         <div className="flex justify-center">
-          <div className="w-full max-w-xl relative">
+          <div className="w-full max-w-4xl relative">
             {/* 左矢印 */}
             <button
-              className="absolute top-1/2 left-2 z-10 -translate-y-1/2 p-2 rounded-full bg-gray-200/80 dark:bg-gray-700/80 text-gray-800 dark:text-gray-100 hover:bg-gray-300/90 dark:hover:bg-gray-600/90 transition disabled:opacity-50"
+              className="absolute top-1/2 left-2 z-10 -translate-y-1/2 p-3 rounded-full bg-white/90 dark:bg-gray-800/90 text-gray-800 dark:text-gray-100 hover:bg-white dark:hover:bg-gray-700 transition-all shadow-lg disabled:opacity-50"
               onClick={() => swiperRef.current?.slidePrev()}
               disabled={imgs.length === 0}
               aria-label="前へ"
               style={{ pointerEvents: imgs.length === 0 ? 'none' : 'auto' }}
             >
-              <svg width="28" height="28" fill="none" viewBox="0 0 24 24">
+              <svg width="24" height="24" fill="none" viewBox="0 0 24 24">
                 <path d="M15 6l-6 6 6 6" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </button>
+            
             {/* 右矢印 */}
             <button
-              className="absolute top-1/2 right-2 z-10 -translate-y-1/2 p-2 rounded-full bg-gray-200/80 dark:bg-gray-700/80 text-gray-800 dark:text-gray-100 hover:bg-gray-300/90 dark:hover:bg-gray-600/90 transition disabled:opacity-50"
+              className="absolute top-1/2 right-2 z-10 -translate-y-1/2 p-3 rounded-full bg-white/90 dark:bg-gray-800/90 text-gray-800 dark:text-gray-100 hover:bg-white dark:hover:bg-gray-700 transition-all shadow-lg disabled:opacity-50"
               onClick={() => swiperRef.current?.slideNext()}
               disabled={imgs.length === 0}
               aria-label="次へ"
               style={{ pointerEvents: imgs.length === 0 ? 'none' : 'auto' }}
             >
-              <svg width="28" height="28" fill="none" viewBox="0 0 24 24">
+              <svg width="24" height="24" fill="none" viewBox="0 0 24 24">
                 <path d="M9 6l6 6-6 6" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </button>
+            
             <Swiper
               spaceBetween={16}
               slidesPerView={1}
-              pagination={{ clickable: true }}
+              pagination={{ 
+                clickable: true,
+                bulletClass: 'swiper-pagination-bullet !bg-blue-600 dark:!bg-blue-400',
+                bulletActiveClass: 'swiper-pagination-bullet-active !bg-blue-600 dark:!bg-blue-400'
+              }}
               navigation={false}
-              loop={true}
+              loop={imgs.length > 1}
               modules={[Pagination, Navigation]}
               onSlideChange={(swiper) => {
                 setSwiperIndexes((prev) => ({
@@ -165,33 +265,61 @@ export default function ManualClientPage({ images }: { images: ManualImages }) {
               initialSlide={swiperIndexes[selected]}
               onSwiper={(swiper) => { swiperRef.current = swiper; }}
               key={selected + mode}
+              className="rounded-lg overflow-hidden"
             >
               {imgs.length === 0 ? (
-                <div className="text-center text-gray-400 py-12">画像がありません</div>
+                <div className="text-center text-gray-400 py-16 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                  <div className="text-lg mb-2">📷</div>
+                  <div>画像がありません</div>
+                </div>
               ) : (
                 imgs.map((img, idx) => (
                   <SwiperSlide key={img.src}>
                     {mode === "pc" ? (
-                      <div className="flex justify-center items-center h-[400px]">
+                      <div className="flex justify-center items-center bg-gray-50 dark:bg-gray-800 rounded-lg p-4 relative" style={{ minHeight: '500px' }}>
+                        {imageLoadingStates[img.src] && (
+                          <div className="absolute inset-0 flex items-center justify-center bg-gray-100 dark:bg-gray-700 rounded-lg">
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                          </div>
+                        )}
                         <Image
                           src={img.src}
                           alt={img.alt || `${section.title}の画像${idx+1}`}
-                          width={600}
-                          height={400}
-                          className="rounded border shadow object-contain"
-                          priority
+                          width={800}
+                          height={500}
+                          className="rounded-lg border shadow-sm object-contain max-h-[500px]"
+                          priority={idx === 0}
+                          loading={idx === 0 ? "eager" : "lazy"}
+                          quality={85}
+                          onLoadingComplete={() => handleImageLoad(img.src)}
+                          onLoadStart={() => handleImageLoadStart(img.src)}
+                          placeholder="blur"
+                          blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAAIAAoDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAhEAACAQMDBQAAAAAAAAAAAAABAgMABAUGIWGRkqGx0f/EABUBAQEAAAAAAAAAAAAAAAAAAAMF/8QAGhEAAgIDAAAAAAAAAAAAAAAAAAECEgMRkf/aAAwDAQACEQMRAD8AltJagyeH0AthI5xdrLcNM91BF5pX2HaH9bcfaSXWGaRmknyJckliyjqTzSlT54b6bk+h0R//2Q=="
                         />
                       </div>
                     ) : (
-                      <div className="relative w-full max-w-[320px] aspect-[9/16] mx-auto">
-                        <Image
-                          src={img.src}
-                          alt={img.alt || `${section.title}の画像${idx+1}`}
-                          fill
-                          className="rounded border shadow object-contain"
-                          priority
-                          sizes="(max-width: 320px) 100vw, 320px"
-                        />
+                      <div className="flex justify-center items-center bg-gray-50 dark:bg-gray-800 rounded-lg p-4 relative" style={{ minHeight: '600px' }}>
+                        {imageLoadingStates[img.src] && (
+                          <div className="absolute inset-0 flex items-center justify-center bg-gray-100 dark:bg-gray-700 rounded-lg">
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                          </div>
+                        )}
+                        <div className="relative w-full max-w-[350px] aspect-[9/16]">
+                          <Image
+                            src={img.src}
+                            alt={img.alt || `${section.title}の画像${idx+1}`}
+                            fill
+                            className="rounded-lg border shadow-sm object-contain"
+                            priority={idx === 0}
+                            loading={idx === 0 ? "eager" : "lazy"}
+                            quality={85}
+                            onLoadingComplete={() => handleImageLoad(img.src)}
+                            onLoadStart={() => handleImageLoadStart(img.src)}
+                            placeholder="blur"
+                            blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAAIAAoDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAhEAACAQMDBQAAAAAAAAAAAAABAgMABAUGIWGRkqGx0f/EABUBAQEAAAAAAAAAAAAAAAAAAAMF/8QAGhEAAgIDAAAAAAAAAAAAAAAAAAECEgMRkf/aAAwDAQACEQMRAD8AltJagyeH0AthI5xdrLcNM91BF5pX2HaH9bcfaSXWGaRmknyJckliyjqTzSlT54b6bk+h0R//2Q=="
+                            sizes="(max-width: 350px) 100vw, 350px"
+                          />
+                        </div>
                       </div>
                     )}
                   </SwiperSlide>
@@ -200,7 +328,7 @@ export default function ManualClientPage({ images }: { images: ManualImages }) {
             </Swiper>
           </div>
         </div>
-      </section>
+      </div>
     </main>
   );
 } 

@@ -10,6 +10,7 @@ import * as z from 'zod'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Loader2 } from 'lucide-react'
+import Image from 'next/image'
 
 const loginSchema = z.object({
   email: z.string().email('有効なメールアドレスを入力してください'),
@@ -24,7 +25,7 @@ export default function LoginPage() {
   const router = useRouter()
 
   const handleGoogleLogin = () => {
-    signIn('google', { 
+    signIn('google', {
       callbackUrl: '/connect',
       redirect: true
     })
@@ -35,11 +36,14 @@ export default function LoginPage() {
       <div className="w-full max-w-md bg-white dark:bg-gray-900 rounded-2xl shadow-xl p-8 flex flex-col items-center">
         {/* ロゴやサービス名 */}
         <div className="flex flex-col items-center mb-6">
-          <div className="w-14 h-14 rounded-full bg-blue-100 flex items-center justify-center mb-2">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8 text-blue-600">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6l4 2" />
-              <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5" fill="none" />
-            </svg>
+          <div className="w-14 h-14 mb-2">
+            <Image
+              src="/icon.svg"
+              alt="InstaCommand Logo"
+              width={56}
+              height={56}
+              className="w-full h-full"
+            />
           </div>
           <h1 className="text-2xl font-bold text-blue-700 dark:text-white">InstaCommand</h1>
           <p className="text-gray-500 dark:text-gray-300 text-sm mt-1">Instagram運用をもっとスマートに</p>

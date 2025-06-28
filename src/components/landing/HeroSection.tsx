@@ -3,8 +3,7 @@
 import React from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { MessageSquare, Instagram, Bot, ArrowRight } from "lucide-react";
-import { cn } from "@/lib/utils";
+import {ArrowRight } from "lucide-react";
 import { useSession, signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
@@ -41,7 +40,13 @@ const HeroSection = () => {
             transition={{ duration: 0.5 }}
             className="flex items-center gap-2 text-2xl font-bold text-primary"
           >
-            <Instagram className="w-8 h-8" />
+            <Image 
+              src="/icon.svg" 
+              alt="InstaCommand Logo" 
+              width={32} 
+              height={32} 
+              className="w-8 h-8"
+            />
             <span>InstaCommand</span>
           </motion.div>
           
