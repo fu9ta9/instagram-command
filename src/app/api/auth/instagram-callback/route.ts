@@ -2,6 +2,46 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSessionWrapper } from '@/lib/session'
 
+// Webhookサブスクリプション登録関数
+async function subscribeToWebhooks(webhookId: string, accessToken: string) {
+  try {
+    const subscriptionUrl = `https://graph.instagram.com/v23.0/${webhookId}/subscribed_apps?subscribed_fields=comments,messages,live_comments&access_token=${accessToken}`;
+    
+    const response = await fetch(subscriptionUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+
+    const responseData = await response.json();
+    
+    if (!response.ok) {
+      await prisma.executionLog.create({
+        data: {
+          errorMessage: `Webhookサブスクリプション登録失敗: ${JSON.stringify(responseData)}`
+        }
+      });
+      throw new Error(`Webhookサブスクリプション登録に失敗: ${JSON.stringify(responseData)}`);
+    }
+
+    await prisma.executionLog.create({
+      data: {
+        errorMessage: `Webhookサブスクリプション登録成功: webhookId=${webhookId}, response=${JSON.stringify(responseData)}`
+      }
+    });
+
+    return responseData;
+  } catch (error) {
+    await prisma.executionLog.create({
+      data: {
+        errorMessage: `Webhookサブスクリプション登録エラー: ${error instanceof Error ? error.message : String(error)}`
+      }
+    });
+    throw error;
+  }
+}
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   const code = searchParams.get('code')
@@ -107,6 +147,23 @@ export async function GET(request: Request) {
       return NextResponse.redirect(`${process.env.NEXT_PUBLIC_NEXTAUTH_URL}/connect?error=user_info_error&message=${encodeURIComponent(userData.error_message || 'ユーザー情報の取得に失敗しました')}`)
     }
 
+    // Webhookサブスクリプション登録
+    try {
+      await subscribeToWebhooks(userData.user_id, longLivedTokenData.access_token);
+      await prisma.executionLog.create({
+        data: {
+          errorMessage: `Webhookサブスクリプション登録完了: webhookId=${userData.user_id}`
+        }
+      });
+    } catch (webhookError) {
+      // Webhook登録エラーは警告として記録するが、認証プロセスは継続
+      await prisma.executionLog.create({
+        data: {
+          errorMessage: `Webhook登録警告: ${webhookError instanceof Error ? webhookError.message : String(webhookError)}`
+        }
+      });
+    }
+
     const session = await getSessionWrapper();
     if (!session?.user?.id) {
       return NextResponse.redirect(`${process.env.NEXT_PUBLIC_NEXTAUTH_URL}/auth/signin?error=SessionRequired`);
@@ -144,7 +201,7 @@ export async function GET(request: Request) {
     
     // セッションを更新するためのレスポンスを作成
     const response = NextResponse.redirect(
-      `${process.env.NEXT_PUBLIC_NEXTAUTH_URL}/connect?success=true&message=${encodeURIComponent('Instagramアカウントの連携が完了しました')}&instagram=${encodeURIComponent(JSON.stringify(instagramSessionData))}`
+      `${process.env.NEXT_PUBLIC_NEXTAUTH_URL}/connect?success=true&message=${encodeURIComponent('Instagramアカウントの連携とWebhook登録が完了しました')}&instagram=${encodeURIComponent(JSON.stringify(instagramSessionData))}`
     );
 
     return response;
