@@ -25,12 +25,6 @@ async function subscribeToWebhooks(webhookId: string, accessToken: string) {
       throw new Error(`Webhookサブスクリプション登録に失敗: ${JSON.stringify(responseData)}`);
     }
 
-    await prisma.executionLog.create({
-      data: {
-        errorMessage: `Webhookサブスクリプション登録成功: webhookId=${webhookId}, response=${JSON.stringify(responseData)}`
-      }
-    });
-
     return responseData;
   } catch (error) {
     await prisma.executionLog.create({
@@ -150,11 +144,6 @@ export async function GET(request: Request) {
     // Webhookサブスクリプション登録
     try {
       await subscribeToWebhooks(userData.user_id, longLivedTokenData.access_token);
-      await prisma.executionLog.create({
-        data: {
-          errorMessage: `Webhookサブスクリプション登録完了: webhookId=${userData.user_id}`
-        }
-      });
     } catch (webhookError) {
       // Webhook登録エラーは警告として記録するが、認証プロセスは継続
       await prisma.executionLog.create({
