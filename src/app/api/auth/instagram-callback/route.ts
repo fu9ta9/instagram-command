@@ -25,6 +25,11 @@ async function subscribeToWebhooks(webhookId: string, accessToken: string) {
       throw new Error(`Webhookサブスクリプション登録に失敗: ${JSON.stringify(responseData)}`);
     }
 
+    await prisma.executionLog.create({
+      data: {
+        errorMessage: `Webhookサブスクリプション登録成功: ${JSON.stringify(responseData)}`
+      }
+    });
     return responseData;
   } catch (error) {
     await prisma.executionLog.create({
@@ -130,6 +135,12 @@ export async function GET(request: Request) {
 
     const userResponse = await fetch(userUrl);
     const userData = await userResponse.json();
+
+    await prisma.executionLog.create({
+      data: {
+        errorMessage: `ユーザー情報取得成功: ${JSON.stringify(userData)}`
+      }
+    });
     
     // ユーザー情報取得エラーチェック
     if (userData.error) {
