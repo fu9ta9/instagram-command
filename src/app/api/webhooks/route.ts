@@ -1,6 +1,21 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
+// エラーログを安全に記録する関数
+async function safeLogError(message: string) {
+  try {
+    await prisma.executionLog.create({
+      data: {
+        errorMessage: message
+      }
+    });
+  } catch (dbError) {
+    // DB接続エラーの場合はコンソールログのみ
+    console.error('DB接続エラー:', dbError);
+    console.error('元のエラー:', message);
+  }
+}
+
 // Webhook検証用のGETエンドポイント
 export async function GET(request: Request) {
   try {
@@ -16,11 +31,7 @@ export async function GET(request: Request) {
 
     return new Response('Forbidden', { status: 403 });
   } catch (error) {
-    await prisma.executionLog.create({
-      data: {
-        errorMessage: `Webhook検証エラー: ${error instanceof Error ? error.message : String(error)}`
-      }
-    });
+    await safeLogError(`Webhook検証エラー: ${error instanceof Error ? error.message : String(error)}`);
     return new Response('Internal Server Error', { status: 500 });
   }
 }
@@ -73,11 +84,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ message: 'Unknown webhook type' }, { status: 200 });
   } catch (error) {
-    await prisma.executionLog.create({
-      data: {
-        errorMessage: `Webhook処理エラー: ${error instanceof Error ? error.message : String(error)}`
-      }
-    });
+    await safeLogError(`Webhook処理エラー: ${error instanceof Error ? error.message : String(error)}`);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
@@ -140,11 +147,7 @@ async function findMatchingReplyForDM(webhookData: any) {
 
     return null;
   } catch (error) {
-    await prisma.executionLog.create({
-      data: {
-        errorMessage: `DM返信検索エラー: ${error instanceof Error ? error.message : String(error)}`
-      }
-    });
+    await safeLogError(`DM返信検索エラー: ${error instanceof Error ? error.message : String(error)}`);
     throw error;
   }
 }
@@ -188,11 +191,7 @@ async function sendReplyToDM(
       throw new Error(`DM返信送信に失敗: ${JSON.stringify(errorData)}`);
     }
   } catch (error) {
-    await prisma.executionLog.create({
-      data: {
-        errorMessage: `DM返信送信エラー: ${error instanceof Error ? error.message : String(error)}`
-      }
-    });
+    await safeLogError(`DM返信送信エラー: ${error instanceof Error ? error.message : String(error)}`);
     throw error;
   }
 }
@@ -237,11 +236,7 @@ async function findMatchingReply(webhookData: any) {
 
     return null
   } catch (error) {
-    await prisma.executionLog.create({
-      data: {
-        errorMessage: `返信検索エラー: ${error instanceof Error ? error.message : String(error)}`
-      }
-    })
+    await safeLogError(`返信検索エラー: ${error instanceof Error ? error.message : String(error)}`);
     throw error
   }
 }
@@ -352,11 +347,7 @@ async function sendReplyToComment(
       throw new Error(`返信送信に失敗: ${JSON.stringify(errorData)}`)
     }
   } catch (error) {
-    await prisma.executionLog.create({
-      data: {
-        errorMessage: `返信送信エラー: ${error instanceof Error ? error.message : String(error)}`
-      }
-    })
+    await safeLogError(`返信送信エラー: ${error instanceof Error ? error.message : String(error)}`);
     throw error
   }
 }
@@ -393,11 +384,7 @@ async function findMatchingReplyForLive(webhookData: any) {
 
     return null;
   } catch (error) {
-    await prisma.executionLog.create({
-      data: {
-        errorMessage: `LIVE返信検索エラー: ${error instanceof Error ? error.message : String(error)}`
-      }
-    });
+    await safeLogError(`LIVE返信検索エラー: ${error instanceof Error ? error.message : String(error)}`);
     throw error;
   }
 }
@@ -441,11 +428,7 @@ async function sendReplyToLiveComment(
       throw new Error(`LIVE返信送信に失敗: ${JSON.stringify(errorData)}`);
     }
   } catch (error) {
-    await prisma.executionLog.create({
-      data: {
-        errorMessage: `LIVE返信送信エラー: ${error instanceof Error ? error.message : String(error)}`
-      }
-    });
+    await safeLogError(`LIVE返信送信エラー: ${error instanceof Error ? error.message : String(error)}`);
     throw error;
   }
 }
