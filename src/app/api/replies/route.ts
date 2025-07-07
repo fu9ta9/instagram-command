@@ -109,6 +109,8 @@ export async function GET(request: NextRequest) {
       replyTypeFilter = { replyType: 1 }
     } else if (type === 'story') {
       replyTypeFilter = { replyType: 2 }
+    } else if (type === 'live') {
+      replyTypeFilter = { replyType: 3 }
     }
     // typeが指定されていない場合は全ての返信を取得
 

@@ -19,10 +19,11 @@ enum MATCH_TYPE {
 
 enum REPLY_TYPE {
   POST = 1,
-  STORY = 2
+  STORY = 2,
+  LIVE = 3
 }
 
-type TabType = 'post' | 'story'
+type TabType = 'post' | 'story' | 'live'
 
 export default function ReplyClient() {
   const { data: session, status } = useSession()
@@ -34,14 +35,31 @@ export default function ReplyClient() {
   const [isLoading, setIsLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<TabType>('post')
   const [storyReplies, setStoryReplies] = useState<Reply[]>([])
+  const [liveReplies, setLiveReplies] = useState<Reply[]>([])
   const {
     membershipType,
     isLoading: isMembershipLoading
   } = useMembership()
 
   // 現在のタブに対応する返信一覧を取得
-  const currentReplies = activeTab === 'post' ? replies : storyReplies
-  const setCurrentReplies = activeTab === 'post' ? setReplies : setStoryReplies
+  const getCurrentReplies = () => {
+    switch (activeTab) {
+      case 'post': return replies
+      case 'story': return storyReplies
+      case 'live': return liveReplies
+      default: return replies
+    }
+  }
+  
+  const setCurrentReplies = (newReplies: Reply[]) => {
+    switch (activeTab) {
+      case 'post': setReplies(newReplies); break
+      case 'story': setStoryReplies(newReplies); break
+      case 'live': setLiveReplies(newReplies); break
+    }
+  }
+
+  const currentReplies = getCurrentReplies()
 
   // 返信一覧を取得
   useEffect(() => {
@@ -61,6 +79,7 @@ export default function ReplyClient() {
   useEffect(() => {
     clearAll()
     setStoryReplies([])
+    setLiveReplies([])
   }, [session?.user?.id])
 
   const fetchReplies = async () => {
@@ -78,6 +97,13 @@ export default function ReplyClient() {
       if (storyResponse.ok) {
         const storyData = await storyResponse.json()
         setStoryReplies(storyData)
+      }
+
+      // LIVE用返信を取得
+      const liveResponse = await fetch('/api/replies?type=live')
+      if (liveResponse.ok) {
+        const liveData = await liveResponse.json()
+        setLiveReplies(liveData)
       }
     } catch (error) {
       console.error('Error fetching replies:', error)
@@ -125,9 +151,18 @@ export default function ReplyClient() {
       setIsLoading(true);
       
       // 現在のタブに応じてreplyTypeを設定
+      const getReplyType = () => {
+        switch (activeTab) {
+          case 'post': return REPLY_TYPE.POST
+          case 'story': return REPLY_TYPE.STORY
+          case 'live': return REPLY_TYPE.LIVE
+          default: return REPLY_TYPE.POST
+        }
+      }
+      
       const replyData = {
         ...data,
-        replyType: activeTab === 'post' ? REPLY_TYPE.POST : REPLY_TYPE.STORY
+        replyType: getReplyType()
       }
       
       if (editingReply) {
@@ -211,6 +246,17 @@ export default function ReplyClient() {
               <PlayCircle className="h-4 w-4" />
               ストーリー
             </button>
+            <button
+              onClick={() => setActiveTab('live')}
+              className={`whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
+                activeTab === 'live'
+                  ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
+              }`}
+            >
+              <PlayCircle className="h-4 w-4" />
+              LIVE
+            </button>
           </nav>
         </div>
       </div>
@@ -241,7 +287,12 @@ export default function ReplyClient() {
             disabled={isMembershipLoading}
           >
             <PlusIcon className="h-4 w-4" />
-            {activeTab === 'post' ? '新規返信を登録（フィード/リール用）' : '新規返信を登録（ストーリー用）'}
+            {activeTab === 'post' 
+              ? '新規返信を登録（フィード/リール用）' 
+              : activeTab === 'story'
+              ? '新規返信を登録（ストーリー用）'
+              : '新規返信を登録（LIVE用）'
+            }
           </Button>
         )}
       </div>
@@ -258,7 +309,7 @@ export default function ReplyClient() {
         onSubmit={handleSaveReply}
         initialData={editingReply as ReplyFormData}
         isEditing={!!editingReply}
-        isStoryMode={activeTab === 'story'}
+        isStoryMode={activeTab === 'story' || activeTab === 'live'}
       />
     </div>
   )

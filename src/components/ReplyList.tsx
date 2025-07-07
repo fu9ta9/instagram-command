@@ -162,8 +162,8 @@ const ReplyList: React.FC<ReplyListProps> = ({ replies, onEdit, onDelete }) => {
               {/* PC表示用 */}
               <div className="hidden sm:flex sm:justify-between sm:items-start">
                 <div className="flex gap-4">
-                  {/* ストーリー用の返信（replyType: 2）の場合はサムネイルを表示しない */}
-                  {reply.replyType !== 2 && (
+                  {/* ストーリー・LIVE用の返信（replyType: 2, 3）の場合はサムネイルを表示しない */}
+                  {reply.replyType !== 2 && reply.replyType !== 3 && (
                     <div className="w-16 h-16 flex-shrink-0 relative rounded overflow-hidden bg-gray-100">
                       {reply.postId && (
                         loadingImages[reply.postId as string] ? (

@@ -67,7 +67,7 @@ model Reply {
   reply         String
   igAccountId   String   // IGAccount.idを参照
   postId        String?
-  replyType     Int      // 1: SPECIFIC_POST, 2: ALL_POSTS, 3: STORY
+  replyType     Int      // 1: SPECIFIC_POST, 2: ALL_POSTS, 3: STORY, 4: LIVE
   matchType     Int      // 1: EXACT, 2: PARTIAL
   buttons       Button[]
   
