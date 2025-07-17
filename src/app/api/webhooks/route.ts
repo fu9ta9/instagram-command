@@ -42,11 +42,6 @@ export async function POST(request: Request) {
   try {
     const webhookData = await request.json();
 
-    await prisma.executionLog.create({
-      data: {
-        errorMessage: `Webhook受信成功: ${JSON.stringify(webhookData)}`
-      }
-    });
 
     // エコーメッセージのチェック
     if (isEchoMessage(webhookData)) {

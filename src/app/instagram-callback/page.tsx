@@ -32,15 +32,12 @@ export default function InstagramCallback() {
     // API呼び出しとセッション更新
     const handleCallback = async () => {
       try {
-        console.log('📡 Sending request to Instagram callback API');
         const response = await fetch(`/api/auth/instagram-callback?code=${code}`, {
           redirect: 'manual'
         });
 
         if (response.type === 'opaqueredirect') {
-          console.log('✅ Instagram data saved to DB, updating session...');
           await updateSession();
-          console.log('✅ Session updated successfully');
 
           const redirectUrl = response.headers.get('Location');
           if (redirectUrl) {

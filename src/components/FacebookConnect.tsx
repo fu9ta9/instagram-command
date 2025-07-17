@@ -28,7 +28,6 @@ export default function FacebookConnect({ isReconnect = false }: FacebookConnect
       //   `&enable_fb_login=0` +
       //   `&force_authentication=1`;
       
-      // console.log('認証URL:', authUrl);
       
       // 新しいタブで開く
       const authUrl = 'https://www.instagram.com/oauth/authorize?force_reauth=true&client_id=1657931374802435&redirect_uri=https://insta-command.com/instagram-callback&response_type=code&scope=instagram_business_basic%2Cinstagram_business_manage_messages%2Cinstagram_business_manage_comments%2Cinstagram_business_content_publish%2Cinstagram_business_manage_insights';

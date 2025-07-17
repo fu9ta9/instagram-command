@@ -274,7 +274,6 @@ const KeywordRegistrationModal: React.FC<KeywordRegistrationModalProps> = ({
   // フォーム送信処理を修正
   const handleFormSubmit = async (data: FormData) => {
     try {
-      console.log("フォーム送信データ:", data);
 
       // ボタンデータの準備
       const buttonData = buttons.map((button, index) => ({
@@ -294,7 +293,6 @@ const KeywordRegistrationModal: React.FC<KeywordRegistrationModalProps> = ({
         buttons: buttonData
       };
 
-      console.log("送信データ:", replyData);
 
       // 親コンポーネントのonSubmit関数を呼び出し
       try {

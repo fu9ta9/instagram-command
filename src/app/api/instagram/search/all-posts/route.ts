@@ -16,7 +16,6 @@ async function fetchAllPosts(username: string, igUserId: string, accessToken: st
   let followersCount = 0;
   let mediaCount = 0;
 
-  console.log(`投稿取得開始: username=${username}`);
 
   while (hasMore && attempts < MAX_ATTEMPTS) {
     attempts++;
@@ -24,7 +23,6 @@ async function fetchAllPosts(username: string, igUserId: string, accessToken: st
     // APIエンドポイントを構築
     const apiUrl: string = `https://graph.facebook.com/v22.0/${igUserId}?fields=business_discovery.username(${username}){username,name,profile_picture_url,followers_count,media_count,media${afterToken ? `.after(${afterToken})` : ''}{id,comments_count,like_count,media_url,permalink,timestamp,media_type,thumbnail_url}}&access_token=${accessToken}`;
     
-    console.log(`API呼び出し ${attempts}回目: afterToken=${afterToken || 'なし'}`);
     
     try {
       const response: Response = await fetch(apiUrl);
@@ -54,13 +52,11 @@ async function fetchAllPosts(username: string, igUserId: string, accessToken: st
         followersCount = businessDiscovery.followers_count;
         mediaCount = businessDiscovery.media_count;
         
-        console.log(`アカウント情報取得: name=${accountInfo.name}, followers=${followersCount}, media=${mediaCount}`);
       }
       
       const mediaData = businessDiscovery.media;
       const mediaItems = mediaData.data || [];
       
-      console.log(`投稿取得: ${mediaItems.length}件`);
       
       // 投稿を追加
       allPosts = [...allPosts, ...mediaItems];
@@ -68,10 +64,8 @@ async function fetchAllPosts(username: string, igUserId: string, accessToken: st
       // 次のページがあるか確認
       if (mediaData.paging && mediaData.paging.cursors && mediaData.paging.cursors.after) {
         afterToken = mediaData.paging.cursors.after;
-        console.log(`次のページあり: afterToken=${afterToken}`);
       } else {
         hasMore = false;
-        console.log('次のページなし');
       }
       
       // APIレート制限を考慮して少し待機
@@ -83,7 +77,6 @@ async function fetchAllPosts(username: string, igUserId: string, accessToken: st
     }
   }
 
-  console.log(`投稿取得完了: 合計${allPosts.length}件`);
   
   return {
     posts: allPosts,
@@ -100,7 +93,6 @@ export async function GET(request: Request) {
     const accountId = searchParams.get('accountId');
     const sortBy = searchParams.get('sortBy') || 'recent';
 
-    console.log(`API呼び出し: accountId=${accountId}, sortBy=${sortBy}`);
 
     if (!accountId) {
       return NextResponse.json({ error: 'アカウントIDが必要です' }, { status: 400 });
@@ -119,7 +111,6 @@ export async function GET(request: Request) {
     const result = await fetchAllPosts(accountId, igUserId, accessToken);
     
     if (result.posts.length === 0) {
-      console.log(`投稿が見つかりませんでした: accountId=${accountId}`);
       // 投稿がない場合でもアカウント情報があれば返す
       if (result.accountInfo) {
         return NextResponse.json({
@@ -144,7 +135,6 @@ export async function GET(request: Request) {
       type: item.media_type.toLowerCase()
     }));
 
-    console.log(`投稿データ整形完了: ${posts.length}件`);
 
     // 並べ替え
     let sortedPosts = [...posts];
@@ -162,7 +152,6 @@ export async function GET(request: Request) {
         break;
     }
 
-    console.log(`並べ替え完了: sortBy=${sortBy}`);
 
     return NextResponse.json({ 
       posts: sortedPosts,
