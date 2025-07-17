@@ -13,6 +13,7 @@ export interface Reply {
   postId: string | null;
   replyType: number;
   matchType: number;
+  commentReplyEnabled: boolean;
   buttons?: {
     id: number;
     title: string;
@@ -27,6 +28,7 @@ export interface ReplyFormData {
   keyword: string;
   reply: string;
   matchType: MatchType;
+  commentReplyEnabled: boolean;
   buttons?: {
     title: string;
     url: string;
@@ -47,6 +49,7 @@ export interface ReplyInput {
   reply: string;
   replyType: number;
   matchType: number;
+  commentReplyEnabled: boolean;
   postId?: string;
   buttons: Button[];
 }

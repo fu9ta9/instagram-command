@@ -50,6 +50,7 @@ export async function POST(request: NextRequest) {
       reply: data.reply,
       replyType: data.replyType || 2,
       matchType: data.matchType === 'exact' ? 1 : 2,
+      commentReplyEnabled: data.commentReplyEnabled,
       postId: data.postId,
       igAccountId: igAccount.id,
       buttons: {

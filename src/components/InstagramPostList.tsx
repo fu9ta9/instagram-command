@@ -72,7 +72,7 @@ const InstagramPostList: React.FC<InstagramPostListProps> = ({
     } else {
       setShowNextButton(false);
     }
-  }, [posts, selectedPostId, onSelectPost]);
+  }, [posts, selectedPostId]);
 
   // 無限スクロールの設定
   useEffect(() => {

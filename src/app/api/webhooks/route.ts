@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { getRandomReplyTemplate } from '@/constants/replyTemplates'
 
 // エラーログを安全に記録する関数
 async function safeLogError(message: string) {
@@ -320,6 +321,7 @@ async function sendReplyToComment(
     reply: string;
     buttons?: any[];
     igAccount?: IGAccount;
+    commentReplyEnabled?: boolean;
   }
 ) {
   const commentData = webhookData.entry[0].changes[0].value
@@ -352,8 +354,48 @@ async function sendReplyToComment(
       const errorData = await response.json()
       throw new Error(`返信送信に失敗: ${JSON.stringify(errorData)}`)
     }
+
+    // DM送信成功後、コメント返信が有効な場合のみコメントに返信
+    if (reply.commentReplyEnabled) {
+      await sendDirectReplyToComment(webhookData, reply.igAccount)
+    }
   } catch (error) {
     await safeLogError(`返信送信エラー: ${error instanceof Error ? error.message : String(error)}`);
+    throw error
+  }
+}
+
+// コメントに直接返信する関数
+async function sendDirectReplyToComment(
+  webhookData: any,
+  igAccount: IGAccount
+) {
+  const commentData = webhookData.entry[0].changes[0].value
+  const commentId = commentData.id
+  const commenterName = commentData.from.username || 'ユーザー'
+
+  try {
+    const accessToken = igAccount.accessToken
+    const replyMessage = getRandomReplyTemplate(commenterName)
+
+    // Instagram Comment Moderation APIでコメントに返信
+    const response = await fetch(
+      `https://graph.instagram.com/v22.0/${commentId}/replies?access_token=${accessToken}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: replyMessage
+        })
+      }
+    )
+
+    if (!response.ok) {
+      const errorData = await response.json()
+      throw new Error(`コメント返信送信に失敗: ${JSON.stringify(errorData)}`)
+    }
+  } catch (error) {
+    await safeLogError(`コメント返信送信エラー: ${error instanceof Error ? error.message : String(error)}`);
     throw error
   }
 }
@@ -361,7 +403,6 @@ async function sendReplyToComment(
 // LIVEコメント用の返信検索
 async function findMatchingReplyForLive(webhookData: any) {
   const commentText = webhookData.value.text;
-  const mediaId = webhookData.value.media?.id;
 
   try {
     // LIVEコメント用の返信を検索

@@ -18,9 +18,9 @@ export interface SessionUser {
 const isTest = process.env.APP_ENV === 'test';
 const testSession = {
   user: {
-    id: 'cmblee9990001y54p16rihftt',
-    name: 'テストGoogleユーザー',
-    email: 'test-google@example.com',
+    id: 'cmby74xm20000onw682a4i0x2',
+    name: 'さかいテスト',
+    email: 'sakainoblig@gmail.com',
   },
   expires: '2099-12-31T23:59:59.999Z'
 };

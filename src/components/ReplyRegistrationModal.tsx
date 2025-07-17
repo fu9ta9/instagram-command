@@ -20,6 +20,7 @@ import { History, Pencil, Trash2, ChevronRight, Eye, ArrowLeft } from 'lucide-re
 const storySchema = z.object({
   keyword: z.string().min(1, { message: "キーワードを入力してください" }),
   matchType: z.number().refine(val => val === MATCH_TYPE.EXACT || val === MATCH_TYPE.PARTIAL),
+  commentReplyEnabled: z.boolean(),
   reply: z.string().min(1, { message: "返信内容を入力してください" }),
   buttons: z.array(z.object({
     title: z.string(),
@@ -32,6 +33,7 @@ const postSchema = z.object({
   postId: z.string().min(1, { message: "投稿を選択してください" }),
   keyword: z.string().min(1, { message: "キーワードを入力してください" }),
   matchType: z.number().refine(val => val === MATCH_TYPE.EXACT || val === MATCH_TYPE.PARTIAL),
+  commentReplyEnabled: z.boolean(),
   reply: z.string().min(1, { message: "返信内容を入力してください" }),
   buttons: z.array(z.object({
     title: z.string(),
@@ -44,6 +46,7 @@ interface FormData {
   keyword: string;
   reply: string;
   matchType: MatchType;
+  commentReplyEnabled: boolean;
   postId?: string;
   buttons?: Array<{
     title: string;
@@ -80,7 +83,6 @@ const KeywordRegistrationModal: React.FC<KeywordRegistrationModalProps> = ({
   const totalSteps = isStoryMode ? 2 : 3;
   
   const [step, setStep] = useState(initialStep);
-  const [selectedPost, setSelectedPost] = useState<any>(null);
   const [isAddingButton, setIsAddingButton] = useState(false);
   const [buttonTitle, setButtonTitle] = useState('');
   const [buttonUrl, setButtonUrl] = useState('');
@@ -104,7 +106,8 @@ const KeywordRegistrationModal: React.FC<KeywordRegistrationModalProps> = ({
     defaultValues: {
       keyword: initialData?.keyword || '',
       reply: initialData?.reply || '',
-      matchType: initialData?.matchType || MATCH_TYPE.PARTIAL,
+      matchType: initialData?.matchType || MATCH_TYPE.EXACT,
+      commentReplyEnabled: initialData?.commentReplyEnabled || false,
       postId: isStoryMode ? undefined : (initialData?.postId || ''),
       buttons: initialData?.buttons || []
     }
@@ -127,7 +130,6 @@ const KeywordRegistrationModal: React.FC<KeywordRegistrationModalProps> = ({
         }
         
         const data = await response.json();
-        console.log('取得した過去の返信:', data);
         setRecentReplies(data);
       } catch (error) {
         console.error('過去の返信の取得に失敗しました:', error);
@@ -139,10 +141,30 @@ const KeywordRegistrationModal: React.FC<KeywordRegistrationModalProps> = ({
     }
   }, [isOpen]);
 
+  // ESCキーでモーダルを閉じる
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && isOpen) {
+        onClose();
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('keydown', handleKeyDown);
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen, onClose]);
+
+  // モーダルが開いたときの初期化処理
   useEffect(() => {
     if (isOpen) {
+      setStep(initialStep);
+      setEditingButtonIndex(null);
+      
       if (initialData) {
-        console.log("初期データ:", initialData); // デバッグ用
         
         // matchTypeが数値であることを確認
         const matchType = typeof initialData.matchType === 'number' 
@@ -153,37 +175,28 @@ const KeywordRegistrationModal: React.FC<KeywordRegistrationModalProps> = ({
           keyword: initialData.keyword,
           reply: initialData.reply,
           matchType: matchType,
+          commentReplyEnabled: initialData.commentReplyEnabled,
           postId: isStoryMode ? undefined : (initialData.postId || ''),
           buttons: initialData.buttons || []
         });
         
-        if (!isStoryMode) {
-          setSelectedPost({ 
-            id: initialData.postId,
-            thumbnail_url: null
-          });
-        }
         setButtons(initialData.buttons || []);
-        setStep(initialStep);
       } else {
         reset({
           keyword: '',
           reply: '',
-          matchType: MATCH_TYPE.PARTIAL,
+          matchType: MATCH_TYPE.EXACT,
+          commentReplyEnabled: false,
           postId: isStoryMode ? undefined : '',
           buttons: []
         });
-        setStep(initialStep);
-        setSelectedPost(null);
         setButtons([]);
       }
-      setEditingButtonIndex(null);
     }
-  }, [isOpen, reset, initialData, isStoryMode, initialStep]);
+  }, [isOpen]);
 
   const handleSelectPost = (post: any) => {
-    setSelectedPost(post);
-    setValue('postId', post.id);
+    setValue('postId', post.id, { shouldValidate: true });
   };
 
   const handleNext = () => {
@@ -254,7 +267,7 @@ const KeywordRegistrationModal: React.FC<KeywordRegistrationModalProps> = ({
   };
 
   // フォーム送信処理を修正
-  const handleFormSubmit = (data: FormData) => {
+  const handleFormSubmit = async (data: FormData) => {
     try {
       console.log("フォーム送信データ:", data);
 
@@ -270,6 +283,7 @@ const KeywordRegistrationModal: React.FC<KeywordRegistrationModalProps> = ({
         keyword: data.keyword,
         reply: data.reply,
         matchType: data.matchType,
+        commentReplyEnabled: data.commentReplyEnabled,
         replyType: 1, // SPECIFIC_POST
         postId: isStoryMode ? undefined : data.postId,
         buttons: buttonData
@@ -279,7 +293,11 @@ const KeywordRegistrationModal: React.FC<KeywordRegistrationModalProps> = ({
 
       // 親コンポーネントのonSubmit関数を呼び出し
       try {
-        onSubmit(replyData);
+        await onSubmit(replyData);
+        // 編集モードの場合は親コンポーネントがモーダルを閉じるため、新規登録時のみ閉じる
+        if (!isEditing) {
+          onClose();
+        }
       } catch (error) {
         // エラーメッセージを表示
         if (error && typeof error === 'object' && 'status' in error && error.status === 409) {
@@ -289,6 +307,10 @@ const KeywordRegistrationModal: React.FC<KeywordRegistrationModalProps> = ({
             ? error.message 
             : '不明なエラー';
           alert('送信中にエラーが発生しました: ' + errorMessage);
+        }
+        // エラーが発生してもモーダルを閉じる（409エラー以外）
+        if (!(error && typeof error === 'object' && 'status' in error && error.status === 409)) {
+          onClose();
         }
       }
     } catch (error) {
@@ -328,22 +350,6 @@ const KeywordRegistrationModal: React.FC<KeywordRegistrationModalProps> = ({
     `;
   };
 
-  // useEffectを追加して、initialDataが変更されたときにフォームを更新
-  useEffect(() => {
-    if (initialData) {
-      setValue('keyword', initialData.keyword, { shouldValidate: true });
-      setValue('reply', initialData.reply, { shouldValidate: true });
-      setValue('matchType', initialData.matchType, { shouldValidate: true });
-      if (!isStoryMode) {
-        setValue('postId', initialData.postId || '', { shouldValidate: true });
-      }
-      
-      // ボタンデータも設定
-      if (initialData.buttons) {
-        setButtons(initialData.buttons);
-      }
-    }
-  }, [initialData, setValue, isStoryMode]);
 
   return (
     <Modal isOpen={isOpen} onClose={onClose}>
@@ -382,23 +388,49 @@ const KeywordRegistrationModal: React.FC<KeywordRegistrationModalProps> = ({
                 render={({ field }) => <Input {...field} placeholder="キーワード" />}
               />
               {errors.keyword && <p className="text-red-500 text-sm mt-1">{errors.keyword.message}</p>}
-              <div className="mt-4">
-                <p className="mb-2">マッチング方法:</p>
-                <Controller
-                  name="matchType"
-                  control={control}
-                  render={({ field }) => (
-                    <RadioGroup
-                      name="matchType"
+              <div className={`mt-6 grid grid-cols-1 ${!isStoryMode ? 'md:grid-cols-2' : ''} gap-6`}>
+                <div>
+                  <p className="mb-3 font-medium">マッチング方法:</p>
+                  <Controller
+                    name="matchType"
+                    control={control}
+                    render={({ field }) => (
+                      <RadioGroup
+                        name="matchType"
+                        control={control}
+                        options={[
+                          { value: MATCH_TYPE.EXACT, label: '完全一致' },
+                          { value: MATCH_TYPE.PARTIAL, label: '部分一致' }
+                        ]}
+                        defaultValue={field.value || MATCH_TYPE.PARTIAL}
+                      />
+                    )}
+                  />
+                </div>
+                {!isStoryMode && (
+                  <div>
+                    <p className="mb-3 font-medium">投稿内コメント返信:</p>
+                    <p className="text-sm text-gray-600 mb-3">
+                      投稿のコメント欄への返信内容を設定できます。<br />
+                      ※DMへの返信ではありません。
+                    </p>
+                    <Controller
+                      name="commentReplyEnabled"
                       control={control}
-                      options={[
-                        { value: MATCH_TYPE.EXACT, label: '完全一致' },
-                        { value: MATCH_TYPE.PARTIAL, label: '部分一致' }
-                      ]}
-                      defaultValue={field.value || MATCH_TYPE.PARTIAL}
+                      render={({ field }) => (
+                        <RadioGroup
+                          name="commentReplyEnabled"
+                          control={control}
+                          options={[
+                            { value: false, label: '返信しない' },
+                            { value: true, label: '返信する' }
+                          ]}
+                          defaultValue={field.value || false}
+                        />
+                      )}
                     />
-                  )}
-                />
+                  </div>
+                )}
               </div>
               <div className="mt-4 flex justify-between">
                 {!isStoryMode && (

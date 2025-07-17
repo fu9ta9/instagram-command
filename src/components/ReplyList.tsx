@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Reply, ReplyInput, MATCH_TYPE } from '@/types/reply';
+import { Reply } from '@/types/reply';
 import { Button } from "@/components/ui/button";
-import ReplyRegistrationModal from './ReplyRegistrationModal';
 import { Pencil, Trash2, ImageIcon } from 'lucide-react';
 import {
   AlertDialog,
@@ -24,8 +23,6 @@ interface ReplyListProps {
 const ReplyList: React.FC<ReplyListProps> = ({ replies, onEdit, onDelete }) => {
   const [mediaUrls, setMediaUrls] = useState<Record<string, string>>({});
   const [loadingImages, setLoadingImages] = useState<Record<string, boolean>>({});
-  const [editingReply, setEditingReply] = useState<Reply | null>(null);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [replyToDelete, setReplyToDelete] = useState<string | null>(null);
 
@@ -83,49 +80,6 @@ const ReplyList: React.FC<ReplyListProps> = ({ replies, onEdit, onDelete }) => {
     setDeleteConfirmOpen(false);
   };
 
-  const handleEditSubmit = async (data: any) => {
-    if (editingReply) {
-      try {
-        const updateData: ReplyInput = {
-          keyword: data.keyword,
-          reply: data.reply,
-          replyType: 2,
-          matchType: data.matchType,
-          postId: data.postId,
-          buttons: data.buttons?.map((button: any, index: number) => ({
-            title: button.title,
-            url: button.url,
-            order: index
-          })) || []
-        };
-
-        const response = await fetch(`/api/replies/${editingReply.id}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(updateData),
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          if (response.status === 409) {
-            alert('同じキーワードと投稿IDの組み合わせが既に登録されています');
-            return;
-          }
-          throw new Error(errorData.details || errorData.error || '更新に失敗しました');
-        }
-
-        const updatedReply = await response.json();
-        onEdit(updatedReply);
-        setIsEditModalOpen(false);
-        setEditingReply(null);
-      } catch (error) {
-        console.error('更新エラー:', error);
-        alert('更新に失敗しました: ' + (error instanceof Error ? error.message : String(error)));
-      }
-    }
-  };
 
   return (
     <>
@@ -141,7 +95,7 @@ const ReplyList: React.FC<ReplyListProps> = ({ replies, onEdit, onDelete }) => {
                 </div>
                 <div className="flex gap-2 ml-4 flex-shrink-0">
                   <Button
-                    onClick={() => handleEdit(reply)}
+                    onClick={() => onEdit(reply)}
                     variant="outline"
                     size="icon"
                     className="hover:border-blue-500 hover:text-blue-500 transition-colors"
@@ -212,7 +166,7 @@ const ReplyList: React.FC<ReplyListProps> = ({ replies, onEdit, onDelete }) => {
                 </div>
                 <div className="flex gap-2 ml-4 flex-shrink-0">
                   <Button
-                    onClick={() => handleEdit(reply)}
+                    onClick={() => onEdit(reply)}
                     variant="outline"
                     size="icon"
                     className="hover:border-blue-500 hover:text-blue-500 transition-colors"
@@ -233,25 +187,6 @@ const ReplyList: React.FC<ReplyListProps> = ({ replies, onEdit, onDelete }) => {
           </div>
         ))}
 
-        {editingReply && (
-          <ReplyRegistrationModal
-            isOpen={isEditModalOpen}
-            onClose={() => setIsEditModalOpen(false)}
-            onSubmit={handleEditSubmit}
-            initialData={{
-              keyword: editingReply.keyword,
-              reply: editingReply.reply,
-              matchType: editingReply.matchType === 1 ? MATCH_TYPE.EXACT : MATCH_TYPE.PARTIAL,
-              postId: editingReply.postId || '',
-              buttons: editingReply.buttons?.map(button => ({
-                title: button.title,
-                url: button.url
-              }))
-            }}
-            isEditing={true}
-            isStoryMode={editingReply.replyType === 2}
-          />
-        )}
       </div>
 
       <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>

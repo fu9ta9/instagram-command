@@ -57,6 +57,11 @@ export async function PUT(
 
     const replyId = parseInt(params.id);
     const data = await request.json();
+    
+    console.log('=== 返信更新API開始 ===');
+    console.log('Reply ID:', replyId);
+    console.log('受信データ:', JSON.stringify(data, null, 2));
+    console.log('commentReplyEnabled値:', data.commentReplyEnabled, '型:', typeof data.commentReplyEnabled);
 
     // 現在の返信を取得して、IGアカウントIDを確認
     const currentReply = await prisma.reply.findUnique({
@@ -112,9 +117,12 @@ export async function PUT(
       keyword: data.keyword,
       reply: data.reply,
       matchType: data.matchType,
+      commentReplyEnabled: data.commentReplyEnabled,
       postId: data.postId,
       // 他のフィールドも必要に応じて更新
     };
+    
+    console.log('更新データ:', JSON.stringify(updateData, null, 2));
 
     // ボタンの更新処理
     if (data.buttons) {
@@ -142,6 +150,8 @@ export async function PUT(
       data: updateData,
       include: { buttons: true }
     });
+    
+    console.log('更新結果:', JSON.stringify(updatedReply, null, 2));
 
     await prisma.executionLog.create({
       data: {

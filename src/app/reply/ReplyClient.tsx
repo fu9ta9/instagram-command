@@ -5,7 +5,7 @@ import { useSession } from 'next-auth/react'
 import ReplyList from '@/components/ReplyList'
 import ReplyRegistrationModal from '@/components/ReplyRegistrationModal'
 import { Button } from '@/components/ui/button'
-import { PlusIcon, Loader2, Grid3X3, PlayCircle } from 'lucide-react'
+import { PlusIcon, Loader2, Grid3X3, CircleUser, Radio } from 'lucide-react'
 import { Reply, ReplyInput, ReplyFormData } from '@/types/reply'
 import { useReplyStore } from '@/store/replyStore'
 import { useRouter } from 'next/navigation'
@@ -243,7 +243,7 @@ export default function ReplyClient() {
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
               }`}
             >
-              <PlayCircle className="h-4 w-4" />
+              <CircleUser className="h-4 w-4" />
               ストーリー
             </button>
             <button
@@ -254,7 +254,7 @@ export default function ReplyClient() {
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
               }`}
             >
-              <PlayCircle className="h-4 w-4" />
+              <Radio className="h-4 w-4" />
               LIVE
             </button>
           </nav>
@@ -288,10 +288,10 @@ export default function ReplyClient() {
           >
             <PlusIcon className="h-4 w-4" />
             {activeTab === 'post' 
-              ? '新規返信を登録（フィード/リール用）' 
+              ? '新規登録（フィード/リール用）' 
               : activeTab === 'story'
-              ? '新規返信を登録（ストーリー用）'
-              : '新規返信を登録（LIVE用）'
+              ? '新規登録（ストーリー用）'
+              : '新規登録（LIVE用）'
             }
           </Button>
         )}

@@ -34,7 +34,7 @@ export const RadioGroup: React.FC<RadioGroupProps> = ({
                 checked={value === option.value}
                 onChange={() => onChange(option.value)}
                 name={name}
-                className="form-radio h-4 w-4 text-blue-600"
+                className="h-4 w-4 accent-blue-600 focus:ring-blue-500 focus:ring-2"
               />
               <span>{option.label}</span>
             </label>
