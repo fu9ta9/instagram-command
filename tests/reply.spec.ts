@@ -14,8 +14,8 @@ test.describe('Reply Page - 有料会員(PAID)', () => {
   test('有料会員の場合、新規返信登録ボタンが表示される', async ({ page }) => {
     await page.goto('/reply');
     
-    // 有料会員は新規返信登録ボタンが表示される（正規表現で動的テキストに対応）
-    const newReplyButton = page.getByRole('button', { name: /新規返信を登録（.*用）/ });
+    // 有料会員は新規登録ボタンが表示される（正規表現で動的テキストに対応）
+    const newReplyButton = page.getByRole('button', { name: /新規登録（.*用）/ });
     await expect(newReplyButton).toBeVisible();
     
     // アップグレードボタンは表示されない
@@ -36,8 +36,8 @@ test.describe('Reply Page - 有料会員(PAID)', () => {
   test('有料会員は自動返信機能を利用できる', async ({ page }) => {
     await page.goto('/reply');
     
-    // 新規返信登録ボタンがクリック可能であることを確認（正規表現使用）
-    const newReplyButton = page.getByRole('button', { name: /新規返信を登録（.*用）/ });
+    // 新規登録ボタンがクリック可能であることを確認（正規表現使用）
+    const newReplyButton = page.getByRole('button', { name: /新規登録（.*用）/ });
     await expect(newReplyButton).toBeEnabled();
     
     // 制限メッセージが表示されていないことを確認
@@ -49,7 +49,7 @@ test.describe('Reply Page - 有料会員(PAID)', () => {
     await page.goto('/reply');
     
     // デフォルトでフィード/リール用ボタンが表示されることを確認
-    const postReplyButton = page.getByRole('button', { name: '新規返信を登録（フィード/リール用）' });
+    const postReplyButton = page.getByRole('button', { name: '新規登録（フィード/リール用）' });
     await expect(postReplyButton).toBeVisible();
     
     // ストーリータブをクリック
@@ -57,7 +57,7 @@ test.describe('Reply Page - 有料会員(PAID)', () => {
     await storyTab.click();
     
     // ストーリー用のボタンが表示されることを確認
-    const storyReplyButton = page.getByRole('button', { name: '新規返信を登録（ストーリー用）' });
+    const storyReplyButton = page.getByRole('button', { name: '新規登録（ストーリー用）' });
     await expect(storyReplyButton).toBeVisible();
     await expect(storyReplyButton).toBeEnabled();
     
@@ -114,8 +114,8 @@ test.describe('Reply Page - 無料会員(FREE)', () => {
     const upgradeButton = page.getByRole('button', { name: '会員をアップグレード' });
     await expect(upgradeButton).toBeVisible();
     
-    // 新規返信登録ボタンは表示されない
-    const newReplyButton = page.locator('button:has-text("新規返信を登録")');
+    // 新規登録ボタンは表示されない
+    const newReplyButton = page.locator('button:has-text("新規登録")');
     await expect(newReplyButton).not.toBeVisible();
   });
 
@@ -192,12 +192,12 @@ test.describe('Reply Page - トライアル会員(TRIAL)', () => {
     });
   });
 
-  test('トライアル会員の場合、新規返信登録ボタンが表示される', async ({ page }) => {
+  test('トライアル会員の場合、新規登録ボタンが表示される', async ({ page }) => {
     await page.goto('/reply');
     await page.waitForLoadState('networkidle');
     
     // トライアル会員は有料会員と同様の機能を利用可能
-    const newReplyButton = page.locator('button:has-text("新規返信を登録")');
+    const newReplyButton = page.locator('button:has-text("新規登録")');
     await expect(newReplyButton).toBeVisible();
     
     // アップグレードボタンは表示されない（トライアル期間中）
@@ -209,8 +209,8 @@ test.describe('Reply Page - トライアル会員(TRIAL)', () => {
     await page.goto('/reply');
     await page.waitForLoadState('networkidle');
     
-    // 新規返信登録ボタンがクリック可能であることを確認
-    const newReplyButton = page.locator('button:has-text("新規返信を登録")');
+    // 新規登録ボタンがクリック可能であることを確認
+    const newReplyButton = page.locator('button:has-text("新規登録")');
     await expect(newReplyButton).toBeEnabled();
     
     // 制限メッセージが表示されていないことを確認
@@ -227,7 +227,7 @@ test.describe('Reply Page - トライアル会員(TRIAL)', () => {
     await storyTab.click();
     
     // ストーリー用の登録ボタンが表示される
-    const storyReplyButton = page.locator('button:has-text("新規返信を登録（ストーリー用）")');
+    const storyReplyButton = page.locator('button:has-text("新規登録（ストーリー用）")');
     await expect(storyReplyButton).toBeVisible();
   });
 }); 

@@ -22,6 +22,7 @@ export default function ReplyEditModal({ isOpen, onClose, onSubmit, initialData 
     reply: '',
     replyType: 2,
     matchType: 1,
+    commentReplyEnabled: false,
     postId: '',
     buttons: []
   })
@@ -35,6 +36,7 @@ export default function ReplyEditModal({ isOpen, onClose, onSubmit, initialData 
         postId: initialData.postId || undefined,
         replyType: initialData.replyType,
         matchType: initialData.matchType,
+        commentReplyEnabled: initialData.commentReplyEnabled,
         buttons: initialData.buttons?.map(button => ({
           title: button.title,
           url: button.url,

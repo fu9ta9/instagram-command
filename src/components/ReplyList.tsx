@@ -63,8 +63,7 @@ const ReplyList: React.FC<ReplyListProps> = ({ replies, onEdit, onDelete }) => {
   }, [replies]);
 
   const handleEdit = (reply: Reply) => {
-    setEditingReply(reply);
-    setIsEditModalOpen(true);
+    onEdit(reply);
   };
 
   const handleDeleteClick = (id: string) => {

@@ -77,8 +77,13 @@ const KeywordRegistrationModal: React.FC<KeywordRegistrationModalProps> = ({
   isEditing = false, 
   isStoryMode = false 
 }) => {
-  // ストーリーモードの場合は投稿選択をスキップしてステップ2から開始
-  const initialStep = isStoryMode ? 2 : 1;
+  // ストーリー・ライブモードの場合は投稿選択をスキップしてステップ2から開始
+  // 編集時も新規作成時も同じステップから開始
+  const getInitialStep = () => {
+    return isStoryMode ? 2 : 1;
+  };
+  
+  const initialStep = getInitialStep();
   // ストーリーモードの場合は全体のステップ数を2にする
   const totalSteps = isStoryMode ? 2 : 3;
   
@@ -161,7 +166,7 @@ const KeywordRegistrationModal: React.FC<KeywordRegistrationModalProps> = ({
   // モーダルが開いたときの初期化処理
   useEffect(() => {
     if (isOpen) {
-      setStep(initialStep);
+      setStep(getInitialStep());
       setEditingButtonIndex(null);
       
       if (initialData) {
