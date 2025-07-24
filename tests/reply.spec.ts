@@ -1,6 +1,29 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Reply Page - 有料会員(PAID)', () => {
+  test.beforeEach(async ({ page }) => {
+    // 有料ユーザーのモックデータを設定 - より具体的なパターンに変更
+    await page.route('**/api/membership/**', async route => {
+      console.log('Membership API intercepted:', route.request().url());
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        json: {
+          membershipType: 'PAID',
+          trialStartDate: null,
+          stripeSubscriptionId: 'sub_test123',
+          stripeCurrentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+          status: 'active'
+        }
+      });
+    });
+
+    // 返信データのモック
+    await page.route('/api/replies*', async route => {
+      await route.fulfill({ json: [] });
+    });
+  });
+
   test('DM自動返信設定ページが正常に表示される', async ({ page }) => {
     await page.goto('/reply');
     

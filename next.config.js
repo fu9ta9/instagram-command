@@ -50,6 +50,20 @@ const nextConfig = {
       },
     ]
   },
+  webpack: (config, { isServer }) => {
+    if (!isServer) {
+      // クライアントサイドではopenid-clientのfallbackを設定
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        crypto: false,
+        stream: false,
+        util: false,
+        url: false,
+        querystring: false,
+      }
+    }
+    return config
+  },
 }
 
 module.exports = nextConfig

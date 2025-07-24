@@ -1,0 +1,167 @@
+'use client'
+
+import { useState } from 'react'
+import { Button } from '@/components/ui/button'
+import { Check, Loader2 } from 'lucide-react'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import { useSubscriptionManager } from '../hooks/useSubscriptionManager'
+import { PlanService } from '../services/planService'
+import { DateService } from '../services/dateService'
+
+export default function PlanClient() {
+  const {
+    membership,
+    isLoading,
+    isUpgrading,
+    isCanceling,
+    handleUpgrade,
+    handleCancelSubscription,
+  } = useSubscriptionManager()
+  
+  const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false)
+
+  const handleCancelWithDialog = async () => {
+    await handleCancelSubscription()
+    setIsCancelDialogOpen(false)
+  }
+
+  if (isLoading) {
+    return (
+      <div className="container mx-auto p-4 min-h-[600px] flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+      </div>
+    )
+  }
+
+  const plans = PlanService.getPlanCards(membership)
+  const trialStatus = membership ? DateService.getTrialStatus(membership) : null
+  const subscriptionEndDate = membership ? DateService.getSubscriptionEndDate(membership) : null
+
+  return (
+    <div className="container mx-auto p-4">
+      <h1 className="text-2xl font-bold mb-6">プラン設定</h1>
+      
+      {membership?.type === 'TRIAL' && trialStatus && (
+        <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <p className="text-blue-800">
+            トライアル期間: あと{trialStatus.daysRemaining}日
+            （{trialStatus.endDate}まで）
+          </p>
+        </div>
+      )}
+
+      {membership?.type === 'PAID' && (
+        <div className="mb-6">
+          {membership.status === 'CANCELING' ? (
+            <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg mb-4">
+              <p className="text-yellow-800 font-medium">サブスクリプションは解約済みです</p>
+              <p className="text-yellow-700">
+                {subscriptionEndDate}までは引き続き全ての有料機能をご利用いただけます。<br />
+                この日以降は自動的に無料プランに戻ります。
+              </p>
+            </div>
+          ) : (
+            <>
+              <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg mb-4">
+                <p className="text-blue-800">
+                  現在の請求期間: {subscriptionEndDate}まで
+                </p>
+                <p className="text-blue-700 text-sm mt-1">
+                  ※サブスクリプションを停止しても、支払い済みの期間は引き続きサービスをご利用いただけます。
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                onClick={() => setIsCancelDialogOpen(true)}
+                className="border-red-300 text-red-600 hover:bg-red-50"
+              >
+                サブスクリプションを停止する
+              </Button>
+            </>
+          )}
+        </div>
+      )}
+
+      <div className="max-w-2xl mx-auto">
+        {plans.map((plan) => (
+          <div
+            key={plan.name}
+            className={`bg-white rounded-lg shadow-md p-8 border-2 ${
+              plan.membershipType === membership?.type
+                ? 'border-blue-500'
+                : 'border-transparent'
+            }`}
+          >
+            <h2 className="text-xl font-semibold mb-2">{plan.name}</h2>
+            <div className="flex items-baseline mb-4">
+              <span className="text-4xl font-bold">{plan.price}</span>
+              <span className="text-gray-500 ml-1">{plan.interval}</span>
+            </div>
+            <ul className="space-y-3 mb-6">
+              {plan.features.map((feature) => (
+                <li key={feature} className="flex items-center">
+                  <Check className="h-5 w-5 text-green-500 mr-2" />
+                  <span>{feature}</span>
+                </li>
+              ))}
+            </ul>
+            {plan.membershipType === membership?.type ? (
+              <Button
+                className="w-full bg-blue-500"
+                disabled
+              >
+                現在のプラン
+              </Button>
+            ) : (
+              <Button
+                className="w-full"
+                onClick={() => handleUpgrade(plan.membershipType)}
+                disabled={isUpgrading}
+              >
+                {isUpgrading ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                ) : null}
+                {isUpgrading ? 'プラン変更中...' : 
+                  plan.membershipType === 'TRIAL' ? 'トライアルを開始' : 'アップグレード'}
+              </Button>
+            )}
+          </div>
+        ))}
+      </div>
+
+      <AlertDialog open={isCancelDialogOpen} onOpenChange={setIsCancelDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>サブスクリプションを停止しますか？</AlertDialogTitle>
+            <AlertDialogDescription>
+              停止しても、{subscriptionEndDate}までは引き続きサービスをご利用いただけます。
+              この日以降は自動的に無料プランに戻ります。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>キャンセル</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleCancelWithDialog}
+              className="bg-red-500 hover:bg-red-600"
+              disabled={isCanceling}
+            >
+              {isCanceling ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : null}
+              {isCanceling ? '処理中...' : '停止する'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  )
+}

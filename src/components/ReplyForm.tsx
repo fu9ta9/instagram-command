@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
-import ReplyRegistrationModal from '@/components/ReplyRegistrationModal';
+import ReplyRegistrationModal from '@/features/replies/components/ReplyRegistrationModal';
 import { MembershipType } from '@prisma/client';
 import { useRouter } from 'next/navigation';
-import { Reply, ReplyInput } from '@/types/reply';
+import { Reply, ReplyInput } from '@/features/replies/types/reply.types';
 
 interface ReplyFormProps {
   onReplyAdded: (reply: Reply) => void;

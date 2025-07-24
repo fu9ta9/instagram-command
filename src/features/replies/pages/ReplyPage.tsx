@@ -1,8 +1,7 @@
 import AppLayout from '@/components/layouts/AppLayout'
 import { getSessionWrapper } from '@/lib/session'
-import { getMembershipServerData } from '@/features/subscription/services/membershipServerService'
 import { redirect } from 'next/navigation'
-import { ReplyClient } from '@/features/replies'
+import { ReplyClient } from '../components/ReplyClient'
 
 export const dynamic = "force-dynamic";
 
@@ -14,18 +13,12 @@ export default async function ReplyPage() {
       redirect('/auth/signin')
     }
 
-    // サーバー側でメンバーシップデータを事前取得
-    const membershipData = await getMembershipServerData()
-
     return (
       <AppLayout>
         <div className="container mx-auto p-4">
           <h1 className="text-2xl font-bold mb-6 dark:text-gray-100">DM自動返信設定</h1>
           <div className="bg-white dark:bg-gray-900 rounded-lg shadow p-6 border border-gray-200 dark:border-gray-800">
-            <ReplyClient 
-              initialMembershipData={membershipData}
-              userId={session.user.id}
-            />
+            <ReplyClient />
           </div>
         </div>
       </AppLayout>
@@ -34,4 +27,4 @@ export default async function ReplyPage() {
     console.error('Error in ReplyPage:', error)
     redirect('/auth/signin')
   }
-} 
+}

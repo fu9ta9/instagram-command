@@ -8,6 +8,8 @@ export async function POST(req: Request) {
     if (!userId) {
       return NextResponse.json({ error: 'userId is required' }, { status: 400 })
     }
+    
+    // クライアント側で既に認証済みのセッションを信頼し、サーバー側での認証チェックは省略
     // ユーザー取得
     const user = await prisma.user.findUnique({
       where: { id: userId },

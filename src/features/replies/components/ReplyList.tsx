@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Reply } from '@/types/reply';
+import { Reply } from '@/features/replies/types/reply.types';
 import { Button } from "@/components/ui/button";
 import { Pencil, Trash2, ImageIcon } from 'lucide-react';
 import {

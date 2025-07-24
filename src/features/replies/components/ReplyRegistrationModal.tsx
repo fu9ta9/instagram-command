@@ -6,9 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup } from "@/components/ui/RadioGroup";
-import Modal from './Modal';
-import InstagramPostList from './InstagramPostList';
-import { Reply, ReplyInput, ReplyFormData, MATCH_TYPE } from '@/types/reply';
+import Modal from '@/components/Modal';
+import InstagramPostList from '@/components/InstagramPostList';
+import { Reply, ReplyInput, ReplyFormData, MATCH_TYPE } from '@/features/replies/types/reply.types';
 import { 
   Popover, 
   PopoverContent, 

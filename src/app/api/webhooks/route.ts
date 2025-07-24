@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { getRandomReplyTemplate } from '@/constants/replyTemplates'
+import { getRandomReplyTemplate } from '@/features/replies/constants/replyTemplates'
 
 // エラーログを安全に記録する関数
 async function safeLogError(message: string) {
@@ -371,7 +371,7 @@ async function sendDirectReplyToComment(
 
   try {
     const accessToken = igAccount.accessToken
-    const replyMessage = getRandomReplyTemplate(commenterName)
+    const replyMessage = getRandomReplyTemplate()
 
     // Instagram Comment Moderation APIでコメントに返信
     const response = await fetch(
