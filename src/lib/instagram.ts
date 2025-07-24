@@ -48,4 +48,25 @@ export async function fetchInstagramPosts(igAccount: IGAccount, afterToken?: str
     console.error('Error fetching Instagram posts:', error);
     throw error;
   }
+}
+
+// プロフィール画像URLを取得する関数
+export async function fetchInstagramProfilePicture(username: string, accessToken: string, igUserId: string) {
+  try {
+    const apiUrl = `https://graph.instagram.com/v23.0/${igUserId}?fields=profile_picture_url&access_token=${accessToken}`;
+    
+    const response = await fetch(apiUrl);
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('Instagram API error for profile picture:', errorData);
+      throw new Error(errorData.error?.message || 'Failed to fetch Instagram profile picture');
+    }
+    
+    const data = await response.json();
+    return data.profile_picture_url || null;
+  } catch (error) {
+    console.error('Error fetching Instagram profile picture:', error);
+    return null; // エラー時はnullを返す
+  }
 } 
