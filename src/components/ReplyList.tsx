@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Reply } from '@/types/reply';
 import { Button } from "@/components/ui/button";
-import { Pencil, Trash2, ImageIcon } from 'lucide-react';
+import { Pencil, Trash2, ImageIcon, BarChart3 } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -18,9 +18,10 @@ interface ReplyListProps {
   replies: Reply[];
   onEdit: (reply: Reply) => void;
   onDelete: (id: string) => void;
+  onReport?: (reply: Reply) => void;
 }
 
-const ReplyList: React.FC<ReplyListProps> = ({ replies, onEdit, onDelete }) => {
+const ReplyList: React.FC<ReplyListProps> = ({ replies, onEdit, onDelete, onReport }) => {
   const [mediaUrls, setMediaUrls] = useState<Record<string, string>>({});
   const [loadingImages, setLoadingImages] = useState<Record<string, boolean>>({});
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
@@ -93,6 +94,17 @@ const ReplyList: React.FC<ReplyListProps> = ({ replies, onEdit, onDelete }) => {
                   <span className="block text-sm text-gray-900 break-words max-w-full">{reply.keyword}</span>
                 </div>
                 <div className="flex gap-2 ml-4 flex-shrink-0">
+                  {onReport && (
+                    <Button
+                      onClick={() => onReport(reply)}
+                      variant="outline"
+                      size="icon"
+                      className="hover:border-green-500 hover:text-green-500 transition-colors"
+                      title="レポートを見る"
+                    >
+                      <BarChart3 className="h-4 w-4" />
+                    </Button>
+                  )}
                   <Button
                     onClick={() => onEdit(reply)}
                     variant="outline"
@@ -164,6 +176,17 @@ const ReplyList: React.FC<ReplyListProps> = ({ replies, onEdit, onDelete }) => {
                   </div>
                 </div>
                 <div className="flex gap-2 ml-4 flex-shrink-0">
+                  {onReport && (
+                    <Button
+                      onClick={() => onReport(reply)}
+                      variant="outline"
+                      size="icon"
+                      className="hover:border-green-500 hover:text-green-500 transition-colors"
+                      title="レポートを見る"
+                    >
+                      <BarChart3 className="h-4 w-4" />
+                    </Button>
+                  )}
                   <Button
                     onClick={() => onEdit(reply)}
                     variant="outline"

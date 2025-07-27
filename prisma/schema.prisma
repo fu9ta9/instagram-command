@@ -71,6 +71,7 @@ model Reply {
   matchType            Int      // 1: EXACT, 2: PARTIAL
   commentReplyEnabled  Boolean  @default(false) // コメント自体に返信するかどうか
   buttons              Button[]
+  stats                ReplyStats?
   
   igAccount     IGAccount @relation(fields: [igAccountId], references: [id], onDelete: Cascade)
   
@@ -87,6 +88,18 @@ model Button {
   title     String
   url       String
   order     Int
+}
+
+model ReplyStats {
+  id          Int      @id @default(autoincrement())
+  replyId     Int      @unique
+  sentCount   Int      @default(0)
+  readCount   Int      @default(0)
+  lastUpdated DateTime @default(now()) @updatedAt
+  
+  reply       Reply    @relation(fields: [replyId], references: [id], onDelete: Cascade)
+  
+  @@index([replyId])
 }
 
 model ExecutionLog {

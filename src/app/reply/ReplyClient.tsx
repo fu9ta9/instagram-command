@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import ReplyList from '@/components/ReplyList'
 import ReplyRegistrationModal from '@/components/ReplyRegistrationModal'
+import ReplyReportModal from '@/components/ReplyReportModal'
 import { Button } from '@/components/ui/button'
 import { PlusIcon, Loader2, Grid3X3, CircleUser, Radio } from 'lucide-react'
 import { Reply, ReplyInput, ReplyFormData } from '@/types/reply'
@@ -36,6 +37,8 @@ export default function ReplyClient() {
   const [activeTab, setActiveTab] = useState<TabType>('post')
   const [storyReplies, setStoryReplies] = useState<Reply[]>([])
   const [liveReplies, setLiveReplies] = useState<Reply[]>([])
+  const [reportModalOpen, setReportModalOpen] = useState(false)
+  const [selectedReply, setSelectedReply] = useState<Reply | null>(null)
   const {
     membershipType,
     isLoading: isMembershipLoading
@@ -144,6 +147,11 @@ export default function ReplyClient() {
     } catch (error) {
       console.error('Error deleting reply:', error)
     }
+  }
+
+  const handleReport = (reply: Reply) => {
+    setSelectedReply(reply)
+    setReportModalOpen(true)
   }
 
   const handleSaveReply = async (data: ReplyInput | Omit<Reply, "id">) => {
@@ -301,6 +309,7 @@ export default function ReplyClient() {
         replies={currentReplies}
         onEdit={handleEdit}
         onDelete={handleDelete}
+        onReport={handleReport}
       />
 
       <ReplyRegistrationModal
@@ -310,6 +319,12 @@ export default function ReplyClient() {
         initialData={editingReply as ReplyFormData}
         isEditing={!!editingReply}
         isStoryMode={activeTab === 'story' || activeTab === 'live'}
+      />
+
+      <ReplyReportModal
+        open={reportModalOpen}
+        onOpenChange={setReportModalOpen}
+        reply={selectedReply}
       />
     </div>
   )

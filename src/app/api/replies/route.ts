@@ -70,6 +70,17 @@ export async function POST(request: NextRequest) {
       }
     });
 
+    // ReplyStatsを初期化して作成
+    await prisma.replyStats.create({
+      data: {
+        replyId: reply.id,
+        sentCount: 0,
+        readCount: 0
+      }
+    });
+
+    console.log(`ReplyStats initialized for Reply ID: ${reply.id}`);
+
     return NextResponse.json(reply)
   } catch (error) {
     console.error('Failed to create reply:', error)
