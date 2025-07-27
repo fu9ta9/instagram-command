@@ -49,7 +49,16 @@ export async function POST(request: Request) {
     }
 
     // メッセージタイプを判定
-    if (isDMMessage(webhookData)) {
+    if (isSeenMessage(webhookData)) {
+      // 既読メッセージの処理
+      await handleSeenMessage(webhookData);
+      
+      return NextResponse.json({ message: 'Seen message handled successfully' }, { status: 200 });
+    } else if (isPostbackMessage(webhookData)) {
+      await handlePostbackMessage(webhookData);
+      
+      return NextResponse.json({ message: 'Postback handled successfully' }, { status: 200 });
+    } else if (isDMMessage(webhookData)) {
       // DMメッセージの処理
       const reply = await findMatchingReplyForDM(webhookData);
       if (!reply) {
@@ -58,6 +67,8 @@ export async function POST(request: Request) {
       
       // DM返信を送信
       await sendReplyToDM(webhookData, reply);
+      // 送信統計を更新
+      await updateSentCount(reply.id);
       
       return NextResponse.json({ message: 'DM reply sent successfully' }, { status: 200 });
     } else if (isCommentMessage(webhookData)) {
@@ -69,6 +80,8 @@ export async function POST(request: Request) {
 
       // 返信を送信
       await sendReplyToComment(webhookData, reply);
+      // 送信統計を更新
+      await updateSentCount(reply.id);
 
       return NextResponse.json({ message: 'Comment reply sent successfully' }, { status: 200 });
     } else if (isLiveCommentMessage(webhookData)) {
@@ -80,6 +93,9 @@ export async function POST(request: Request) {
 
       // LIVE返信を送信
       await sendReplyToLiveComment(webhookData, reply);
+
+      // 送信統計を更新
+      await updateSentCount(reply.id);
 
       return NextResponse.json({ message: 'LIVE reply sent successfully' }, { status: 200 });
     }
@@ -93,6 +109,12 @@ export async function POST(request: Request) {
 
 function isEchoMessage(webhookData: any): boolean {
   return webhookData.entry?.[0]?.messaging?.[0]?.message?.is_echo === true;
+}
+
+// 既読メッセージかどうかを判定
+function isSeenMessage(webhookData: any): boolean {
+  return webhookData.field === 'messaging_seen' || 
+         webhookData.entry?.[0]?.messaging?.[0]?.read !== undefined;
 }
 
 // DMメッセージかどうかを判定
@@ -471,6 +493,110 @@ async function sendReplyToLiveComment(
     }
   } catch (error) {
     await safeLogError(`LIVE返信送信エラー: ${error instanceof Error ? error.message : String(error)}`);
+    throw error;
+  }
+}
+// 送信統計を更新する関数
+async function updateSentCount(replyId: number) {
+  try {
+    await prisma.replyStats.upsert({
+      where: { replyId },
+      update: {
+        sentCount: {
+          increment: 1
+        }
+      },
+      create: {
+        replyId,
+        sentCount: 1,
+        readCount: 0
+      }
+    });
+  } catch (error) {
+    await safeLogError(`送信統計更新エラー: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
+
+// 既読統計を更新する関数
+async function updateReadCount(replyId: number) {
+  try {
+    await prisma.replyStats.upsert({
+      where: { replyId },
+      update: {
+        readCount: {
+          increment: 1
+        }
+      },
+      create: {
+        replyId,
+        sentCount: 0,
+        readCount: 1
+      }
+    });
+  } catch (error) {
+    await safeLogError(`既読統計更新エラー: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
+
+// 既読メッセージ処理関数
+async function handleSeenMessage(webhookData: any) {
+  try {
+    let senderId, recipientId, messageId;
+    
+    // 新しいフォーマット（field: "messaging_seen"）の場合
+    if (webhookData.field === 'messaging_seen') {
+      senderId = webhookData.value.sender.id;
+      recipientId = webhookData.value.recipient.id;
+      messageId = webhookData.value.read?.mid;
+    } 
+    // 従来のフォーマットの場合
+    else if (webhookData.entry?.[0]?.messaging?.[0]?.read) {
+      const messagingData = webhookData.entry[0].messaging[0];
+      senderId = messagingData.sender.id;
+      recipientId = messagingData.recipient.id;
+      messageId = messagingData.read.mid;
+    } else {
+      return;
+    }
+    // recipientIdからIGAccountを取得
+    const igAccount = await prisma.iGAccount.findFirst({
+      where: {
+        instagramId: recipientId
+      },
+      include: {
+        replies: {
+          include: {
+            stats: true
+          }
+        }
+      }
+    });
+
+    if (!igAccount) {
+      return;
+    }
+
+    // 各返信の既読統計を更新（最新の返信から順に確認）
+    const recentReplies = igAccount.replies
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .slice(0, 5); // 最新5件の返信をチェック
+
+    for (const reply of recentReplies) {
+      if (reply.stats && reply.stats.sentCount > reply.stats.readCount) {
+        // 送信済みで未読の返信がある場合、既読数を増加
+        await updateReadCount(reply.id);
+        break; // 最初の未読返信のみ更新
+      }
+    }
+
+    // 既読情報をログに記録
+    await prisma.executionLog.create({
+      data: {
+        errorMessage: `Message read - User: ${senderId}, Account: ${recipientId}, MessageID: ${messageId || 'unknown'}`
+      }
+    });
+  } catch (error) {
+    await safeLogError(`既読メッセージ処理エラー: ${error instanceof Error ? error.message : String(error)}`);
     throw error;
   }
 }
