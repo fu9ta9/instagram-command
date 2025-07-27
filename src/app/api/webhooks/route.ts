@@ -54,10 +54,6 @@ export async function POST(request: Request) {
       await handleSeenMessage(webhookData);
       
       return NextResponse.json({ message: 'Seen message handled successfully' }, { status: 200 });
-    } else if (isPostbackMessage(webhookData)) {
-      await handlePostbackMessage(webhookData);
-      
-      return NextResponse.json({ message: 'Postback handled successfully' }, { status: 200 });
     } else if (isDMMessage(webhookData)) {
       // DMメッセージの処理
       const reply = await findMatchingReplyForDM(webhookData);
@@ -283,9 +279,9 @@ function createMessageData(commenterId: string, replyText: string, buttons: Arra
     const validButtons = buttons
       .filter(button => isValidUrl(button.url))
       .map(button => ({
-        type: "web_url",
+            type: "web_url",
         url: button.url,
-        title: button.title.substring(0, 20) // タイトルは20文字までに制限
+            title: button.title.substring(0, 20) // タイトルは20文字までに制限
       }));
 
     // 有効なボタンがない場合はテキストメッセージのみ送信
