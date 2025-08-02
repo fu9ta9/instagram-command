@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useMobile } from "@/hooks/use-mobile"
 import { useSearchStore, InstagramAccount, InstagramPost, SortOption, LimitOption } from '@/store/searchStore'
+import { FreeTrialCTA } from "@/components/ui/free-trial-cta"
 
 // ローカルストレージのキー
 const RECENT_ACCOUNTS_KEY = "instagram-recent-accounts"
@@ -47,7 +48,11 @@ interface InstagramApiResponse {
   }
 }
 
-export default function InstagramPostAnalyzer() {
+interface InstagramPostAnalyzerProps {
+  isLoggedIn: boolean
+}
+
+export default function InstagramPostAnalyzer({ isLoggedIn }: InstagramPostAnalyzerProps) {
   const isMobile = useMobile()
 
   // Zustandストアから状態とsetterを取得
@@ -591,6 +596,11 @@ export default function InstagramPostAnalyzer() {
         <div className="flex items-center justify-center py-4">
           <Loader2 className="h-6 w-6 animate-spin" />
         </div>
+      )}
+
+      {/* 未ログインユーザー向けの無料トライアルCTA */}
+      {!isLoggedIn && (
+        <FreeTrialCTA className="mt-6" />
       )}
     </div>
   )
