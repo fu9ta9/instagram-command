@@ -1,9 +1,8 @@
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { BarChart3, Users, MessageCircle } from "lucide-react"
 import HeroSection from "@/components/landing/HeroSection"
 import FeaturesSection from "@/components/landing/FeatureSection"
+import HowItWorksSection from "@/components/landing/HowItWorksSection"
+import PricingSectionHome from "@/components/landing/PricingSection"
+import FAQSection from "@/components/landing/FAQSection"
 import Footer from "@/components/Footer"
 
 export default function LandingPage() {
@@ -11,7 +10,9 @@ export default function LandingPage() {
     <main className="flex-1">
       <HeroSection />
       <FeaturesSection />
-      {/* 他のセクションも同様に追加 */}
+      <HowItWorksSection />
+      <PricingSectionHome />
+      <FAQSection />
       <Footer />
     </main>
   )

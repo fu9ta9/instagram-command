@@ -1,26 +1,38 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import {ArrowRight } from "lucide-react";
-import { useSession, signIn } from "next-auth/react";
+import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import { WebViewRedirectModal } from "@/components/ui/webview-redirect-modal";
+import { useWebViewLogin } from "@/hooks/useWebViewLogin";
 
 const HeroSection = () => {
   const { data: session } = useSession();
   const router = useRouter();
+  const { 
+    showWebViewModal, 
+    handleLogin, 
+    handleContinueInWebView, 
+    closeModal 
+  } = useWebViewLogin();
+  const [currentCallbackUrl, setCurrentCallbackUrl] = useState("/plan");
 
   const handleStartTrial = () => {
     if (session) {
       router.push("/plan");
     } else {
-      signIn('google', { 
-        callbackUrl: "/plan",
-        redirect: true 
-      });
+      setCurrentCallbackUrl("/plan");
+      handleLogin("/plan");
     }
+  };
+
+  const handleHeaderLogin = () => {
+    setCurrentCallbackUrl("/connect");
+    handleLogin("/connect");
   };
 
   return (
@@ -56,9 +68,9 @@ const HeroSection = () => {
             transition={{ duration: 0.5, delay: 0.1 }}
             className="hidden md:flex items-center space-x-8"
           >
-            <li><a href="#features" className="text-gray-700 hover:text-primary dark:text-gray-300 dark:hover:text-white transition-colors">機能紹介</a></li>
-            <li><a href="#how-it-works" className="text-gray-700 hover:text-primary dark:text-gray-300 dark:hover:text-white transition-colors">使い方</a></li>
-            <li><a href="#pricing" className="text-gray-700 hover:text-primary dark:text-gray-300 dark:hover:text-white transition-colors">料金プラン</a></li>
+            <li><a href="/features" className="text-gray-700 hover:text-primary dark:text-gray-300 dark:hover:text-white transition-colors">機能紹介</a></li>
+            <li><a href="/how-it-works" className="text-gray-700 hover:text-primary dark:text-gray-300 dark:hover:text-white transition-colors">使い方</a></li>
+            <li><a href="/pricing" className="text-gray-700 hover:text-primary dark:text-gray-300 dark:hover:text-white transition-colors">料金プラン</a></li>
             {/* <li><a href="#testimonials" className="text-gray-700 hover:text-primary dark:text-gray-300 dark:hover:text-white transition-colors">お客様の声</a></li> */}
           </motion.ul>
           
@@ -68,10 +80,7 @@ const HeroSection = () => {
             transition={{ duration: 0.5, delay: 0.2 }}
             className="flex items-center space-x-4"
           >
-            <Button variant="outline" className="hidden md:inline-flex" onClick={() => signIn('google', { 
-              callbackUrl: "/connect",
-              redirect: true 
-            })}>
+            <Button variant="outline" className="hidden md:inline-flex" onClick={handleHeaderLogin}>
               ログイン
             </Button>
             <Button onClick={handleStartTrial}>無料で始める</Button>
@@ -140,6 +149,13 @@ const HeroSection = () => {
       
       {/* Gradient separator */}
       <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-gray-50 to-transparent dark:from-gray-900 dark:to-transparent" />
+
+      {/* WebView警告モーダル */}
+      <WebViewRedirectModal 
+        isOpen={showWebViewModal}
+        onClose={closeModal}
+        onContinueAnyway={() => handleContinueInWebView(currentCallbackUrl)}
+      />
     </div>
   );
 };

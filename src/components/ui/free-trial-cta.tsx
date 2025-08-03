@@ -3,9 +3,11 @@
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Gift, ArrowRight, Sparkles } from "lucide-react"
-import { useSession, signIn } from "next-auth/react"
+import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
+import { WebViewRedirectModal } from "./webview-redirect-modal"
+import { useWebViewLogin } from "@/hooks/useWebViewLogin"
 
 interface FreeTrialCTAProps {
   className?: string
@@ -14,16 +16,21 @@ interface FreeTrialCTAProps {
 export function FreeTrialCTA({ className = "" }: FreeTrialCTAProps) {
   const { data: session } = useSession()
   const router = useRouter()
+  const { 
+    showWebViewModal, 
+    handleLogin, 
+    handleContinueInWebView, 
+    closeModal 
+  } = useWebViewLogin()
 
-  const handleSignUp = () => {
+  const handleSignUp = async () => {
     if (session) {
       router.push("/plan")
-    } else {
-      signIn('google', { 
-        callbackUrl: "/plan",
-        redirect: true 
-      })
+      return
     }
+
+    // WebView検出とログイン処理
+    handleLogin("/plan")
   }
 
   return (
@@ -78,6 +85,13 @@ export function FreeTrialCTA({ className = "" }: FreeTrialCTAProps) {
           </div>
         </CardContent>
       </Card>
+
+      {/* WebView警告モーダル */}
+      <WebViewRedirectModal 
+        isOpen={showWebViewModal}
+        onClose={closeModal}
+        onContinueAnyway={() => handleContinueInWebView("/plan")}
+      />
     </motion.div>
   )
 }
