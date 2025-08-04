@@ -130,6 +130,10 @@ const PricingSectionHome = () => {
     }
   };
 
+  const handleFreeAnalysis = () => {
+    router.push("/search");
+  };
+
   const plans = [
     {
       title: "フリープラン",
@@ -187,7 +191,7 @@ const PricingSectionHome = () => {
             <PricingCard
               key={index}
               {...plan}
-              onClick={handleAuth}
+              onClick={index === 0 ? handleFreeAnalysis : handleAuth}
             />
           ))}
         </div>
