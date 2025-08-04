@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { VideoModal } from "@/components/ui/video-modal";
+// import { VideoModal } from "@/components/ui/video-modal";
 import { 
   UserPlus, 
   Instagram, 
@@ -15,14 +15,18 @@ import {
   ArrowRight,
   Play
 } from "lucide-react";
-import Link from "next/link";
+// import Link from "next/link";
+import Image from "next/image";
+import { useSession, signIn } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import LandingHeader from "@/components/landing/LandingHeader";
 
-const StepCard = ({ step, icon: Icon, title, description }: {
+const StepCard = ({ step, icon: Icon, title, description, imagePath }: {
   step: number;
   icon: React.ElementType;
   title: string;
   description: string;
+  imagePath: string;
 }) => (
   <motion.div
     initial={{ opacity: 0, y: 30 }}
@@ -55,13 +59,14 @@ const StepCard = ({ step, icon: Icon, title, description }: {
         
         {/* 右側：画像エリア */}
         <div className="flex justify-center lg:justify-end">
-          <div className="w-full max-w-md aspect-video bg-gray-100 dark:bg-gray-700 rounded-lg flex items-center justify-center border-2 border-dashed border-gray-300 dark:border-gray-600">
-            <div className="text-center">
-              <div className="w-16 h-16 bg-gray-200 dark:bg-gray-600 rounded-lg mx-auto mb-3 flex items-center justify-center">
-                <Icon className="w-8 h-8 text-gray-400" />
-              </div>
-              <p className="text-sm text-gray-500 dark:text-gray-400">画像エリア</p>
-            </div>
+          <div className="w-full max-w-md aspect-video rounded-lg overflow-hidden shadow-lg">
+            <Image
+              src={imagePath}
+              alt={title}
+              width={600}
+              height={400}
+              className="w-full h-full object-cover"
+            />
           </div>
         </div>
       </div>
@@ -101,39 +106,53 @@ const FeatureHighlight = ({ icon: Icon, title, description }: {
 );
 
 const HowItWorksPage = () => {
-  const [isVideoModalOpen, setIsVideoModalOpen] = useState(false)
-  
-  const handleStartTrial = () => {
-    window.location.href = '/';
-  };
+  const { data: session } = useSession();
+  const router = useRouter();
 
-  const handleVideoPlay = () => {
-    setIsVideoModalOpen(true)
-  };
+  // const [isVideoModalOpen, setIsVideoModalOpen] = useState(false)
+
+  // const handleVideoPlay = () => {
+  //   setIsVideoModalOpen(true)
+  // };
 
   // デモ動画のURL（実際の動画URLに置き換えてください）
-  const demoVideoUrl = "https://www.youtube.com/watch?v=dQw4w9WgXcQ"; // 例：YouTube URL
+  // const demoVideoUrl = "https://www.youtube.com/watch?v=dQw4w9WgXcQ"; // 例：YouTube URL
+
+  const handleStartTrial = () => {
+    if (session) {
+      router.push("/plan");
+    } else {
+      signIn('google', { 
+        callbackUrl: "/plan",
+        redirect: true 
+      });
+    }
+  };
 
   const steps = [
     {
       icon: UserPlus,
-      title: "アカウント作成",
-      description: "Googleアカウントで簡単に登録。面倒な入力項目はありません。"
+      title: "アカウント登録",
+      description: "Googleアカウントで簡単に登録。面倒な入力項目はありません。",
+      imagePath: "/manual-images/login/pc/3.jpg"
     },
     {
       icon: Instagram,
       title: "Instagram連携",
-      description: "あなたのInstagramアカウントを安全に連携します。"
+      description: "あなたのInstagramアカウントを安全に連携します。",
+      imagePath: "/manual-images/connect/pc/5.jpg"
     },
     {
       icon: Settings,
       title: "自動返信設定",
-      description: "キーワードに応じた返信内容を設定します。"
+      description: "キーワードに応じた返信内容を設定します。",
+      imagePath: "/manual-images/reply/pc/7.jpg"
     },
     {
       icon: MessageCircle,
       title: "自動返信開始",
-      description: "設定完了後、24時間自動で返信が開始されます。"
+      description: "設定完了後、24時間自動で返信が開始されます。",
+      imagePath: "/manual-images/reply/pc/1.jpg"
     }
   ];
 
@@ -188,16 +207,14 @@ const HowItWorksPage = () => {
             transition={{ duration: 0.6, delay: 0.2 }}
             className="flex flex-col sm:flex-row gap-4 justify-center"
           >
-            <Link href="/">
-              <Button size="lg">
-                今すぐ無料で始める
-                <ArrowRight className="ml-2 h-5 w-5" />
-              </Button>
-            </Link>
-            <Button variant="outline" size="lg" onClick={handleVideoPlay}>
+            <Button size="lg" onClick={handleStartTrial}>
+              今すぐ無料で始める
+              <ArrowRight className="ml-2 h-5 w-5" />
+            </Button>
+            {/* <Button variant="outline" size="lg" onClick={handleVideoPlay}>
               <Play className="mr-2 h-5 w-5" />
               デモ動画を見る
-            </Button>
+            </Button> */}
           </motion.div>
         </div>
       </section>
@@ -324,26 +341,25 @@ const HowItWorksPage = () => {
             <p className="text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
               14日間の無料トライアルで、すべての機能をお試しいただけます。
             </p>
-            <Link href="/">
-              <Button 
-                size="lg" 
-                className="bg-white text-blue-600 hover:bg-gray-100 font-bold"
-              >
-                14日間無料トライアルを開始
-                <ArrowRight className="ml-2 h-5 w-5" />
-              </Button>
-            </Link>
+            <Button 
+              size="lg" 
+              className="bg-white text-blue-600 hover:bg-gray-100 font-bold"
+              onClick={handleStartTrial}
+            >
+              14日間無料トライアルを開始
+              <ArrowRight className="ml-2 h-5 w-5" />
+            </Button>
           </motion.div>
         </div>
       </section>
 
       {/* 動画モーダル */}
-      <VideoModal 
+      {/* <VideoModal 
         isOpen={isVideoModalOpen}
         onClose={() => setIsVideoModalOpen(false)}
         videoUrl={demoVideoUrl}
         title="InstaCommand デモ動画"
-      />
+      /> */}
     </div>
   );
 };

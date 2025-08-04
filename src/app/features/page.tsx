@@ -16,7 +16,9 @@ import {
   Clock,
   ArrowRight
 } from "lucide-react";
-import Link from "next/link";
+// import Link from "next/link";
+import { useSession, signIn } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import LandingHeader from "@/components/landing/LandingHeader";
 
 const FeatureCard = ({ icon: Icon, title, description, benefits }: {
@@ -59,8 +61,18 @@ const FeatureCard = ({ icon: Icon, title, description, benefits }: {
 );
 
 const FeaturesDetailPage = () => {
+  const { data: session } = useSession();
+  const router = useRouter();
+
   const handleStartTrial = () => {
-    window.location.href = '/';
+    if (session) {
+      router.push("/plan");
+    } else {
+      signIn('google', { 
+        callbackUrl: "/plan",
+        redirect: true 
+      });
+    }
   };
 
   const features = [
@@ -168,12 +180,10 @@ const FeaturesDetailPage = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
           >
-            <Link href="/">
-              <Button size="lg" className="mr-4">
-                14日間無料トライアル
-                <ArrowRight className="ml-2 h-5 w-5" />
-              </Button>
-            </Link>
+            <Button size="lg" className="mr-4" onClick={handleStartTrial}>
+              14日間無料トライアル
+              <ArrowRight className="ml-2 h-5 w-5" />
+            </Button>
             <Link href="/how-it-works">
               <Button variant="outline" size="lg">
                 使い方を見る
@@ -225,15 +235,14 @@ const FeaturesDetailPage = () => {
             <p className="text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
               14日間の無料トライアルで、すべての機能をお試しいただけます。
             </p>
-            <Link href="/">
-              <Button 
-                size="lg" 
-                className="bg-white text-blue-600 hover:bg-gray-100 font-bold"
-              >
-                無料トライアルを開始
-                <ArrowRight className="ml-2 h-5 w-5" />
-              </Button>
-            </Link>
+            <Button 
+              size="lg" 
+              className="bg-white text-blue-600 hover:bg-gray-100 font-bold"
+              onClick={handleStartTrial}
+            >
+              無料トライアルを開始
+              <ArrowRight className="ml-2 h-5 w-5" />
+            </Button>
           </motion.div>
         </div>
       </section>

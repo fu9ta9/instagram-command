@@ -17,23 +17,51 @@ function openInDefaultBrowser(url: string): void {
   if (typeof window === 'undefined') return
   
   try {
+    const userAgent = navigator.userAgent.toLowerCase()
+    
     // iOSの場合
     if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
-      // SafariでURLを開く
-      window.location.href = url
+      // Instagram WebViewからの場合、カスタムスキームを使用
+      if (userAgent.includes('instagram')) {
+        // Instagram app内から外部ブラウザを開く方法
+        const safariUrl = `x-safari-${url}`
+        window.location.href = safariUrl
+        
+        // フォールバック: 通常のURLスキーム
+        setTimeout(() => {
+          window.location.href = `googlechrome://${url.replace(/https?:\/\//, '')}`
+        }, 500)
+        
+        // 最終フォールバック
+        setTimeout(() => {
+          window.location.href = url
+        }, 1000)
+      } else {
+        window.location.href = url
+      }
       return
     }
     
     // Androidの場合
     if (/Android/.test(navigator.userAgent)) {
-      // Intent URLでデフォルトブラウザーを開く
-      const intentUrl = `intent://${url.replace(/https?:\/\//, '')}#Intent;scheme=https;package=com.android.chrome;end`
-      window.location.href = intentUrl
-      
-      // フォールバック: 通常のURL
-      setTimeout(() => {
+      if (userAgent.includes('instagram') || userAgent.includes('fb')) {
+        // Instagram/Facebook WebViewからの場合
+        const chromeIntent = `intent://${url.replace(/https?:\/\//, '')}#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=${encodeURIComponent(url)};end`
+        window.location.href = chromeIntent
+        
+        // フォールバック: Samsung Internet
+        setTimeout(() => {
+          const samsungIntent = `intent://${url.replace(/https?:\/\//, '')}#Intent;scheme=https;package=com.sec.android.app.sbrowser;S.browser_fallback_url=${encodeURIComponent(url)};end`
+          window.location.href = samsungIntent
+        }, 500)
+        
+        // 最終フォールバック
+        setTimeout(() => {
+          window.location.href = url
+        }, 1000)
+      } else {
         window.location.href = url
-      }, 1000)
+      }
       return
     }
     
@@ -103,13 +131,20 @@ export function WebViewRedirectModal({
                   <div className="flex items-start gap-3">
                     <Smartphone className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
                     <div>
-                      <h4 className="font-semibold text-blue-900 text-sm mb-1">
+                      <h4 className="font-semibold text-blue-900 text-sm mb-2">
                         推奨：デフォルトブラウザーで開く
                       </h4>
-                      <p className="text-blue-700 text-xs leading-relaxed">
+                      <p className="text-blue-700 text-xs leading-relaxed mb-2">
                         SafariやChromeなどの標準ブラウザーで開くことで、
                         Googleログインやその他の機能が正常に動作します。
                       </p>
+                      <div className="bg-white rounded p-2 mt-2">
+                        <p className="text-blue-800 text-xs font-medium mb-1">手動での開き方：</p>
+                        <p className="text-blue-700 text-xs">
+                          1. 右上の「...」メニューをタップ<br/>
+                          2. 「ブラウザで開く」または「Safariで開く」を選択
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </div>
