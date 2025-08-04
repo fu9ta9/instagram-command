@@ -23,7 +23,7 @@ export function useWebViewLogin() {
     // WebView検出
     const isWebView = detectWebView()
     
-    if (!isWebView) {
+    if (isWebView) {
       // WebViewの場合は誘導モーダルを表示
       setShowWebViewModal(true)
       return { showModal: true, callbackUrl }
