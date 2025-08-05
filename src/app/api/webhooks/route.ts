@@ -70,17 +70,27 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: 'DM reply sent successfully' }, { status: 200 });
     } else if (isPostbackMessage(webhookData)) {
       // ポストバック受信時の処理
-      const reply = await findMatchingReplyForPostback(webhookData);
-      if (!reply) {
-        return NextResponse.json({ message: 'No matching reply found for postback' }, { status: 200 });
+      await safeLogError(`ポストバック受信: ${JSON.stringify(webhookData, null, 2)}`);
+      
+      try {
+        const reply = await findMatchingReplyForPostback(webhookData);
+        if (!reply) {
+          await safeLogError('ポストバック: マッチする返信が見つかりません');
+          return NextResponse.json({ message: 'No matching reply found for postback' }, { status: 200 });
+        }
+        
+        await safeLogError(`ポストバック返信発見: ${JSON.stringify({ replyId: reply.id, keyword: reply.keyword })}`);
+        
+        // ポストバック返信を送信
+        await sendReplyToPostback(webhookData, reply);
+        // 送信統計を更新
+        await updateSentCount(reply.id);
+        
+        return NextResponse.json({ message: 'Postback reply sent successfully' }, { status: 200 });
+      } catch (postbackError) {
+        await safeLogError(`ポストバック処理エラー: ${postbackError instanceof Error ? postbackError.message : String(postbackError)}`);
+        throw postbackError;
       }
-      
-      // ポストバック返信を送信
-      await sendReplyToPostback(webhookData, reply);
-      // 送信統計を更新
-      await updateSentCount(reply.id);
-      
-      return NextResponse.json({ message: 'Postback reply sent successfully' }, { status: 200 });
     } else if (isCommentMessage(webhookData)) {
       // コメントの処理（既存のロジック）
       const reply = await findMatchingReply(webhookData);
@@ -601,13 +611,29 @@ async function findMatchingReplyForPostback(webhookData: any) {
   const payload = webhookData.entry[0].messaging[0].postback.payload;
   const recipientId = webhookData.entry[0].messaging[0].recipient.id;
 
+  await safeLogError(`ポストバック検索パラメータ: payload=${payload}, recipientId=${recipientId}`);
+
   try {
-    // recipientIdからIGAccountを取得し、関連するreplyを検索
+    // 1. まずrecipientIdでIGAccountを検索（webhookIdとinstagramIdの両方で検索）
+    const igAccount = await prisma.iGAccount.findFirst({
+      where: {
+        OR: [
+          { webhookId: recipientId },
+          { instagramId: recipientId }
+        ]
+      }
+    });
+
+    await safeLogError(`IGAccount検索結果: ${igAccount ? `found id=${igAccount.id}` : 'not found'}`);
+
+    if (!igAccount) {
+      return null;
+    }
+
+    // 2. そのIGAccountに紐づくreplyでpayloadマッチング
     const replies = await prisma.reply.findMany({
       where: {
-        igAccount: {
-          webhookId: recipientId
-        },
+        igAccountId: igAccount.id,
         keyword: payload // payloadをkeywordとして使用
       },
       include: {
@@ -616,6 +642,11 @@ async function findMatchingReplyForPostback(webhookData: any) {
       },
       orderBy: { createdAt: 'desc' }
     });
+
+    await safeLogError(`返信検索結果: ${replies.length}件見つかりました`);
+    if (replies.length > 0) {
+      await safeLogError(`マッチした返信: id=${replies[0].id}, keyword=${replies[0].keyword}`);
+    }
 
     // 最初にマッチした返信を返す
     return replies.length > 0 ? replies[0] : null;
