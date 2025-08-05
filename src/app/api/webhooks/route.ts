@@ -226,7 +226,7 @@ async function sendReplyToDM(
     let response: any;
     let responseData: any;
 
-    if (reply.messageType === 'template' && reply.posts?.length > 0) {
+    if (reply.messageType === 'template' && reply.posts && reply.posts.length > 0) {
       // Post選択Template送信
 
       responseData = await sendPostTemplate(instagramId, senderId, reply.posts, accessToken);
