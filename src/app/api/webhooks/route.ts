@@ -40,9 +40,17 @@ export async function GET(request: Request) {
 
 // コメント受信用のPOSTエンドポイント
 export async function POST(request: Request) {
+  const requestId = Date.now().toString(); // リクエストID生成
+  
   try {
     const webhookData = await request.json();
 
+    // リクエストヘッダーも記録
+    const headers = Object.fromEntries(request.headers.entries());
+    await safeLogError(`🎯 [${requestId}] Webhook受信 - Headers: ${JSON.stringify(headers, null, 2)}`);
+    
+    // 受信したWebhookデータを全てログに記録
+    await safeLogError(`🎯 [${requestId}] Webhook受信データ: ${JSON.stringify(webhookData, null, 2)}`);
 
     // エコーメッセージのチェック
     if (isEchoMessage(webhookData)) {
@@ -70,25 +78,26 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: 'DM reply sent successfully' }, { status: 200 });
     } else if (isPostbackMessage(webhookData)) {
       // ポストバック受信時の処理
-      await safeLogError(`ポストバック受信: ${JSON.stringify(webhookData, null, 2)}`);
+      await safeLogError(`🎯 [${requestId}] ポストバック検出`);
       
       try {
         const reply = await findMatchingReplyForPostback(webhookData);
         if (!reply) {
-          await safeLogError('ポストバック: マッチする返信が見つかりません');
+          await safeLogError(`❌ [${requestId}] ポストバック: マッチする返信が見つかりません`);
           return NextResponse.json({ message: 'No matching reply found for postback' }, { status: 200 });
         }
         
-        await safeLogError(`ポストバック返信発見: ${JSON.stringify({ replyId: reply.id, keyword: reply.keyword })}`);
+        await safeLogError(`✅ [${requestId}] ポストバック返信発見: ${JSON.stringify({ replyId: reply.id, keyword: reply.keyword })}`);
         
         // ポストバック返信を送信
         await sendReplyToPostback(webhookData, reply);
         // 送信統計を更新
         await updateSentCount(reply.id);
         
+        await safeLogError(`🎉 [${requestId}] ポストバック処理完了`);
         return NextResponse.json({ message: 'Postback reply sent successfully' }, { status: 200 });
       } catch (postbackError) {
-        await safeLogError(`ポストバック処理エラー: ${postbackError instanceof Error ? postbackError.message : String(postbackError)}`);
+        await safeLogError(`💥 [${requestId}] ポストバック処理エラー: ${postbackError instanceof Error ? postbackError.message : String(postbackError)}`);
         throw postbackError;
       }
     } else if (isCommentMessage(webhookData)) {
@@ -638,6 +647,7 @@ async function findMatchingReplyForPostback(webhookData: any) {
       },
       include: {
         buttons: true,
+        posts: true, // Post選択Template用
         igAccount: true
       },
       orderBy: { createdAt: 'desc' }
@@ -645,7 +655,8 @@ async function findMatchingReplyForPostback(webhookData: any) {
 
     await safeLogError(`返信検索結果: ${replies.length}件見つかりました`);
     if (replies.length > 0) {
-      await safeLogError(`マッチした返信: id=${replies[0].id}, keyword=${replies[0].keyword}`);
+      const reply = replies[0];
+      await safeLogError(`マッチした返信: id=${reply.id}, keyword=${reply.keyword}, messageType=${reply.messageType}, postsCount=${reply.posts?.length || 0}`);
     }
 
     // 最初にマッチした返信を返す
@@ -661,7 +672,9 @@ async function sendReplyToPostback(
   webhookData: any,
   reply: {
     reply: string;
+    messageType?: string;
     buttons?: any[];
+    posts?: any[];
     igAccount?: IGAccount;
   }
 ) {
@@ -677,22 +690,41 @@ async function sendReplyToPostback(
     const instagramId = reply.igAccount.instagramId;
     const accessToken = reply.igAccount.accessToken;
 
-    // メッセージデータを作成
-    const messageData = createMessageData(senderId, reply.reply, reply.buttons || []);
+    // メッセージタイプに応じて送信方法を分岐
+    let response: any;
+    let responseData: any;
 
-    // Instagram APIで返信を送信
-    const response = await fetch(
-      `https://graph.instagram.com/v22.0/${instagramId}/messages?access_token=${accessToken}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(messageData)
+    if (reply.messageType === 'template' && reply.posts && reply.posts.length > 0) {
+      // Post選択Template送信
+      await safeLogError(`ポストバック: Post選択Template送信 - ${reply.posts.length}件の投稿`);
+
+      responseData = await sendPostTemplate(instagramId, senderId, reply.posts, accessToken);
+      response = { ok: true, status: 200 }; // sendPostTemplate内でエラーハンドリング済み
+    } else {
+      // 既存のテキスト/ボタン送信
+      if (!reply.reply || reply.reply.trim() === '') {
+        await safeLogError(`ポストバック返信テキストが空です: "${reply.reply}"`);
+        throw new Error('返信テキストが空です');
       }
-    );
+
+      const messageData = createMessageData(senderId, reply.reply, reply.buttons || []);
+      await safeLogError(`ポストバック: テキスト送信 - "${reply.reply}"`);
+
+      // Instagram APIで返信を送信
+      response = await fetch(
+        `https://graph.instagram.com/v22.0/${instagramId}/messages?access_token=${accessToken}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(messageData)
+        }
+      );
+
+      responseData = await response.json();
+    }
 
     if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(`ポストバック返信送信に失敗: ${JSON.stringify(errorData)}`);
+      throw new Error(`ポストバック返信送信に失敗: ${JSON.stringify(responseData)}`);
     }
 
     // 成功ログを記録
