@@ -16,7 +16,7 @@ import {
   Clock,
   ArrowRight
 } from "lucide-react";
-// import Link from "next/link";
+import Link from "next/link";
 import { useSession, signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import LandingHeader from "@/components/landing/LandingHeader";

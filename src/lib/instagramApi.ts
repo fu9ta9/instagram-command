@@ -1,3 +1,5 @@
+import { Post } from '@/types/reply';
+
 interface ButtonParam {
   title: string;
   url: string;
@@ -43,6 +45,101 @@ export async function sendInstagramReply(
     if (!response.ok) {
       const error = await response.json();
       throw new Error(`Instagram API error: ${JSON.stringify(error)}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    throw error;
+  }
+}
+
+// 投稿メディア情報を取得する関数
+async function getPostMediaInfo(postId: string, accessToken: string) {
+  try {
+    const response = await fetch(
+      `https://graph.instagram.com/v20.0/${postId}?fields=media_url,thumbnail_url,permalink,media_type,media_product_type&access_token=${accessToken}`
+    );
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch media info for post ${postId}`);
+    }
+
+    const data = await response.json();
+    
+    // フィード/リール判別に基づいて適切な画像URLを選択
+    let imageUrl;
+    if (data.media_type === 'VIDEO') {
+      // VIDEOの場合はthumbnail_urlを使用（リール含む）
+      imageUrl = data.thumbnail_url;
+    } else {
+      // IMAGE, CAROUSEL_ALBUMの場合はmedia_urlを使用（フィード）
+      imageUrl = data.media_url;
+    }
+    
+    return {
+      imageUrl: imageUrl || data.media_url || data.thumbnail_url,
+      permalink: data.permalink
+    };
+  } catch (error) {
+    console.error(`Error fetching media info for post ${postId}:`, error);
+    return {
+      imageUrl: null,
+      permalink: `https://instagram.com/p/${postId}/`
+    };
+  }
+}
+
+// Post選択Template送信関数
+export async function sendPostTemplate(
+  instagramId: string,
+  recipientId: string,
+  posts: Post[],
+  accessToken: string
+) {
+  try {
+    // 各投稿のメディア情報を並行取得
+    const mediaInfoPromises = posts.map(post => 
+      getPostMediaInfo(post.postId, accessToken)
+    );
+    const mediaInfos = await Promise.all(mediaInfoPromises);
+
+    const payload = {
+      recipient: { id: recipientId },
+      message: {
+        attachment: {
+          type: "template",
+          payload: {
+            template_type: "generic",
+            elements: posts.map((post, index) => ({
+              title: post.title,
+              image_url: mediaInfos[index].imageUrl,
+              buttons: [
+                {
+                  type: "web_url",
+                  url: mediaInfos[index].permalink,
+                  title: "投稿を見る"
+                }
+              ]
+            }))
+          }
+        }
+      }
+    };
+
+    const url = `https://graph.instagram.com/v20.0/${instagramId}/messages`;
+    
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${accessToken}`
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(`Instagram Post Template API error: ${JSON.stringify(error)}`);
     }
 
     return await response.json();

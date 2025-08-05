@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getRandomReplyTemplate } from '@/constants/replyTemplates'
+import { sendPostTemplate } from '@/lib/instagramApi'
 
 // エラーログを安全に記録する関数
 async function safeLogError(message: string) {
@@ -67,6 +68,19 @@ export async function POST(request: Request) {
       await updateSentCount(reply.id);
       
       return NextResponse.json({ message: 'DM reply sent successfully' }, { status: 200 });
+    } else if (isPostbackMessage(webhookData)) {
+      // ポストバック受信時の処理
+      const reply = await findMatchingReplyForPostback(webhookData);
+      if (!reply) {
+        return NextResponse.json({ message: 'No matching reply found for postback' }, { status: 200 });
+      }
+      
+      // ポストバック返信を送信
+      await sendReplyToPostback(webhookData, reply);
+      // 送信統計を更新
+      await updateSentCount(reply.id);
+      
+      return NextResponse.json({ message: 'Postback reply sent successfully' }, { status: 200 });
     } else if (isCommentMessage(webhookData)) {
       // コメントの処理（既存のロジック）
       const reply = await findMatchingReply(webhookData);
@@ -123,6 +137,11 @@ function isCommentMessage(webhookData: any): boolean {
   return webhookData.entry?.[0]?.changes?.[0]?.value?.text !== undefined;
 }
 
+// ポストバックメッセージかどうかを判定
+function isPostbackMessage(webhookData: any): boolean {
+  return webhookData.entry?.[0]?.messaging?.[0]?.postback?.payload !== undefined;
+}
+
 // LIVEコメントメッセージかどうかを判定
 function isLiveCommentMessage(webhookData: any): boolean {
   return webhookData.field === 'live_comments' && webhookData.value?.text !== undefined;
@@ -132,6 +151,8 @@ function isLiveCommentMessage(webhookData: any): boolean {
 async function findMatchingReplyForDM(webhookData: any) {
   const messageText = webhookData.entry[0].messaging[0].message.text;
   const recipientId = webhookData.entry[0].messaging[0].recipient.id;
+  const senderId = webhookData.entry[0].messaging[0].sender.id;
+
 
   try {
     // 1つのクエリでwebhookIdからIGAccountとその返信を取得
@@ -147,16 +168,21 @@ async function findMatchingReplyForDM(webhookData: any) {
       },
       include: {
         buttons: true,
+        posts: true,
         igAccount: true
       },
       orderBy: { replyType: 'asc' }
     });
 
+
     // IGAccountが見つからない場合（repliesが空の場合）
-    if (replies.length === 0) return null;
+    if (replies.length === 0) {
+      return null;
+    }
 
     // JSでキーワード一致判定
     for (const reply of replies) {
+
       if (reply.matchType === 1 && reply.keyword === messageText) {
         return reply; // 完全一致
       }
@@ -176,8 +202,11 @@ async function findMatchingReplyForDM(webhookData: any) {
 async function sendReplyToDM(
   webhookData: any,
   reply: {
+    id?: number;
     reply: string;
+    messageType?: string;
     buttons?: any[];
+    posts?: any[];
     igAccount?: IGAccount;
   }
 ) {
@@ -193,22 +222,34 @@ async function sendReplyToDM(
     const instagramId = reply.igAccount.instagramId;
     const accessToken = reply.igAccount.accessToken;
 
-    // メッセージデータを作成
-    const messageData = createMessageData(senderId, reply.reply, reply.buttons || []);
+    // メッセージタイプに応じて送信方法を分岐
+    let response: any;
+    let responseData: any;
 
-    // Instagram APIで返信を送信
-    const response = await fetch(
-      `https://graph.instagram.com/v22.0/${instagramId}/messages?access_token=${accessToken}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(messageData)
-      }
-    );
+    if (reply.messageType === 'template' && reply.posts?.length > 0) {
+      // Post選択Template送信
+
+      responseData = await sendPostTemplate(instagramId, senderId, reply.posts, accessToken);
+      response = { ok: true, status: 200 }; // sendPostTemplate内でエラーハンドリング済み
+    } else {
+      // 既存のテキスト/ボタン送信
+      const messageData = createMessageData(senderId, reply.reply, reply.buttons || []);
+
+      // Instagram APIで返信を送信
+      response = await fetch(
+        `https://graph.instagram.com/v22.0/${instagramId}/messages?access_token=${accessToken}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(messageData)
+        }
+      );
+
+      responseData = await response.json();
+    }
 
     if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(`DM返信送信に失敗: ${JSON.stringify(errorData)}`);
+      throw new Error(`DM返信送信に失敗: ${JSON.stringify(responseData)}`);
     }
   } catch (error) {
     await safeLogError(`DM返信送信エラー: ${error instanceof Error ? error.message : String(error)}`);
@@ -220,6 +261,8 @@ async function findMatchingReply(webhookData: any) {
   const commentData = webhookData.entry[0].changes[0].value
   const commentText = commentData.text
   const mediaId = commentData.media.id
+  const commenterId = commentData.from.id
+  const commenterUsername = commentData.from.username
 
   try {
     // SPECIFIC_POST優先、なければALL_POSTS
@@ -232,6 +275,7 @@ async function findMatchingReply(webhookData: any) {
       },
       include: {
         buttons: true,
+        posts: true,
         igAccount: {
           select: {
             instagramId: true,
@@ -242,15 +286,20 @@ async function findMatchingReply(webhookData: any) {
       orderBy: { replyType: 'asc' } // SPECIFIC_POST優先
     })
 
+
     if (!reply) {
       return null
     }
 
     // JSで判定
-    if (reply.matchType === 1 && reply.keyword === commentText) {
+    const isExactMatch = reply.matchType === 1 && reply.keyword === commentText;
+    const isPartialMatch = reply.matchType === 2 && commentText.includes(reply.keyword);
+
+
+    if (isExactMatch) {
       return reply // 完全一致
     }
-    if (reply.matchType === 2 && commentText.includes(reply.keyword)) {
+    if (isPartialMatch) {
       return reply // 部分一致
     }
 
@@ -340,6 +389,7 @@ async function sendReplyToComment(
   const commentData = webhookData.entry[0].changes[0].value
   const commenterId = commentData.from.id
 
+
   try {
     // igAccountの存在確認と型ガード
     if (!reply.igAccount?.instagramId || !reply.igAccount?.accessToken) {
@@ -353,6 +403,7 @@ async function sendReplyToComment(
     // メッセージデータを作成
     const messageData = createMessageData(commenterId, reply.reply, reply.buttons || [])
 
+
     // Instagram APIで返信を送信
     const response = await fetch(
       `https://graph.instagram.com/v22.0/${instagramId}/messages?access_token=${accessToken}`,
@@ -363,10 +414,13 @@ async function sendReplyToComment(
       }
     )
 
+    const responseData = await response.json();
+
+
     if (!response.ok) {
-      const errorData = await response.json()
-      throw new Error(`返信送信に失敗: ${JSON.stringify(errorData)}`)
+      throw new Error(`返信送信に失敗: ${JSON.stringify(responseData)}`)
     }
+
 
     // DM送信成功後、コメント返信が有効な場合のみコメントに返信
     if (reply.commentReplyEnabled) {
@@ -416,6 +470,9 @@ async function sendDirectReplyToComment(
 // LIVEコメント用の返信検索
 async function findMatchingReplyForLive(webhookData: any) {
   const commentText = webhookData.value.text;
+  const commenterId = webhookData.value.from.id;
+  const commenterUsername = webhookData.value.from.username;
+
 
   try {
     // LIVEコメント用の返信を検索
@@ -429,11 +486,15 @@ async function findMatchingReplyForLive(webhookData: any) {
       }
     });
 
+
     // IGAccountが見つからない場合（repliesが空の場合）
-    if (replies.length === 0) return null;
+    if (replies.length === 0) {
+      return null;
+    }
 
     // JSでキーワード一致判定
     for (const reply of replies) {
+
       if (reply.matchType === 1 && reply.keyword === commentText) {
         return reply; // 完全一致
       }
@@ -459,6 +520,7 @@ async function sendReplyToLiveComment(
   }
 ) {
   const commenterId = webhookData.value.from.id;
+
 
   try {
     // igAccountの存在確認と型ガード
@@ -488,7 +550,7 @@ async function sendReplyToLiveComment(
       throw new Error(`LIVE返信送信に失敗: ${JSON.stringify(errorData)}`);
     }
   } catch (error) {
-    await safeLogError(`LIVE返信送信エラー: ${error instanceof Error ? error.message : String(error)}`);
+    await safeLogError(`既読メッセージ処理エラー: ${error instanceof Error ? error.message : String(error)}`);
     throw error;
   }
 }
@@ -531,6 +593,86 @@ async function updateReadCount(replyId: number) {
     });
   } catch (error) {
     await safeLogError(`既読統計更新エラー: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
+
+// ポストバック用の返信検索
+async function findMatchingReplyForPostback(webhookData: any) {
+  const payload = webhookData.entry[0].messaging[0].postback.payload;
+  const recipientId = webhookData.entry[0].messaging[0].recipient.id;
+
+  try {
+    // recipientIdからIGAccountを取得し、関連するreplyを検索
+    const replies = await prisma.reply.findMany({
+      where: {
+        igAccount: {
+          webhookId: recipientId
+        },
+        keyword: payload // payloadをkeywordとして使用
+      },
+      include: {
+        buttons: true,
+        igAccount: true
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    // 最初にマッチした返信を返す
+    return replies.length > 0 ? replies[0] : null;
+  } catch (error) {
+    await safeLogError(`ポストバック返信検索エラー: ${error instanceof Error ? error.message : String(error)}`);
+    throw error;
+  }
+}
+
+// ポストバック返信送信関数
+async function sendReplyToPostback(
+  webhookData: any,
+  reply: {
+    reply: string;
+    buttons?: any[];
+    igAccount?: IGAccount;
+  }
+) {
+  const senderId = webhookData.entry[0].messaging[0].sender.id;
+
+  try {
+    // igAccountの存在確認と型ガード
+    if (!reply.igAccount?.instagramId || !reply.igAccount?.accessToken) {
+      throw new Error('Instagram アカウント情報が不足しています');
+    }
+
+    // igAccountのデータを使用
+    const instagramId = reply.igAccount.instagramId;
+    const accessToken = reply.igAccount.accessToken;
+
+    // メッセージデータを作成
+    const messageData = createMessageData(senderId, reply.reply, reply.buttons || []);
+
+    // Instagram APIで返信を送信
+    const response = await fetch(
+      `https://graph.instagram.com/v22.0/${instagramId}/messages?access_token=${accessToken}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(messageData)
+      }
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(`ポストバック返信送信に失敗: ${JSON.stringify(errorData)}`);
+    }
+
+    // 成功ログを記録
+    await prisma.executionLog.create({
+      data: {
+        errorMessage: `ポストバック返信送信成功 - Payload: ${webhookData.entry[0].messaging[0].postback.payload}, User: ${senderId}`
+      }
+    });
+  } catch (error) {
+    await safeLogError(`ポストバック返信送信エラー: ${error instanceof Error ? error.message : String(error)}`);
+    throw error;
   }
 }
 

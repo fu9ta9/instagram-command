@@ -14,12 +14,14 @@ export interface Reply {
   replyType: number;
   matchType: number;
   commentReplyEnabled: boolean;
+  messageType: 'text' | 'template';
   buttons?: {
     id: number;
     title: string;
     url: string;
     order: number;
   }[];
+  posts?: Post[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -29,9 +31,14 @@ export interface ReplyFormData {
   reply: string;
   matchType: MatchType;
   commentReplyEnabled: boolean;
+  messageType: 'text' | 'template';
   buttons?: {
     title: string;
     url: string;
+  }[];
+  posts?: {
+    title: string;
+    postId: string;
   }[];
   postId?: string;
 }
@@ -41,6 +48,14 @@ export interface Button {
   title: string;
   url: string;
   order?: number;
+  replyId?: number;
+}
+
+export interface Post {
+  id?: number;
+  title: string;
+  postId: string;
+  order: number;
   replyId?: number;
 }
 

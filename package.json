@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "cp .env.local .env && next dev",
+    "dev:all": "concurrently \"npm run dev\" \"npm run prisma:studio\"",
     "dev:test": "APP_ENV=test next dev",
     "test:e2e": "playwright test",
     "dev:docker": "cp .env.docker .env && next dev",
@@ -62,6 +63,7 @@
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
+    "concurrently": "^9.2.0",
     "dotenv-cli": "^8.0.0",
     "eslint": "^8",
     "eslint-config-next": "14.2.5",
