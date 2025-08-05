@@ -56,12 +56,13 @@ export async function sendInstagramReply(
 // 投稿メディア情報を取得する関数
 async function getPostMediaInfo(postId: string, accessToken: string) {
   try {
-    const response = await fetch(
-      `https://graph.instagram.com/v20.0/${postId}?fields=media_url,thumbnail_url,permalink,media_type,media_product_type&access_token=${accessToken}`
-    );
+    const url = `https://graph.instagram.com/v20.0/${postId}?fields=media_url,thumbnail_url,permalink,media_type,media_product_type&access_token=${accessToken}`;
+    
+    const response = await fetch(url);
 
     if (!response.ok) {
-      throw new Error(`Failed to fetch media info for post ${postId}`);
+      const errorData = await response.json();
+      throw new Error(`Failed to fetch media info for post ${postId}: ${JSON.stringify(errorData)}`);
     }
 
     const data = await response.json();
@@ -69,22 +70,21 @@ async function getPostMediaInfo(postId: string, accessToken: string) {
     // フィード/リール判別に基づいて適切な画像URLを選択
     let imageUrl;
     if (data.media_type === 'VIDEO') {
-      // VIDEOの場合はthumbnail_urlを使用（リール含む）
       imageUrl = data.thumbnail_url;
     } else {
-      // IMAGE, CAROUSEL_ALBUMの場合はmedia_urlを使用（フィード）
       imageUrl = data.media_url;
     }
     
     return {
       imageUrl: imageUrl || data.media_url || data.thumbnail_url,
-      permalink: data.permalink
+      permalink: data.permalink,
+      mediaType: data.media_type
     };
   } catch (error) {
-    console.error(`Error fetching media info for post ${postId}:`, error);
     return {
       imageUrl: null,
-      permalink: `https://instagram.com/p/${postId}/`
+      permalink: `https://instagram.com/p/${postId}/`,
+      mediaType: 'IMAGE' // デフォルト値
     };
   }
 }
@@ -103,6 +103,18 @@ export async function sendPostTemplate(
     );
     const mediaInfos = await Promise.all(mediaInfoPromises);
 
+    const elements = posts.map((post, index) => ({
+      title: post.title,
+      image_url: mediaInfos[index].imageUrl,
+      buttons: [
+        {
+          type: "web_url",
+          url: mediaInfos[index].permalink,
+          title: mediaInfos[index].mediaType === 'VIDEO' ? "リールを見る" : "投稿を見る"
+        }
+      ]
+    }));
+
     const payload = {
       recipient: { id: recipientId },
       message: {
@@ -110,17 +122,7 @@ export async function sendPostTemplate(
           type: "template",
           payload: {
             template_type: "generic",
-            elements: posts.map((post, index) => ({
-              title: post.title,
-              image_url: mediaInfos[index].imageUrl,
-              buttons: [
-                {
-                  type: "web_url",
-                  url: mediaInfos[index].permalink,
-                  title: "投稿を見る"
-                }
-              ]
-            }))
+            elements
           }
         }
       }
