@@ -178,16 +178,6 @@ export default function InstagramPostAnalyzer({ isLoggedIn }: InstagramPostAnaly
       // 通常の投稿取得（25件まで）
       const result = await fetchPosts(newAccount.id)
       const fetchedPosts = result.posts || []
-      
-      // いいね数が多い投稿の投稿IDをコンソールに出力
-      if (sortBy === 'likes' && fetchedPosts.length > 0) {
-        console.log('📊 いいね数順でソートされた投稿ID一覧:')
-        fetchedPosts.forEach((post, index) => {
-          console.log(`${index + 1}位: ID=${post.id}, いいね数=${post.likes}, URL=${post.permalink}`)
-        })
-        console.log('トップ3の投稿ID:', fetchedPosts.slice(0, 3).map(p => p.id))
-      }
-      
       setPosts(fetchedPosts)
       setAllPostsData(fetchedPosts)
       // アカウント情報を更新（APIからの追加情報があれば）
@@ -234,14 +224,6 @@ export default function InstagramPostAnalyzer({ isLoggedIn }: InstagramPostAnaly
     try {
       const sortedPosts = sortPosts(posts, newSortBy)
       
-      // いいね数順でソートした場合の投稿IDをコンソールに出力
-      if (newSortBy === 'likes' && sortedPosts.length > 0) {
-        console.log('📊 ソート変更 - いいね数順でソートされた投稿ID一覧:')
-        sortedPosts.forEach((post, index) => {
-          console.log(`${index + 1}位: ID=${post.id}, いいね数=${post.likes}, URL=${post.permalink}`)
-        })
-        console.log('トップ3の投稿ID:', sortedPosts.slice(0, 3).map(p => p.id))
-      }
       
       setPosts(sortedPosts)
       const sortedAllPosts = sortPosts(allPostsData, newSortBy)
@@ -313,16 +295,6 @@ export default function InstagramPostAnalyzer({ isLoggedIn }: InstagramPostAnaly
     fetchPosts(account.id)
       .then(result => {
         const fetchedPosts = result.posts || []
-        
-        // いいね数が多い投稿の投稿IDをコンソールに出力
-        if (sortBy === 'likes' && fetchedPosts.length > 0) {
-          console.log('📊 いいね数順でソートされた投稿ID一覧:')
-          fetchedPosts.forEach((post, index) => {
-            console.log(`${index + 1}位: ID=${post.id}, いいね数=${post.likes}, URL=${post.permalink}`)
-          })
-          console.log('トップ3の投稿ID:', fetchedPosts.slice(0, 3).map(p => p.id))
-        }
-        
         setPosts(fetchedPosts)
         setAllPostsData(fetchedPosts)
         

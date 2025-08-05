@@ -47,10 +47,6 @@ export async function POST(request: Request) {
 
     // リクエストヘッダーも記録
     const headers = Object.fromEntries(request.headers.entries());
-    await safeLogError(`🎯 [${requestId}] Webhook受信 - Headers: ${JSON.stringify(headers, null, 2)}`);
-    
-    // 受信したWebhookデータを全てログに記録
-    await safeLogError(`🎯 [${requestId}] Webhook受信データ: ${JSON.stringify(webhookData, null, 2)}`);
 
     // エコーメッセージのチェック
     if (isEchoMessage(webhookData)) {
@@ -76,25 +72,16 @@ export async function POST(request: Request) {
       await updateSentCount(reply.id);
       
       return NextResponse.json({ message: 'DM reply sent successfully' }, { status: 200 });
-    } else if (isPostbackMessage(webhookData)) {
-      // ポストバック受信時の処理
-      await safeLogError(`🎯 [${requestId}] ポストバック検出`);
-      
+    } else if (isPostbackMessage(webhookData)) {      
       try {
         const reply = await findMatchingReplyForPostback(webhookData);
         if (!reply) {
-          await safeLogError(`❌ [${requestId}] ポストバック: マッチする返信が見つかりません`);
           return NextResponse.json({ message: 'No matching reply found for postback' }, { status: 200 });
         }
-        
-        await safeLogError(`✅ [${requestId}] ポストバック返信発見: ${JSON.stringify({ replyId: reply.id, keyword: reply.keyword })}`);
-        
         // ポストバック返信を送信
         await sendReplyToPostback(webhookData, reply);
         // 送信統計を更新
         await updateSentCount(reply.id);
-        
-        await safeLogError(`🎉 [${requestId}] ポストバック処理完了`);
         return NextResponse.json({ message: 'Postback reply sent successfully' }, { status: 200 });
       } catch (postbackError) {
         await safeLogError(`💥 [${requestId}] ポストバック処理エラー: ${postbackError instanceof Error ? postbackError.message : String(postbackError)}`);
@@ -620,8 +607,6 @@ async function findMatchingReplyForPostback(webhookData: any) {
   const payload = webhookData.entry[0].messaging[0].postback.payload;
   const recipientId = webhookData.entry[0].messaging[0].recipient.id;
 
-  await safeLogError(`ポストバック検索パラメータ: payload=${payload}, recipientId=${recipientId}`);
-
   try {
     // 1. まずrecipientIdでIGAccountを検索（webhookIdとinstagramIdの両方で検索）
     const igAccount = await prisma.iGAccount.findFirst({
@@ -632,8 +617,6 @@ async function findMatchingReplyForPostback(webhookData: any) {
         ]
       }
     });
-
-    await safeLogError(`IGAccount検索結果: ${igAccount ? `found id=${igAccount.id}` : 'not found'}`);
 
     if (!igAccount) {
       return null;
@@ -652,11 +635,8 @@ async function findMatchingReplyForPostback(webhookData: any) {
       },
       orderBy: { createdAt: 'desc' }
     });
-
-    await safeLogError(`返信検索結果: ${replies.length}件見つかりました`);
     if (replies.length > 0) {
       const reply = replies[0];
-      await safeLogError(`マッチした返信: id=${reply.id}, keyword=${reply.keyword}, messageType=${reply.messageType}, postsCount=${reply.posts?.length || 0}`);
     }
 
     // 最初にマッチした返信を返す
@@ -695,20 +675,15 @@ async function sendReplyToPostback(
     let responseData: any;
 
     if (reply.messageType === 'template' && reply.posts && reply.posts.length > 0) {
-      // Post選択Template送信
-      await safeLogError(`ポストバック: Post選択Template送信 - ${reply.posts.length}件の投稿`);
-
       responseData = await sendPostTemplate(instagramId, senderId, reply.posts, accessToken);
       response = { ok: true, status: 200 }; // sendPostTemplate内でエラーハンドリング済み
     } else {
       // 既存のテキスト/ボタン送信
       if (!reply.reply || reply.reply.trim() === '') {
-        await safeLogError(`ポストバック返信テキストが空です: "${reply.reply}"`);
         throw new Error('返信テキストが空です');
       }
 
       const messageData = createMessageData(senderId, reply.reply, reply.buttons || []);
-      await safeLogError(`ポストバック: テキスト送信 - "${reply.reply}"`);
 
       // Instagram APIで返信を送信
       response = await fetch(
@@ -727,12 +702,6 @@ async function sendReplyToPostback(
       throw new Error(`ポストバック返信送信に失敗: ${JSON.stringify(responseData)}`);
     }
 
-    // 成功ログを記録
-    await prisma.executionLog.create({
-      data: {
-        errorMessage: `ポストバック返信送信成功 - Payload: ${webhookData.entry[0].messaging[0].postback.payload}, User: ${senderId}`
-      }
-    });
   } catch (error) {
     await safeLogError(`ポストバック返信送信エラー: ${error instanceof Error ? error.message : String(error)}`);
     throw error;
@@ -790,12 +759,6 @@ async function handleSeenMessage(webhookData: any) {
       }
     }
 
-    // 既読情報をログに記録
-    await prisma.executionLog.create({
-      data: {
-        errorMessage: `Message read - User: ${senderId}, Account: ${recipientId}, MessageID: ${messageId || 'unknown'}`
-      }
-    });
   } catch (error) {
     await safeLogError(`既読メッセージ処理エラー: ${error instanceof Error ? error.message : String(error)}`);
     throw error;
