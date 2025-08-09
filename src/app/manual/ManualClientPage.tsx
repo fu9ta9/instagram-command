@@ -80,13 +80,13 @@ export default function ManualClientPage({ images }: { images: ManualImages }) {
   const imgs = images[selected][mode];
   const swiperRef = useRef<any>(null);
 
-  // 画像の事前読み込み
+  // 画像の事前読み込み - より積極的に読み込み
   useEffect(() => {
     const preloadImages = async () => {
       const currentImages = images[selected][mode];
-      const imagesToPreload = currentImages.slice(0, 3); // 最初の3枚を事前読み込み
       
-      imagesToPreload.forEach((img) => {
+      // 現在のセクションの全画像を読み込み
+      currentImages.forEach((img, index) => {
         if (!preloadedImages.has(img.src)) {
           const imageElement = new window.Image();
           imageElement.onload = () => {
@@ -276,9 +276,9 @@ export default function ManualClientPage({ images }: { images: ManualImages }) {
                 imgs.map((img, idx) => (
                   <SwiperSlide key={img.src}>
                     {mode === "pc" ? (
-                      <div className="flex justify-center items-center bg-gray-50 dark:bg-gray-800 rounded-lg p-4 relative" style={{ minHeight: '500px' }}>
+                      <div className="flex justify-center items-center bg-white dark:bg-gray-900 rounded-lg p-4 relative" style={{ minHeight: '500px' }}>
                         {imageLoadingStates[img.src] && (
-                          <div className="absolute inset-0 flex items-center justify-center bg-gray-100 dark:bg-gray-700 rounded-lg">
+                          <div className="absolute inset-0 flex items-center justify-center bg-white dark:bg-gray-900 rounded-lg">
                             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
                           </div>
                         )}
@@ -287,10 +287,10 @@ export default function ManualClientPage({ images }: { images: ManualImages }) {
                           alt={img.alt || `${section.title}の画像${idx+1}`}
                           width={800}
                           height={500}
-                          className="rounded-lg border shadow-sm object-contain max-h-[500px]"
+                          className="rounded-lg border shadow-sm object-contain max-h-[500px] bg-white"
                           priority={idx === 0}
-                          loading={idx === 0 ? "eager" : "lazy"}
-                          quality={85}
+                          loading={idx < 3 ? "eager" : "lazy"}
+                          quality={90}
                           onLoadingComplete={() => handleImageLoad(img.src)}
                           onLoadStart={() => handleImageLoadStart(img.src)}
                           placeholder="blur"
@@ -298,21 +298,21 @@ export default function ManualClientPage({ images }: { images: ManualImages }) {
                         />
                       </div>
                     ) : (
-                      <div className="flex justify-center items-center bg-gray-50 dark:bg-gray-800 rounded-lg p-4 relative" style={{ minHeight: '600px' }}>
+                      <div className="flex justify-center items-center bg-white dark:bg-gray-900 rounded-lg p-4 relative" style={{ minHeight: '600px' }}>
                         {imageLoadingStates[img.src] && (
-                          <div className="absolute inset-0 flex items-center justify-center bg-gray-100 dark:bg-gray-700 rounded-lg">
+                          <div className="absolute inset-0 flex items-center justify-center bg-white dark:bg-gray-900 rounded-lg">
                             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
                           </div>
                         )}
-                        <div className="relative w-full max-w-[350px] aspect-[9/16]">
+                        <div className="relative w-full max-w-[350px] aspect-[9/16] bg-white rounded-lg">
                           <Image
                             src={img.src}
                             alt={img.alt || `${section.title}の画像${idx+1}`}
                             fill
-                            className="rounded-lg border shadow-sm object-contain"
+                            className="rounded-lg border shadow-sm object-contain bg-white"
                             priority={idx === 0}
-                            loading={idx === 0 ? "eager" : "lazy"}
-                            quality={85}
+                            loading={idx < 3 ? "eager" : "lazy"}
+                            quality={90}
                             onLoadingComplete={() => handleImageLoad(img.src)}
                             onLoadStart={() => handleImageLoadStart(img.src)}
                             placeholder="blur"

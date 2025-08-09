@@ -2,6 +2,7 @@ import { Inter } from 'next/font/google'
 import './globals.css'
 import { AuthProvider } from '@/components/AuthProvider'
 import ClientLayout from '@/components/ClientLayout'
+import ManualFloatButton from '@/components/ManualFloatButton'
 import { cn } from '@/lib/utils'
 import { Analytics } from '@vercel/analytics/react'
 import { SpeedInsights } from "@vercel/speed-insights/next"
@@ -20,6 +21,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <ClientLayout>
             {children}
           </ClientLayout>
+          <ManualFloatButton />
         </AuthProvider>
         <Analytics />
         <SpeedInsights />
