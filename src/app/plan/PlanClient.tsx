@@ -58,7 +58,7 @@ const getPlanCards = (membership: UserMembership | null) => {
 }
 
 export default function PlanClient() {
-  const { data: session } = useSession()
+  const { data: session, status: sessionStatus } = useSession()
   const [membership, setMembership] = useState<UserMembership | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isUpgrading, setIsUpgrading] = useState(false)
@@ -66,32 +66,46 @@ export default function PlanClient() {
   const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false)
 
   useEffect(() => {
+    const isTestEnv = process.env.NEXT_PUBLIC_APP_ENV === 'test'
+    
+    // セッションの読み込み中は待機
+    if (sessionStatus === 'loading') {
+      return
+    }
+    
+    // テスト環境では常にデータを取得
+    if (isTestEnv) {
+      fetchMembership()
+      return
+    }
+    
     if (session?.user?.id) {
       fetchMembership()
+    } else {
+      // セッションがない場合はローディングを終了
+      setIsLoading(false)
     }
-  }, [session?.user?.id])
+  }, [session?.user?.id, sessionStatus])
 
   const fetchMembership = async () => {
+    setIsLoading(true)
     try {
-      // まずexpire-trialを呼び出して、必要ならFREEに戻す
-      if (session?.user?.id) {
-        await fetch('/api/membership/expire-trial', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ userId: session.user.id }),
-        })
-      }
-      // その後、最新のmembership情報を取得
-      const response = await fetch(`/api/membership/${session?.user?.id}`)
+      // 統合されたユーザーステータスAPIを使用（期限チェックも含む）
+      const response = await fetch('/api/user/status')
+      
       if (response.ok) {
         const data = await response.json()
         setMembership({
-          type: data.membershipType,
-          trialStartDate: data.trialStartDate ? new Date(data.trialStartDate) : null,
-          stripeSubscriptionId: data.stripeSubscriptionId,
-          stripeCurrentPeriodEnd: data.stripeCurrentPeriodEnd ? new Date(data.stripeCurrentPeriodEnd) : null,
-          status: data.status
+          type: data.membership.type,
+          trialStartDate: data.membership.trialStartDate ? new Date(data.membership.trialStartDate) : null,
+          stripeSubscriptionId: data.subscription?.subscriptionId || null,
+          stripeCurrentPeriodEnd: data.subscription?.currentPeriodEnd ? new Date(data.subscription.currentPeriodEnd) : null,
+          status: data.subscription?.status || null
         })
+      } else {
+        console.error('API request failed:', response.status, response.statusText)
+        const errorText = await response.text()
+        console.error('Error response:', errorText)
       }
     } catch (error) {
       console.error('Error fetching membership:', error)

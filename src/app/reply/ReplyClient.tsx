@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import ReplyList from '@/components/ReplyList'
 import ReplyRegistrationModal from '@/components/ReplyRegistrationModal'
-import ReplyReportModal from '@/components/ReplyReportModal'
 import { Button } from '@/components/ui/button'
 import { PlusIcon, Loader2, Grid3X3, CircleUser, Radio } from 'lucide-react'
 import { Reply, ReplyInput, ReplyFormData } from '@/types/reply'
@@ -37,8 +36,6 @@ export default function ReplyClient() {
   const [activeTab, setActiveTab] = useState<TabType>('post')
   const [storyReplies, setStoryReplies] = useState<Reply[]>([])
   const [liveReplies, setLiveReplies] = useState<Reply[]>([])
-  const [reportModalOpen, setReportModalOpen] = useState(false)
-  const [selectedReply, setSelectedReply] = useState<Reply | null>(null)
   const {
     membershipType,
     isLoading: isMembershipLoading
@@ -66,12 +63,16 @@ export default function ReplyClient() {
 
   // 返信一覧を取得
   useEffect(() => {
-    const shouldFetch = status === 'authenticated' || (process.env.NODE_ENV === 'development')
-    if (shouldFetch) {
-      fetchReplies()
-    } else if (status === 'loading') {
+    const isTestEnv = process.env.NEXT_PUBLIC_APP_ENV === 'test'
+    const shouldFetch = status === 'authenticated' || isTestEnv || (process.env.NODE_ENV === 'development')
+    
+    if (status === 'loading') {
       // セッション読み込み中は待機
       return
+    }
+    
+    if (shouldFetch) {
+      fetchReplies()
     } else {
       // セッションなしまたはエラーの場合もローディング終了
       setIsLoading(false)
@@ -149,10 +150,6 @@ export default function ReplyClient() {
     }
   }
 
-  const handleReport = (reply: Reply) => {
-    setSelectedReply(reply)
-    setReportModalOpen(true)
-  }
 
   const handleSaveReply = async (data: ReplyInput | Omit<Reply, "id">) => {
     try {
@@ -218,7 +215,10 @@ export default function ReplyClient() {
     }
   };
 
-  if (isLoading) {
+  // 新規登録ボタンは会員ステータスが取得できたら表示
+  const showNewButton = !isMembershipLoading && membershipType !== null
+
+  if (isLoading && !showNewButton) {
     return (
       <div className="flex justify-center items-center h-64">
         <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
@@ -269,48 +269,58 @@ export default function ReplyClient() {
         </div>
       </div>
 
-      <div className="flex justify-start mb-6">
-        {membershipType === 'FREE' ? (
-          <div className="flex flex-col gap-2 w-full">
+      {/* 新規登録ボタンエリア - 会員ステータス取得後に早期表示 */}
+      {showNewButton && (
+        <div className="flex justify-start mb-6">
+          {membershipType === 'FREE' ? (
+            <div className="flex flex-col gap-2 w-full">
+              <Button
+                onClick={() => router.push('/plan')}
+                className="flex items-center bg-blue-500 hover:bg-blue-600 text-white w-56"
+              >
+                会員をアップグレード
+              </Button>
+              {!isLoading && currentReplies.length > 0 ? (
+                <div className="mt-2 p-3 bg-yellow-100 border border-yellow-300 text-yellow-800 rounded text-sm w-full">
+                  無料会員の場合、登録済みの返信文は自動返信されません。有料プランにアップグレードしてください。
+                </div>
+              ) : !isLoading ? (
+                <div className="mt-2 p-3 bg-blue-50 border border-blue-200 text-blue-800 rounded text-sm w-full">
+                  自動返信は有料会員の機能です。有料プランにアップグレードしてください。
+                </div>
+              ) : null}
+            </div>
+          ) : (
             <Button
-              onClick={() => router.push('/plan')}
-              className="flex items-center bg-blue-500 hover:bg-blue-600 text-white w-56"
+              onClick={handleOpenModal}
+              className="flex items-center gap-2"
+              disabled={isMembershipLoading}
             >
-              会員をアップグレード
+              <PlusIcon className="h-4 w-4" />
+              {activeTab === 'post' 
+                ? '新規登録（フィード/リール用）' 
+                : activeTab === 'story'
+                ? '新規登録（ストーリー用）'
+                : '新規登録（LIVE用）'
+              }
             </Button>
-            {currentReplies.length > 0 ? (
-              <div className="mt-2 p-3 bg-yellow-100 border border-yellow-300 text-yellow-800 rounded text-sm w-full">
-                無料会員の場合、登録済みの返信文は自動返信されません。有料プランにアップグレードしてください。
-              </div>
-            ) : (
-              <div className="mt-2 p-3 bg-blue-50 border border-blue-200 text-blue-800 rounded text-sm w-full">
-                自動返信は有料会員の機能です。有料プランにアップグレードしてください。
-              </div>
-            )}
-          </div>
-        ) : (
-          <Button
-            onClick={handleOpenModal}
-            className="flex items-center gap-2"
-            disabled={isMembershipLoading}
-          >
-            <PlusIcon className="h-4 w-4" />
-            {activeTab === 'post' 
-              ? '新規登録（フィード/リール用）' 
-              : activeTab === 'story'
-              ? '新規登録（ストーリー用）'
-              : '新規登録（LIVE用）'
-            }
-          </Button>
-        )}
-      </div>
+          )}
+        </div>
+      )}
 
-      <ReplyList
-        replies={currentReplies}
-        onEdit={handleEdit}
-        onDelete={handleDelete}
-        onReport={handleReport}
-      />
+      {/* 返信一覧 - データ取得完了後に表示 */}
+      {isLoading ? (
+        <div className="flex justify-center items-center h-32">
+          <Loader2 className="h-6 w-6 animate-spin text-blue-500" />
+          <span className="ml-2 text-gray-600">自動返信データを読み込み中...</span>
+        </div>
+      ) : (
+        <ReplyList
+          replies={currentReplies}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
+        />
+      )}
 
       <ReplyRegistrationModal
         isOpen={isModalOpen}
@@ -321,11 +331,6 @@ export default function ReplyClient() {
         isStoryMode={activeTab === 'story' || activeTab === 'live'}
       />
 
-      <ReplyReportModal
-        open={reportModalOpen}
-        onOpenChange={setReportModalOpen}
-        reply={selectedReply}
-      />
     </div>
   )
 } 

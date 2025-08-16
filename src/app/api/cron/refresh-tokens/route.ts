@@ -17,12 +17,15 @@ async function safeLogError(message: string) {
 }
 
 export async function GET(request: Request) {
+  // Cronジョブ実行IDを生成
+  const jobId = `cron_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  
   try {
     // Vercel Cronからのリクエスト認証
     const authHeader = headers().get('authorization');
     if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-      await safeLogError('Cron job: 認証失敗 - 不正なアクセス');
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      await safeLogError(`[${jobId}] Cron job: 認証失敗 - 不正なアクセス`);
+      return NextResponse.json({ error: 'Unauthorized', jobId }, { status: 401 });
     }
 
     // 40日以内に期限切れとなるアカウントを取得
@@ -50,6 +53,7 @@ export async function GET(request: Request) {
     });
 
     const results = {
+      jobId,
       timestamp: new Date().toISOString(),
       total: accountsToRefresh.length,
       success: 0,
@@ -57,7 +61,7 @@ export async function GET(request: Request) {
       errors: [] as Array<{ userId: string, username: string, error: string }>
     };
 
-    await safeLogError(`Cron job開始: ${results.total}件のアカウントを処理予定`);
+    await safeLogError(`[${jobId}] Cron job開始: ${results.total}件のアカウントを処理予定`);
 
     // 各アカウントのトークンを更新
     for (const account of accountsToRefresh) {

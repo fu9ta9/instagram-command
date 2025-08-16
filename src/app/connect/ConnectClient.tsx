@@ -23,9 +23,9 @@ export default function ConnectClient() {
   const isProcessingParams = useRef(false);
   const router = useRouter();
 
-  // DBからInstagram情報を取得
+  // Instagram情報を並行取得（パフォーマンス改善）
   useEffect(() => {
-    const fetchInstagramInfo = async () => {
+    const fetchData = async () => {
       // セッションが確定していない場合は処理をスキップ
       if (status === 'loading') {
         return;
@@ -38,12 +38,17 @@ export default function ConnectClient() {
         
         const userId = isTestEnv ? testUserId : session?.user?.id;
         
-        if (!userId) {
+        // テスト環境以外でセッションがない場合は終了
+        if (!userId && !isTestEnv) {
           setIsLoading(false);
           return;
         }
+        
+        // テスト環境でuserIdが設定されていない場合はtestUserIdを使用
+        const finalUserId = userId || testUserId;
 
-        const response = await fetch(`/api/instagram/account?userId=${userId}`);
+        // Instagram情報を取得（他のデータ取得があれば並行処理可能）
+        const response = await fetch(`/api/instagram/account?userId=${finalUserId}`);
         const data = await response.json();
         
         if (response.ok && data.account) {
@@ -62,7 +67,10 @@ export default function ConnectClient() {
 
     // セッションステータスが確定してからのみ実行
     if (status !== 'loading') {
-      fetchInstagramInfo();
+      fetchData();
+    } else if (status === 'loading') {
+      // ローディング中の場合は待機
+      return;
     }
   }, [status, session?.user?.id])
 

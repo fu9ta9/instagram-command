@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Reply } from '@/types/reply';
 import { Button } from "@/components/ui/button";
-import { Pencil, Trash2, ImageIcon, BarChart3 } from 'lucide-react';
+import { Pencil, Trash2, ImageIcon, Send } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -18,14 +18,18 @@ interface ReplyListProps {
   replies: Reply[];
   onEdit: (reply: Reply) => void;
   onDelete: (id: string) => void;
-  onReport?: (reply: Reply) => void;
 }
 
-const ReplyList: React.FC<ReplyListProps> = ({ replies, onEdit, onDelete, onReport }) => {
+interface ReplyStats {
+  sentCount: number;
+}
+
+const ReplyList: React.FC<ReplyListProps> = ({ replies, onEdit, onDelete }) => {
   const [mediaUrls, setMediaUrls] = useState<Record<string, string>>({});
   const [loadingImages, setLoadingImages] = useState<Record<string, boolean>>({});
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [replyToDelete, setReplyToDelete] = useState<string | null>(null);
+  const [replyStats, setReplyStats] = useState<Record<number, ReplyStats>>({});
 
   useEffect(() => {
     const fetchMediaUrls = async () => {
@@ -63,6 +67,36 @@ const ReplyList: React.FC<ReplyListProps> = ({ replies, onEdit, onDelete, onRepo
     fetchMediaUrls();
   }, [replies]);
 
+  // 統計データを取得
+  useEffect(() => {
+    const fetchStatsData = async () => {
+      const statsPromises = replies.map(async (reply) => {
+        try {
+          const response = await fetch(`/api/replies/${reply.id}/stats`);
+          if (response.ok) {
+            const stats = await response.json();
+            return { replyId: reply.id, stats };
+          }
+        } catch (error) {
+          console.error(`Failed to fetch stats for reply ${reply.id}:`, error);
+        }
+        return { replyId: reply.id, stats: { sentCount: 0 } };
+      });
+
+      const results = await Promise.all(statsPromises);
+      const statsMap = results.reduce((acc, { replyId, stats }) => {
+        acc[replyId] = stats;
+        return acc;
+      }, {} as Record<number, ReplyStats>);
+
+      setReplyStats(statsMap);
+    };
+
+    if (replies.length > 0) {
+      fetchStatsData();
+    }
+  }, [replies]);
+
   const handleEdit = (reply: Reply) => {
     onEdit(reply);
   };
@@ -92,19 +126,17 @@ const ReplyList: React.FC<ReplyListProps> = ({ replies, onEdit, onDelete, onRepo
                 <div className="flex-1 min-w-0">
                   <span className="block text-xs text-gray-500">キーワード：</span>
                   <span className="block text-sm text-gray-900 break-words max-w-full">{reply.keyword}</span>
+                  {/* SP用統計情報表示 */}
+                  {replyStats[reply.id] && (
+                    <div className="mt-1 flex gap-3 text-xs">
+                      <div className="flex items-center gap-1 text-blue-600">
+                        <Send className="h-3 w-3" />
+                        <span>送信: {replyStats[reply.id].sentCount}</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
                 <div className="flex gap-2 ml-4 flex-shrink-0">
-                  {onReport && (
-                    <Button
-                      onClick={() => onReport(reply)}
-                      variant="outline"
-                      size="icon"
-                      className="hover:border-green-500 hover:text-green-500 transition-colors"
-                      title="レポートを見る"
-                    >
-                      <BarChart3 className="h-4 w-4" />
-                    </Button>
-                  )}
                   <Button
                     onClick={() => onEdit(reply)}
                     variant="outline"
@@ -173,20 +205,18 @@ const ReplyList: React.FC<ReplyListProps> = ({ replies, onEdit, onDelete, onRepo
                         </div>
                       </div>
                     )}
+                    {/* 統計情報表示 */}
+                    {replyStats[reply.id] && (
+                      <div className="mt-2 flex gap-4 text-sm">
+                        <div className="flex items-center gap-1 text-blue-600">
+                          <Send className="h-4 w-4" />
+                          <span>送信: {replyStats[reply.id].sentCount}</span>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div className="flex gap-2 ml-4 flex-shrink-0">
-                  {onReport && (
-                    <Button
-                      onClick={() => onReport(reply)}
-                      variant="outline"
-                      size="icon"
-                      className="hover:border-green-500 hover:text-green-500 transition-colors"
-                      title="レポートを見る"
-                    >
-                      <BarChart3 className="h-4 w-4" />
-                    </Button>
-                  )}
                   <Button
                     onClick={() => onEdit(reply)}
                     variant="outline"
