@@ -22,6 +22,10 @@ export interface Reply {
     order: number;
   }[];
   posts?: Post[];
+  stats?: {
+    sentCount: number;
+    readCount: number;
+  };
   createdAt: Date;
   updatedAt: Date;
 }

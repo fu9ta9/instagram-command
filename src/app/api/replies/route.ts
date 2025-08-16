@@ -136,7 +136,8 @@ export async function GET(request: NextRequest) {
           orderBy: {
             order: 'asc'
           }
-        }
+        },
+        stats: true
       },
       orderBy: {
         createdAt: 'desc'

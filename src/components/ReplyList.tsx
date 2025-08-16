@@ -20,17 +20,11 @@ interface ReplyListProps {
   onDelete: (id: string) => void;
 }
 
-interface ReplyStats {
-  sentCount: number;
-}
-
 const ReplyList: React.FC<ReplyListProps> = ({ replies, onEdit, onDelete }) => {
   const [mediaUrls, setMediaUrls] = useState<Record<string, string>>({});
   const [loadingImages, setLoadingImages] = useState<Record<string, boolean>>({});
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [replyToDelete, setReplyToDelete] = useState<string | null>(null);
-  const [replyStats, setReplyStats] = useState<Record<number, ReplyStats>>({});
-
   useEffect(() => {
     const fetchMediaUrls = async () => {
       const uniquePostIds = replies
@@ -67,36 +61,6 @@ const ReplyList: React.FC<ReplyListProps> = ({ replies, onEdit, onDelete }) => {
     fetchMediaUrls();
   }, [replies]);
 
-  // 統計データを取得
-  useEffect(() => {
-    const fetchStatsData = async () => {
-      const statsPromises = replies.map(async (reply) => {
-        try {
-          const response = await fetch(`/api/replies/${reply.id}/stats`);
-          if (response.ok) {
-            const stats = await response.json();
-            return { replyId: reply.id, stats };
-          }
-        } catch (error) {
-          console.error(`Failed to fetch stats for reply ${reply.id}:`, error);
-        }
-        return { replyId: reply.id, stats: { sentCount: 0 } };
-      });
-
-      const results = await Promise.all(statsPromises);
-      const statsMap = results.reduce((acc, { replyId, stats }) => {
-        acc[replyId] = stats;
-        return acc;
-      }, {} as Record<number, ReplyStats>);
-
-      setReplyStats(statsMap);
-    };
-
-    if (replies.length > 0) {
-      fetchStatsData();
-    }
-  }, [replies]);
-
   const handleEdit = (reply: Reply) => {
     onEdit(reply);
   };
@@ -127,11 +91,11 @@ const ReplyList: React.FC<ReplyListProps> = ({ replies, onEdit, onDelete }) => {
                   <span className="block text-xs text-gray-500">キーワード：</span>
                   <span className="block text-sm text-gray-900 break-words max-w-full">{reply.keyword}</span>
                   {/* SP用統計情報表示 */}
-                  {replyStats[reply.id] && (
+                  {reply.stats && (
                     <div className="mt-1 flex gap-3 text-xs">
                       <div className="flex items-center gap-1 text-blue-600">
                         <Send className="h-3 w-3" />
-                        <span>送信: {replyStats[reply.id].sentCount}</span>
+                        <span>送信: {reply.stats.sentCount}</span>
                       </div>
                     </div>
                   )}
@@ -206,11 +170,11 @@ const ReplyList: React.FC<ReplyListProps> = ({ replies, onEdit, onDelete }) => {
                       </div>
                     )}
                     {/* 統計情報表示 */}
-                    {replyStats[reply.id] && (
+                    {reply.stats && (
                       <div className="mt-2 flex gap-4 text-sm">
                         <div className="flex items-center gap-1 text-blue-600">
                           <Send className="h-4 w-4" />
-                          <span>送信: {replyStats[reply.id].sentCount}</span>
+                          <span>送信: {reply.stats.sentCount}</span>
                         </div>
                       </div>
                     )}
