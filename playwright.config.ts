@@ -30,24 +30,56 @@ export default defineConfig({
 
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
+
+    /* Google認証用のブラウザ設定 */
+    userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    
+    /* Google認証対応のブラウザ引数 */
+    launchOptions: {
+      args: [
+        '--disable-blink-features=AutomationControlled', // 最重要: 自動化検出を無効化
+        '--disable-web-security',
+        '--disable-features=VizDisplayCompositor',
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-notifications',
+        '--disable-gpu',
+        '--deterministic-fetch',
+        '--disable-features=IsolateOrigins,site-per-process',
+        '--disable-site-isolation-trials'
+      ],
+      ignoreDefaultArgs: ['--enable-automation'] // 自動化フラグを除去
+    }
   },
 
   /* Configure projects for major browsers */
   projects: [
+    // 認証セットアップ
+    {
+      name: 'setup',
+      testMatch: /.*\.setup\.ts/,
+    },
+    
+    // 認証済み状態でのテスト
     {
       name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
+      use: { 
+        ...devices['Desktop Chrome'],
+        storageState: './tests/auth/user.json', // 認証状態を再利用
+      },
+      dependencies: ['setup'], // セットアップ後に実行
     },
 
-    {
-      name: 'firefox',
-      use: { ...devices['Desktop Firefox'] },
-    },
+    // Firefox and WebKitを無効化してChromeのみで実行
+    // {
+    //   name: 'firefox',
+    //   use: { ...devices['Desktop Firefox'] },
+    // },
 
-    {
-      name: 'webkit',
-      use: { ...devices['Desktop Safari'] },
-    },
+    // {
+    //   name: 'webkit',
+    //   use: { ...devices['Desktop Safari'] },
+    // },
 
     /* Test against mobile viewports. */
     // {

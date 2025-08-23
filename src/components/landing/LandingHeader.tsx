@@ -116,8 +116,8 @@ const LandingHeader = () => {
           >
             ログイン
           </Button>
-          <Button onClick={handleAuth}>
-            無料で始める
+          <Button onClick={handleAuth} className="text-sm px-3 py-2">
+            今すぐ開始
           </Button>
         </motion.div>
       </nav>
