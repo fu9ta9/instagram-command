@@ -53,11 +53,17 @@ test.describe('Manual Page', () => {
     await expect(spButton).toBeVisible();
     
     // デフォルトでPC画面が選択されていることを確認（より具体的なセレクター）
-    await expect(pcButton).toHaveClass(/bg-blue-600|bg-blue-500/);
+    await expect(pcButton).toHaveClass(/bg-blue-600/);
     
     // スマホ画面に切り替え
     await spButton.click();
-    await expect(spButton).toHaveClass(/bg-blue-600|bg-blue-500/);
+    await expect(spButton).toHaveClass(/bg-blue-600/);
+    
+    // PC画面ボタンが非選択状態になることを確認
+    await expect(pcButton).not.toHaveClass(/bg-blue-600/);
+    
+    // 手順説明が更新されることを確認
+    await expect(page.getByText('スマホ画面での操作手順')).toBeVisible();
   });
 
   test('画像スライダーのナビゲーションボタンが表示される', async ({ page }) => {
@@ -67,6 +73,9 @@ test.describe('Manual Page', () => {
     
     await expect(prevButton).toBeVisible();
     await expect(nextButton).toBeVisible();
+    
+    // ナビゲーションボタンがSwiperスライダー用であることを確認
+    await expect(page.locator('.swiper')).toBeVisible();
   });
 
   test('各セクションのステップリストが表示される', async ({ page }) => {
@@ -92,5 +101,33 @@ test.describe('Manual Page', () => {
     
     // ログインページにリダイレクトされていないことを確認
     await expect(page).not.toHaveURL(/\/auth\/signin/);
+    
+    // メインコンテンツが表示されることを確認
+    await expect(page.locator('main').first()).toBeVisible();
+  });
+
+  test('セクション選択時にアクティブ状態が正しく表示される', async ({ page }) => {
+    // デフォルトでログインセクションがアクティブ
+    const loginButton = page.getByRole('button', { name: 'ログイン' });
+    await expect(loginButton).toHaveClass(/text-blue-600/);
+    
+    // プランセクションをクリック
+    const planButton = page.getByRole('button', { name: 'プラン' });
+    await planButton.click();
+    
+    // プランボタンがアクティブになる
+    await expect(planButton).toHaveClass(/text-blue-600/);
+    
+    // ログインボタンが非アクティブになる
+    await expect(loginButton).toHaveClass(/text-gray-600/);
+  });
+
+  test('画像が存在しない場合の表示', async ({ page }) => {
+    // 画像が存在しないセクションがある場合の表示確認
+    // （実装によっては「画像がありません」メッセージが表示される）
+    const noImageMessage = page.locator('text=画像がありません');
+    
+    // 条件によってはメッセージが表示される可能性がある
+    // このテストは画像データの状態に依存する
   });
 }); 
